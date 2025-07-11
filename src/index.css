@@ -1,96 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Obrol.AI Design System - Modern SaaS Chatbot Platform */
 
 @layer base {
   :root {
+    /* Core Brand Colors - Professional Blue Theme */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    --foreground: 215 25% 15%;
+    
+    /* Primary Blue - Obrol.AI Brand */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 98%;
+    --primary-light: 217 91% 70%;
+    --primary-dark: 217 91% 50%;
+    
+    /* Secondary Colors */
+    --secondary: 220 15% 97%;
+    --secondary-foreground: 215 25% 15%;
+    
+    /* Status Colors */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+    --danger: 0 84% 60%;
+    --danger-foreground: 0 0% 98%;
+    
+    /* Neutral Colors */
+    --muted: 220 15% 97%;
+    --muted-foreground: 215 15% 50%;
+    --accent: 217 32% 17%;
+    --accent-foreground: 0 0% 98%;
+    
+    /* Chat Channel Colors */
+    --whatsapp: 142 70% 49%;
+    --instagram: 316 73% 52%;
+    --facebook: 221 83% 53%;
+    --tiktok: 348 83% 47%;
+    
+    /* UI Elements */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 215 25% 15%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 70%));
+    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 71% 55%));
+    --gradient-dashboard: linear-gradient(180deg, hsl(217 91% 60% / 0.05), transparent);
+    
+    /* Shadows */
+    --shadow-primary: 0 4px 20px hsl(217 91% 60% / 0.15);
+    --shadow-card: 0 1px 3px hsl(215 25% 15% / 0.1);
+    --shadow-lg: 0 10px 40px hsl(215 25% 15% / 0.1);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --popover-foreground: 215 25% 15%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 217 32% 17%;
+    --foreground: 0 0% 98%;
+    
+    --primary: 217 91% 70%;
+    --primary-foreground: 217 32% 17%;
+    --primary-light: 217 91% 80%;
+    --primary-dark: 217 91% 40%;
+    
+    --secondary: 217 32% 22%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --success: 142 71% 55%;
+    --warning: 38 92% 60%;
+    --danger: 0 84% 70%;
+    
+    --muted: 217 32% 22%;
+    --muted-foreground: 215 15% 70%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 217 32% 17%;
+    
+    --card: 217 32% 19%;
+    --card-foreground: 0 0% 98%;
+    --border: 217 32% 25%;
+    --input: 217 32% 25%;
+    --ring: 217 91% 60%;
+    
+    --popover: 217 32% 19%;
+    --popover-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
   }
 }
 
@@ -100,6 +110,72 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+}
+
+@layer components {
+  /* Channel Status Indicators */
+  .channel-whatsapp {
+    @apply bg-green-500;
+  }
+  
+  .channel-instagram {
+    @apply bg-pink-500;
+  }
+  
+  .channel-facebook {
+    @apply bg-blue-600;
+  }
+  
+  .channel-tiktok {
+    @apply bg-black;
+  }
+  
+  /* Custom Animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-4px); }
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 5px hsl(var(--primary) / 0.5); }
+    50% { box-shadow: 0 0 20px hsl(var(--primary) / 0.8); }
+  }
+  
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  
+  /* Glass morphism effect */
+  .glass {
+    @apply backdrop-blur-md bg-white/10 border border-white/20;
+  }
+  
+  /* Gradient backgrounds */
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .bg-gradient-success {
+    background: var(--gradient-success);
+  }
+  
+  .bg-gradient-dashboard {
+    background: var(--gradient-dashboard);
   }
 }
