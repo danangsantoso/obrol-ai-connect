@@ -14,16 +14,197 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      affiliate_commissions: {
+        Row: {
+          affiliate_id: string
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          id: string
+          order_amount: number
+          order_id: string
+          paid_at: string | null
+          status: string
+        }
+        Insert: {
+          affiliate_id: string
+          commission_amount: number
+          commission_rate: number
+          created_at?: string
+          id?: string
+          order_amount: number
+          order_id: string
+          paid_at?: string | null
+          status?: string
+        }
+        Update: {
+          affiliate_id?: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          order_amount?: number
+          order_id?: string
+          paid_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_commissions_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_links: {
+        Row: {
+          affiliate_id: string
+          clicks: number
+          conversions: number
+          created_at: string
+          id: string
+          link_url: string
+          product_id: string
+        }
+        Insert: {
+          affiliate_id: string
+          clicks?: number
+          conversions?: number
+          created_at?: string
+          id?: string
+          link_url: string
+          product_id: string
+        }
+        Update: {
+          affiliate_id?: string
+          clicks?: number
+          conversions?: number
+          created_at?: string
+          id?: string
+          link_url?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_links_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates: {
+        Row: {
+          affiliate_code: string
+          bank_account: string | null
+          bank_holder_name: string | null
+          bank_name: string | null
+          commission_rate: number
+          created_at: string
+          id: string
+          master_affiliate_id: string | null
+          status: Database["public"]["Enums"]["affiliate_status"]
+          total_earnings: number
+          total_referrals: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          affiliate_code: string
+          bank_account?: string | null
+          bank_holder_name?: string | null
+          bank_name?: string | null
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          master_affiliate_id?: string | null
+          status?: Database["public"]["Enums"]["affiliate_status"]
+          total_earnings?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          affiliate_code?: string
+          bank_account?: string | null
+          bank_holder_name?: string | null
+          bank_name?: string | null
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          master_affiliate_id?: string | null
+          status?: Database["public"]["Enums"]["affiliate_status"]
+          total_earnings?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliates_master_affiliate_id_fkey"
+            columns: ["master_affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_affiliate_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      affiliate_status: "pending" | "active" | "suspended" | "rejected"
+      user_role: "admin" | "master_affiliate" | "affiliate" | "customer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +331,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      affiliate_status: ["pending", "active", "suspended", "rejected"],
+      user_role: ["admin", "master_affiliate", "affiliate", "customer"],
+    },
   },
 } as const

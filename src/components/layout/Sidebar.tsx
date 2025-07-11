@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   LayoutDashboard, 
   MessageSquare, 
@@ -14,8 +15,11 @@ import {
   BarChart3,
   Settings,
   Menu,
-  X
+  X,
+  UserCheck,
+  LogOut
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -25,6 +29,7 @@ const navigation = [
   { name: "Broadcast", href: "/broadcast", icon: Send },
   { name: "Kontak & Label", href: "/contacts", icon: Tags },
   { name: "Produk", href: "/products", icon: Package },
+  { name: "Affiliate", href: "/affiliate", icon: UserCheck },
   { name: "Auto Funnel", href: "/funnel", icon: GitBranch },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Pengaturan", href: "/settings", icon: Settings },
@@ -33,6 +38,11 @@ const navigation = [
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
+  const { profile, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <div className={cn(
@@ -93,17 +103,34 @@ export function Sidebar() {
       </nav>
 
       {/* User Info */}
-      {!isCollapsed && (
-        <div className="p-4 border-t border-border">
+      {!isCollapsed && profile && (
+        <div className="p-4 border-t border-border space-y-3">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-xs font-medium text-primary-foreground">A</span>
-            </div>
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={profile.avatar_url} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                {profile.full_name?.charAt(0)?.toUpperCase() || profile.email.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">Admin</p>
-              <p className="text-xs text-muted-foreground truncate">admin@obrol.ai</p>
+              <p className="text-sm font-medium text-foreground truncate">
+                {profile.full_name || 'User'}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                {profile.role}
+              </span>
             </div>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleSignOut}
+            className="w-full"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Keluar
+          </Button>
         </div>
       )}
     </div>
