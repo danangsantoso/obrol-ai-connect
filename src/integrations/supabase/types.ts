@@ -159,6 +159,174 @@ export type Database = {
           },
         ]
       }
+      ai_knowledge_base: {
+        Row: {
+          answer: string
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          question?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_base_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_training_data: {
+        Row: {
+          answer: string
+          category: string | null
+          confidence_score: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_verified: boolean | null
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_verified?: boolean | null
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_verified?: boolean | null
+          question?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_training_data_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_sessions: {
+        Row: {
+          assigned_agent_id: string | null
+          created_at: string
+          customer_name: string | null
+          id: string
+          is_ai_active: boolean | null
+          last_message_at: string | null
+          platform: string
+          status: string
+          updated_at: string
+          user_id: string
+          whatsapp_phone: string
+        }
+        Insert: {
+          assigned_agent_id?: string | null
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          is_ai_active?: boolean | null
+          last_message_at?: string | null
+          platform?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          whatsapp_phone: string
+        }
+        Update: {
+          assigned_agent_id?: string | null
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          is_ai_active?: boolean | null
+          last_message_at?: string | null
+          platform?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp_phone?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message_text: string
+          metadata: Json | null
+          sender_type: string
+          session_id: string
+          whatsapp_message_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message_text: string
+          metadata?: Json | null
+          sender_type: string
+          session_id: string
+          whatsapp_message_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message_text?: string
+          metadata?: Json | null
+          sender_type?: string
+          session_id?: string
+          whatsapp_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -191,6 +359,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      whatsapp_settings: {
+        Row: {
+          access_token: string | null
+          business_account_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          phone_number_id: string | null
+          updated_at: string
+          user_id: string
+          verify_token: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          business_account_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          phone_number_id?: string | null
+          updated_at?: string
+          user_id: string
+          verify_token?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          business_account_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          phone_number_id?: string | null
+          updated_at?: string
+          user_id?: string
+          verify_token?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
