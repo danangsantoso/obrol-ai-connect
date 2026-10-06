@@ -4,23 +4,23 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Obrol.AI Design System - Modern SaaS Chatbot Platform */
+/* Balas.id design system - primary blue #2563EB */
 
 @layer base {
   :root {
-    /* Core Brand Colors - Professional Blue Theme */
+    /* Core brand colors */
     --background: 0 0% 100%;
-    --foreground: 215 25% 15%;
+    --foreground: 222 47% 11%;
     
-    /* Primary Blue - Obrol.AI Brand */
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 98%;
-    --primary-light: 217 91% 70%;
-    --primary-dark: 217 91% 50%;
+    /* Primary blue - Balas.id brand (#2563EB, dark #1D4ED8, light #EFF6FF) */
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 214 100% 97%;
+    --primary-dark: 224 76% 48%;
     
     /* Secondary Colors */
     --secondary: 220 15% 97%;
-    --secondary-foreground: 215 25% 15%;
+    --secondary-foreground: 222 47% 11%;
     
     /* Status Colors */
     --success: 142 71% 45%;
@@ -32,9 +32,9 @@
     
     /* Neutral Colors */
     --muted: 220 15% 97%;
-    --muted-foreground: 215 15% 50%;
-    --accent: 217 32% 17%;
-    --accent-foreground: 0 0% 98%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 100% 97%;
+    --accent-foreground: 224 76% 48%;
     
     /* Chat Channel Colors */
     --whatsapp: 142 70% 49%;
@@ -44,18 +44,18 @@
     
     /* UI Elements */
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card-foreground: 222 47% 11%;
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 217 91% 60%;
+    --ring: 221 83% 53%;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 70%));
+    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(224 76% 48%));
     --gradient-success: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 71% 55%));
-    --gradient-dashboard: linear-gradient(180deg, hsl(217 91% 60% / 0.05), transparent);
+    --gradient-dashboard: linear-gradient(180deg, hsl(221 83% 53% / 0.05), transparent);
     
     /* Shadows */
-    --shadow-primary: 0 4px 20px hsl(217 91% 60% / 0.15);
+    --shadow-primary: 0 4px 20px hsl(221 83% 53% / 0.15);
     --shadow-card: 0 1px 3px hsl(215 25% 15% / 0.1);
     --shadow-lg: 0 10px 40px hsl(215 25% 15% / 0.1);
     
@@ -64,7 +64,7 @@
     --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --radius: 0.75rem;

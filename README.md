@@ -1,73 +1,50 @@
-# Welcome to your Lovable project
+# Balas.id
 
-## Project info
+Satu nomor WhatsApp untuk seluruh tim CS. Pesan pelanggan masuk ke inbox bersama, dibagi ke agen, dan seluruh percakapan tercatat di sistem.
 
-**URL**: https://lovable.dev/projects/764c4460-fa6e-4c28-8393-534e91883530
+- **Inbox bersama realtime**: tab Antrean, Saya, Semua, dan Selesai, ditambah pencarian nama, nomor, dan isi pesan.
+- **Satu chat, satu pemilik**: agen mengambil chat (klaim atomik), memindahkan ke agen atau tim lain dengan catatan, dan mengubah status Open/Pending/Resolved.
+- **Aturan WhatsApp 24 jam**: sisa waktu jendela layanan ditampilkan. Di luar jendela itu, balasan hanya bisa lewat template yang disetujui Meta.
+- **Catatan internal**, profil kontak, lampiran media, dan status terkirim/dibaca.
+- **Hak akses**: Admin, Supervisor, dan Agen per tim/divisi, ditegakkan dengan Row Level Security di database.
+- **Self-hosted** di VPS sendiri (lihat [deploy/README.md](deploy/README.md)).
 
-## How can I edit this code?
+## Stack
 
-There are several ways of editing your application.
+| Bagian | Teknologi |
+| --- | --- |
+| Web app | React 18, Vite, TypeScript, Tailwind, shadcn/ui (warna utama biru `#2563EB`) |
+| Backend | Supabase self-hosted: Postgres + RLS, Auth, Realtime, Storage |
+| Integrasi WhatsApp | Edge Functions (Deno) ke WhatsApp Cloud API resmi |
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/764c4460-fa6e-4c28-8393-534e91883530) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+supabase/migrations/            skema database, RLS, fungsi RPC
+supabase/functions/
+  whatsapp-webhook/             terima pesan & status dari Meta (verifikasi signature, idempoten)
+  send-message/                 kirim teks/media/template atas nama agen
+  invite-member/                admin menambah anggota tim
+  sync-templates/               tarik template pesan dari Meta
+  _shared/                      helper bersama
+src/pages/                      Dashboard, Inbox, Kontak, Tim & Agen, Pengaturan
+deploy/                         Caddyfile, override docker-compose, skrip deploy & backup
 ```
 
-**Edit a file directly in GitHub**
+## Menjalankan secara lokal
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Butuh Node.js 20+ dan Docker.
 
-**Use GitHub Codespaces**
+```bash
+npm ci
+npx supabase start                       # Postgres, Auth, Realtime, Storage, Edge Runtime lokal
+cp .env.example .env.local               # isi VITE_SUPABASE_URL=http://127.0.0.1:54321 dan ANON_KEY dari output di atas
+npx supabase functions serve --env-file supabase/functions/.env   # WHATSAPP_* (lihat deploy/README.md)
+npm run dev                              # http://localhost:8080
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Daftar akun pertama, buat organisasi, lalu tambahkan nomor WhatsApp di **Pengaturan**.
 
-## What technologies are used for this project?
+Setelah mengubah skema: `npx supabase gen types typescript --local --schema public > src/integrations/supabase/types.ts`.
 
-This project is built with:
+## Deploy
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/764c4460-fa6e-4c28-8393-534e91883530) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Lihat [deploy/README.md](deploy/README.md) untuk langkah-langkah memasang di VPS (Supabase self-hosted, Caddy HTTPS, webhook Meta, backup harian).

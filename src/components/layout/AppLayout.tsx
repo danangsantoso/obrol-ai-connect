@@ -5,16 +5,10 @@ import { Header } from "./Header";
 export function AppLayout() {
   return (
     <div className="flex h-screen bg-background">
-      {/* Sidebar */}
       <Sidebar />
-      
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
+      <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-muted/20 p-6">
+        <main className="flex-1 overflow-y-auto bg-muted/40">
           <Outlet />
         </main>
       </div>
