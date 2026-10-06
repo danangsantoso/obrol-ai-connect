@@ -2,14 +2,16 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, MessageSquare, Contact, Users, Settings, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Contact, Users, Settings, PanelLeftClose, PanelLeftOpen, Zap } from "lucide-react";
 import { useAuth, type AppRole } from "@/contexts/AuthContext";
 import { Logo, LogoMark } from "@/components/brand/Logo";
+import { useUnreadTotal } from "@/hooks/useInboxNotifications";
 
 const navigation: { name: string; href: string; icon: typeof LayoutDashboard; roles?: AppRole[] }[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Inbox", href: "/inbox", icon: MessageSquare },
   { name: "Kontak", href: "/contacts", icon: Contact },
+  { name: "Balasan Cepat", href: "/quick-replies", icon: Zap },
   { name: "Tim & Agen", href: "/team", icon: Users, roles: ["admin", "supervisor"] },
   { name: "Pengaturan", href: "/settings", icon: Settings, roles: ["admin", "supervisor"] },
 ];
@@ -17,6 +19,7 @@ const navigation: { name: string; href: string; icon: typeof LayoutDashboard; ro
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { profile } = useAuth();
+  const { data: unread = 0 } = useUnreadTotal(profile!.organization_id!);
 
   const items = navigation.filter((item) => !item.roles || (profile && item.roles.includes(profile.role)));
 
@@ -53,8 +56,18 @@ export function Sidebar() {
               )
             }
           >
-            <item.icon className="h-5 w-5 shrink-0" />
-            {!isCollapsed && <span className="ml-3">{item.name}</span>}
+            <span className="relative">
+              <item.icon className="h-5 w-5 shrink-0" />
+              {item.href === "/inbox" && unread > 0 && isCollapsed && (
+                <span className="absolute -right-1.5 -top-1.5 h-2.5 w-2.5 rounded-full bg-danger" />
+              )}
+            </span>
+            {!isCollapsed && <span className="ml-3 flex-1">{item.name}</span>}
+            {!isCollapsed && item.href === "/inbox" && unread > 0 && (
+              <span className="rounded-full bg-danger px-2 text-xs font-semibold text-danger-foreground">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

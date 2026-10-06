@@ -427,3 +427,11 @@ verify_jwt = true
 
 [functions.sync-templates]
 verify_jwt = true
+
+[functions.purge-retention]
+verify_jwt = true
+
+# Passwordless sign-in email: carries the 6-digit code (served from public/ in production too).
+[auth.email.template.magic_link]
+subject = "Kode masuk Balas.id"
+content_path = "./public/email/magic-link.html"

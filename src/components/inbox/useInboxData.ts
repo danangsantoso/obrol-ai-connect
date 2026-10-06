@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { AssignmentLog, ConversationRow, Member, Message, Note, Team, TimelineItem } from './types';
+import type { AssignmentLog, ConversationRow, Label, Member, Message, Note, QuickReply, Team, TimelineItem } from './types';
 
-const CONVERSATION_SELECT = '*, contact:contacts!inner(id, wa_id, name, profile_name)';
+const CONVERSATION_SELECT = '*, contact:contacts!inner(id, wa_id, name, profile_name), conversation_labels(label_id)';
 
 export function useConversations(orgId: string) {
   const queryClient = useQueryClient();
@@ -75,6 +75,29 @@ export function useMembers(orgId: string) {
         .order('full_name');
       if (error) throw error;
       return data as Member[];
+    },
+  });
+}
+
+export function useLabels(orgId: string) {
+  return useQuery({
+    queryKey: ['labels', orgId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('labels').select('*').eq('organization_id', orgId).order('name');
+      if (error) throw error;
+      return data as Label[];
+    },
+  });
+}
+
+// Shared quick replies plus the signed-in user's own (RLS returns exactly those).
+export function useQuickReplies(orgId: string) {
+  return useQuery({
+    queryKey: ['quick-replies', orgId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('quick_replies').select('*').order('shortcut');
+      if (error) throw error;
+      return data as QuickReply[];
     },
   });
 }

@@ -1,6 +1,12 @@
 # Balas.id additions to the official self-hosted Supabase docker-compose.yml.
 # Copy next to it (e.g. /opt/balas/supabase/docker/) — docker compose merges it automatically.
 services:
+  auth:
+    environment:
+      # Sign-in code email (the file ships with the web app build).
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: ${APP_URL}/email/magic-link.html
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Kode masuk Balas.id"
+
   functions:
     environment:
       # WhatsApp Cloud API (Meta Business Manager -> WhatsApp -> API Setup / App settings)

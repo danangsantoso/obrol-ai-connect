@@ -7,8 +7,8 @@ import { displayName } from '@/lib/api';
 import { ChatView } from '@/components/inbox/ChatView';
 import { ContactPanel } from '@/components/inbox/ContactPanel';
 import { ConversationList } from '@/components/inbox/ConversationList';
-import { useConversations, useMembers, useMessageSearch, useTeams } from '@/components/inbox/useInboxData';
-import type { ConversationRow, InboxTab } from '@/components/inbox/types';
+import { useConversations, useLabels, useMembers, useMessageSearch, useTeams } from '@/components/inbox/useInboxData';
+import { ALL, type ConversationRow, type InboxTab } from '@/components/inbox/types';
 
 function inTab(conv: ConversationRow, tab: InboxTab, meId: string) {
   switch (tab) {
@@ -33,10 +33,14 @@ export default function Inbox() {
 
   const [tab, setTab] = useState<InboxTab>('unassigned');
   const [search, setSearch] = useState('');
+  const [labelFilter, setLabelFilter] = useState(ALL);
+  const [agentFilter, setAgentFilter] = useState(ALL);
+  const canFilterAgents = profile!.role !== 'agent';
 
   const { data: conversations = [], isLoading } = useConversations(orgId);
   const { data: members = [] } = useMembers(orgId);
   const { data: teams = [] } = useTeams(orgId);
+  const { data: labels = [] } = useLabels(orgId);
   const { data: messageHits } = useMessageSearch(search);
 
   const memberMap = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
@@ -54,13 +58,15 @@ export default function Inbox() {
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase();
     return conversations.filter((conv) => {
+      if (labelFilter !== ALL && !conv.conversation_labels.some((l) => l.label_id === labelFilter)) return false;
+      if (agentFilter !== ALL && conv.assignee_id !== agentFilter) return false;
       if (term) {
         const haystack = `${displayName(conv.contact)} ${conv.contact.wa_id} ${conv.last_message_preview ?? ''}`.toLowerCase();
         return haystack.includes(term) || messageHits?.has(conv.id);
       }
       return inTab(conv, tab, meId);
     });
-  }, [conversations, search, tab, meId, messageHits]);
+  }, [conversations, search, tab, meId, messageHits, labelFilter, agentFilter]);
 
   // Unread total in the browser tab title.
   useEffect(() => {
@@ -72,10 +78,10 @@ export default function Inbox() {
   }, [conversations]);
 
   const selected = conversations.find((c) => c.id === conversationId);
-  const refresh = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: ['conversations', orgId] }),
-    [queryClient, orgId],
-  );
+  const refresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['conversations', orgId] });
+    queryClient.invalidateQueries({ queryKey: ['unread', orgId] });
+  }, [queryClient, orgId]);
 
   return (
     <div className="flex h-full">
@@ -89,6 +95,11 @@ export default function Inbox() {
         selectedId={conversationId}
         onSelect={(id) => navigate(`/inbox/${id}`)}
         members={memberMap}
+        labels={labels}
+        labelFilter={labelFilter}
+        onLabelFilterChange={setLabelFilter}
+        agentFilter={canFilterAgents ? agentFilter : null}
+        onAgentFilterChange={canFilterAgents ? setAgentFilter : null}
         loading={isLoading}
       />
       {selected ? (
@@ -99,6 +110,7 @@ export default function Inbox() {
             members={members}
             memberMap={memberMap}
             teams={teams}
+            labels={labels}
             onChanged={refresh}
           />
           <ContactPanel contactId={selected.contact_id} />

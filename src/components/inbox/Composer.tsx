@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Loader2, Paperclip, Send, StickyNote, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,9 +6,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { callFunction, errorMessage } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { Message } from './types';
+import { useQuickReplies } from './useInboxData';
+import type { Member, Message } from './types';
+import { memberName } from './types';
 
 type Mode = 'reply' | 'note';
+
+type Suggestion =
+  | { kind: 'quick'; key: string; title: string; detail: string; insert: string }
+  | { kind: 'mention'; key: string; title: string; detail: string; insert: string; memberId: string };
 
 function mediaTypeFor(mime: string) {
   if (mime.startsWith('image/')) return 'image';
@@ -17,22 +23,85 @@ function mediaTypeFor(mime: string) {
   return 'document';
 }
 
+// The "/shortcut" or "@name" being typed right before the caret, if any.
+function activeToken(text: string, caret: number) {
+  const match = /(^|\s)([/@])([\w.-]*)$/.exec(text.slice(0, caret));
+  if (!match) return null;
+  return { trigger: match[2], query: match[3].toLowerCase(), start: caret - match[3].length - 1 };
+}
+
 interface Props {
   conversationId: string;
   orgId: string;
   userId: string;
+  contactName: string;
+  members: Member[];
   windowOpen: boolean;
   onSent: (message: Message) => void;
 }
 
-export function Composer({ conversationId, orgId, userId, windowOpen, onSent }: Props) {
+export function Composer({ conversationId, orgId, userId, contactName, members, windowOpen, onSent }: Props) {
   const [mode, setMode] = useState<Mode>(windowOpen ? 'reply' : 'note');
   const [text, setText] = useState('');
+  const [caret, setCaret] = useState(0);
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
+  const [mentioned, setMentioned] = useState<Map<string, string>>(new Map());
+  const [highlight, setHighlight] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  const { data: quickReplies = [] } = useQuickReplies(orgId);
 
   const replyDisabled = mode === 'reply' && !windowOpen;
+  const token = activeToken(text, caret);
+
+  const suggestions = useMemo<Suggestion[]>(() => {
+    if (!token || dismissed) return [];
+    if (token.trigger === '/') {
+      return quickReplies
+        .filter((q) => q.shortcut.includes(token.query))
+        .slice(0, 8)
+        .map((q) => ({
+          kind: 'quick',
+          key: q.id,
+          title: `/${q.shortcut}`,
+          detail: q.body,
+          insert: q.body.replace(/\{nama\}/gi, contactName),
+        }));
+    }
+    if (mode !== 'note') return [];
+    return members
+      .filter((m) => m.is_active && m.id !== userId && memberName(m).toLowerCase().includes(token.query))
+      .slice(0, 8)
+      .map((m) => ({
+        kind: 'mention',
+        key: m.id,
+        title: memberName(m),
+        detail: m.email,
+        insert: `@${memberName(m)} `,
+        memberId: m.id,
+      }));
+  }, [token, dismissed, quickReplies, contactName, mode, members, userId]);
+
+  const updateText = (value: string, position: number) => {
+    setText(value);
+    setCaret(position);
+    setHighlight(0);
+    setDismissed(false);
+  };
+
+  const choose = (s: Suggestion) => {
+    if (!token) return;
+    const next = text.slice(0, token.start) + s.insert + text.slice(caret);
+    const position = token.start + s.insert.length;
+    updateText(next, position);
+    if (s.kind === 'mention') setMentioned((prev) => new Map(prev).set(s.memberId, s.title));
+    requestAnimationFrame(() => {
+      textarea.current?.focus();
+      textarea.current?.setSelectionRange(position, position);
+    });
+  };
 
   const submit = async () => {
     const typed = text;
@@ -41,13 +110,16 @@ export function Composer({ conversationId, orgId, userId, windowOpen, onSent }: 
     setSending(true);
     try {
       if (mode === 'note') {
+        const mentions = [...mentioned].filter(([, name]) => body.includes(`@${name}`)).map(([id]) => id);
         const { error } = await supabase.from('notes').insert({
           conversation_id: conversationId,
           organization_id: orgId,
           author_id: userId,
           body,
+          mentions,
         });
         if (error) throw error;
+        setMentioned(new Map());
       } else if (file) {
         const safeName = file.name.replace(/[^\w.-]+/g, '_');
         const path = `${orgId}/outbound/${crypto.randomUUID()}-${safeName}`;
@@ -69,8 +141,8 @@ export function Composer({ conversationId, orgId, userId, windowOpen, onSent }: 
         });
         onSent(message);
       }
-      // Keep anything typed while the request was in flight.
-      setText((current) => (current === typed ? '' : current));
+      // Clear what was sent but keep anything typed while the request was in flight.
+      setText((current) => (current.startsWith(typed) ? current.slice(typed.length).trimStart() : current));
       setFile(null);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -79,9 +151,34 @@ export function Composer({ conversationId, orgId, userId, windowOpen, onSent }: 
     }
   };
 
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (suggestions.length > 0) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const step = e.key === 'ArrowDown' ? 1 : -1;
+        setHighlight((h) => (h + step + suggestions.length) % suggestions.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        choose(suggestions[Math.min(highlight, suggestions.length - 1)]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setDismissed(true);
+        return;
+      }
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submit();
+    }
+  };
+
   return (
     <div className={cn('border-t border-border p-3', mode === 'note' ? 'bg-primary-light' : 'bg-card')}>
-      <div className="mb-2 flex gap-1">
+      <div className="mb-2 flex items-center gap-1">
         <Button
           size="sm"
           variant={mode === 'reply' ? 'default' : 'ghost'}
@@ -94,6 +191,14 @@ export function Composer({ conversationId, orgId, userId, windowOpen, onSent }: 
           <StickyNote className="mr-1 h-3.5 w-3.5" />
           Catatan internal
         </Button>
+        <span className="ml-auto hidden text-[11px] text-muted-foreground md:inline">
+          Ketik <kbd className="rounded border px-1">/</kbd> untuk balasan cepat
+          {mode === 'note' && (
+            <>
+              , <kbd className="rounded border px-1">@</kbd> untuk menyebut rekan
+            </>
+          )}
+        </span>
       </div>
 
       {file && (
@@ -106,7 +211,33 @@ export function Composer({ conversationId, orgId, userId, windowOpen, onSent }: 
         </div>
       )}
 
-      <div className="flex items-end gap-2">
+      <div className="relative flex items-end gap-2">
+        {suggestions.length > 0 && (
+          <div
+            role="listbox"
+            className="absolute bottom-full left-0 right-12 z-20 mb-2 max-h-64 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg"
+          >
+            {suggestions.map((s, i) => (
+              <button
+                key={s.key}
+                role="option"
+                aria-selected={i === highlight}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  choose(s);
+                }}
+                onMouseEnter={() => setHighlight(i)}
+                className={cn(
+                  'block w-full rounded-md px-3 py-2 text-left',
+                  i === highlight ? 'bg-primary-light text-primary-dark' : 'hover:bg-muted',
+                )}
+              >
+                <p className="text-sm font-medium">{s.title}</p>
+                <p className="truncate text-xs text-muted-foreground">{s.detail}</p>
+              </button>
+            ))}
+          </div>
+        )}
         {mode === 'reply' && (
           <>
             <input
@@ -130,14 +261,11 @@ export function Composer({ conversationId, orgId, userId, windowOpen, onSent }: 
           </>
         )}
         <Textarea
+          ref={textarea}
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
+          onChange={(e) => updateText(e.target.value, e.target.selectionStart)}
+          onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
+          onKeyDown={onKeyDown}
           placeholder={
             mode === 'note'
               ? 'Tulis catatan untuk tim (tidak terkirim ke pelanggan)'

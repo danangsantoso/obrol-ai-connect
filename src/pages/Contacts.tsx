@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { Search } from "lucide-react";
@@ -9,9 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { displayName } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { ImportContactsDialog } from "@/components/contacts/ImportContactsDialog";
 
 export default function Contacts() {
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const term = search.trim();
 
@@ -25,7 +29,9 @@ export default function Contacts() {
         .limit(200);
       if (term) {
         const like = `%${term.replace(/[%_,()]/g, "")}%`;
-        query = query.or(`name.ilike.${like},profile_name.ilike.${like},wa_id.ilike.${like},email.ilike.${like},company.ilike.${like}`);
+        query = query.or(
+          `name.ilike.${like},profile_name.ilike.${like},wa_id.ilike.${like},email.ilike.${like},company.ilike.${like}`,
+        );
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -40,14 +46,20 @@ export default function Contacts() {
           <h1 className="text-2xl font-bold">Kontak</h1>
           <p className="text-muted-foreground">Pelanggan yang pernah menghubungi nomor WhatsApp Anda.</p>
         </div>
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nama, nomor, email, perusahaan"
-            className="pl-9"
+        <div className="flex w-full max-w-lg gap-2">
+          <ImportContactsDialog
+            orgId={profile!.organization_id!}
+            onDone={() => queryClient.invalidateQueries({ queryKey: ["contacts"] })}
           />
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari nama, nomor, email, perusahaan"
+              className="pl-9"
+            />
+          </div>
         </div>
       </div>
 

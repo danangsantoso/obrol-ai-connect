@@ -6,7 +6,7 @@ set -euo pipefail
 APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 SUPABASE_DIR="${SUPABASE_DIR:-/opt/balas/supabase/docker}"
 WEB_ROOT="${WEB_ROOT:-/var/www/balas}"
-FUNCTIONS=(_shared whatsapp-webhook send-message invite-member sync-templates)
+FUNCTIONS=(_shared whatsapp-webhook send-message invite-member sync-templates purge-retention)
 
 cd "$APP_DIR"
 set -a; source "$SUPABASE_DIR/.env"; set +a

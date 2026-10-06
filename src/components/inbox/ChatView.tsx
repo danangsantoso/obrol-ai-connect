@@ -12,8 +12,9 @@ import { Composer } from './Composer';
 import { TemplateSender } from './TemplateSender';
 import { Timeline } from './Timeline';
 import { TransferDialog } from './TransferDialog';
+import { LabelPicker } from './LabelPicker';
 import { useTimeline } from './useInboxData';
-import type { ConversationRow, Member, Team } from './types';
+import type { ConversationRow, Label, Member, Team } from './types';
 import { memberName } from './types';
 
 function useNow(intervalMs: number) {
@@ -37,10 +38,11 @@ interface Props {
   members: Member[];
   memberMap: Map<string, Member>;
   teams: Team[];
+  labels: Label[];
   onChanged: () => void;
 }
 
-export function ChatView({ conversation, me, members, memberMap, teams, onChanged }: Props) {
+export function ChatView({ conversation, me, members, memberMap, teams, labels, onChanged }: Props) {
   const { items, loading, reloadLogs, addMessage } = useTimeline(conversation.id);
   const [transferOpen, setTransferOpen] = useState(false);
   const now = useNow(30_000);
@@ -119,6 +121,14 @@ export function ChatView({ conversation, me, members, memberMap, teams, onChange
             ))}
           </SelectContent>
         </Select>
+        <div className="basis-full">
+          <LabelPicker
+            conversationId={conversation.id}
+            labels={labels}
+            selectedIds={conversation.conversation_labels.map((l) => l.label_id)}
+            onChanged={onChanged}
+          />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto bg-muted/40">
@@ -131,6 +141,8 @@ export function ChatView({ conversation, me, members, memberMap, teams, onChange
         conversationId={conversation.id}
         orgId={me.organization_id!}
         userId={me.id}
+        contactName={name}
+        members={members}
         windowOpen={windowOpen}
         onSent={(message) => {
           addMessage(message);

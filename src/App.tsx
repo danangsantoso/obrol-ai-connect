@@ -2,17 +2,21 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth, type AppRole } from "./contexts/AuthContext";
 import { AppLayout } from "./components/layout/AppLayout";
-import Dashboard from "./pages/Dashboard";
-import Inbox from "./pages/Inbox";
-import Contacts from "./pages/Contacts";
-import Team from "./pages/Team";
-import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
-import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
+
+// Each page loads on first visit, keeping the initial download small.
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Inbox = lazy(() => import("./pages/Inbox"));
+const Contacts = lazy(() => import("./pages/Contacts"));
+const QuickReplies = lazy(() => import("./pages/QuickReplies"));
+const Team = lazy(() => import("./pages/Team"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 const queryClient = new QueryClient();
 
@@ -41,42 +45,45 @@ const App = () => (
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
-        <Sonner position="top-right" />
+        <Sonner position="top-center" />
         <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Dashboard />} />
-              <Route path="inbox" element={<Inbox />} />
-              <Route path="inbox/:conversationId" element={<Inbox />} />
-              <Route path="contacts" element={<Contacts />} />
+          <Suspense fallback={<FullPageSpinner />}>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/onboarding" element={<Onboarding />} />
               <Route
-                path="team"
+                path="/"
                 element={
-                  <ProtectedRoute roles={["admin", "supervisor"]}>
-                    <Team />
+                  <ProtectedRoute>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
-              />
-              <Route
-                path="settings"
-                element={
-                  <ProtectedRoute roles={["admin", "supervisor"]}>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="inbox" element={<Inbox />} />
+                <Route path="inbox/:conversationId" element={<Inbox />} />
+                <Route path="contacts" element={<Contacts />} />
+                <Route path="quick-replies" element={<QuickReplies />} />
+                <Route
+                  path="team"
+                  element={
+                    <ProtectedRoute roles={["admin", "supervisor"]}>
+                      <Team />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <ProtectedRoute roles={["admin", "supervisor"]}>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

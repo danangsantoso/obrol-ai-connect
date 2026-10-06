@@ -1,4 +1,5 @@
-import { LogOut, User } from "lucide-react";
+import { useState } from "react";
+import { BellRing, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -40,7 +41,8 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-14 items-center justify-end border-b border-border bg-card px-6">
+    <header className="flex h-14 items-center justify-end gap-3 border-b border-border bg-card px-6">
+      <NotificationPermission />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center gap-3 px-2">
@@ -83,5 +85,22 @@ export function Header() {
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
+  );
+}
+
+// Browsers only allow notification prompts from a user gesture.
+function NotificationPermission() {
+  const supported = typeof window !== "undefined" && "Notification" in window;
+  const [permission, setPermission] = useState(supported ? Notification.permission : "denied");
+  if (!supported || permission !== "default") return null;
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => Notification.requestPermission().then(setPermission)}
+    >
+      <BellRing className="mr-2 h-4 w-4" />
+      Aktifkan notifikasi
+    </Button>
   );
 }

@@ -4,10 +4,12 @@ import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { displayName, initials } from '@/lib/api';
-import type { ConversationRow, InboxTab, Member } from './types';
-import { memberName } from './types';
+import type { ConversationRow, InboxTab, Label, Member } from './types';
+import { ALL, memberName } from './types';
+import { LabelChip } from './LabelChip';
 
 const TABS: { value: InboxTab; label: string }[] = [
   { value: 'unassigned', label: 'Antrean' },
@@ -34,6 +36,11 @@ interface Props {
   selectedId?: string;
   onSelect: (id: string) => void;
   members: Map<string, Member>;
+  labels: Label[];
+  labelFilter: string;
+  onLabelFilterChange: (value: string) => void;
+  agentFilter: string | null;
+  onAgentFilterChange: ((value: string) => void) | null;
   loading: boolean;
 }
 
@@ -47,8 +54,15 @@ export function ConversationList({
   selectedId,
   onSelect,
   members,
+  labels,
+  labelFilter,
+  onLabelFilterChange,
+  agentFilter,
+  onAgentFilterChange,
   loading,
 }: Props) {
+  const labelMap = new Map(labels.map((l) => [l.id, l]));
+  const activeMembers = [...members.values()].filter((m) => m.is_active);
   return (
     <div className="flex h-full w-80 shrink-0 flex-col border-r border-border bg-card">
       <div className="space-y-3 border-b border-border p-3">
@@ -80,6 +94,40 @@ export function ConversationList({
             </button>
           ))}
         </div>
+        {(labels.length > 0 || onAgentFilterChange) && (
+          <div className="flex gap-2">
+            {labels.length > 0 && (
+              <Select value={labelFilter} onValueChange={onLabelFilterChange}>
+                <SelectTrigger className="h-8 flex-1 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Semua label</SelectItem>
+                  {labels.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {onAgentFilterChange && agentFilter !== null && (
+              <Select value={agentFilter} onValueChange={onAgentFilterChange}>
+                <SelectTrigger className="h-8 flex-1 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Semua agen</SelectItem>
+                  {activeMembers.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {memberName(m)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
       </div>
 
       <ScrollArea className="flex-1">
@@ -125,6 +173,14 @@ export function ConversationList({
                   {assignee ? `Ditangani ${memberName(assignee)}` : 'Belum di-assign'}
                   {conv.status === 'pending' && ' · Pending'}
                 </p>
+                {conv.conversation_labels.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {conv.conversation_labels.map(({ label_id }) => {
+                      const label = labelMap.get(label_id);
+                      return label ? <LabelChip key={label_id} label={label} /> : null;
+                    })}
+                  </div>
+                )}
               </div>
             </button>
           );

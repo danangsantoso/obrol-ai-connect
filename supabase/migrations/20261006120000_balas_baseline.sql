@@ -267,7 +267,8 @@ $$;
 
 -- Admin: whole organization. Supervisor: unrouted chats, their teams' chats and
 -- chats held by their teams' members. Agent: own chats + the unassigned queue
--- of their teams (or of no team).
+-- of their teams (or of no team). Anyone @mentioned in an internal note of a
+-- chat is invited to collaborate on it.
 create or replace function public.can_access_conversation(conv_id uuid)
 returns boolean
 language plpgsql
@@ -296,6 +297,13 @@ begin
   end if;
 
   if conv.assignee_id = me.id then
+    return true;
+  end if;
+
+  if exists (
+    select 1 from public.notes n
+    where n.conversation_id = conv_id and me.id = any (n.mentions)
+  ) then
     return true;
   end if;
 
@@ -698,24 +706,23 @@ begin
 end;
 $$;
 
--- Deletes messages older than each organization's retention period (default 180 days).
--- Media files are removed by the retention job in deploy/scripts (storage API).
+-- Deletes messages older than each organization's retention period (default 180 days)
+-- and returns the storage paths of their media, which the purge-retention
+-- Edge Function then removes from the media bucket.
 create or replace function public.purge_expired_messages()
-returns integer
-language plpgsql
+returns setof text
+language sql
 security definer
 set search_path = ''
 as $$
-declare
-  deleted integer;
-begin
-  delete from public.messages m
-  using public.organizations o
-  where m.organization_id = o.id
-    and m.created_at < now() - make_interval(days => o.retention_days);
-  get diagnostics deleted = row_count;
-  return deleted;
-end;
+  with expired as (
+    delete from public.messages m
+    using public.organizations o
+    where m.organization_id = o.id
+      and m.created_at < now() - make_interval(days => o.retention_days)
+    returning m.media_path
+  )
+  select media_path from expired where media_path is not null;
 $$;
 
 -- Only the service role may call ingestion / maintenance helpers.
@@ -887,7 +894,7 @@ create policy "read assignment history of accessible conversations" on public.as
 -- ---------------------------------------------------------------------------
 -- Realtime: the inbox listens to these tables (RLS still applies)
 -- ---------------------------------------------------------------------------
-alter publication supabase_realtime add table public.conversations, public.messages, public.notes;
+alter publication supabase_realtime add table public.conversations, public.messages, public.notes, public.assignment_logs;
 
 -- ---------------------------------------------------------------------------
 -- Storage: private bucket for WhatsApp media, one folder per organization

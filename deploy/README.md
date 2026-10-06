@@ -45,7 +45,8 @@ Edit `/opt/balas/supabase/docker/.env`:
 | `SITE_URL` | `https://app.balas.id` |
 | `ADDITIONAL_REDIRECT_URLS` | `https://app.balas.id` |
 | `DISABLE_SIGNUP` | `false` sampai admin pertama mendaftar, lalu `true` (agen ditambahkan admin dari menu Tim & Agen) |
-| `SMTP_*` | Opsional, hanya untuk undangan lewat email |
+| `SMTP_ADMIN_EMAIL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SENDER_NAME` | Dibutuhkan untuk masuk dengan kode email (OTP) dan undangan via email. Bisa pakai Gmail SMTP, Brevo, Mailgun, dll. Tanpa SMTP, agen tetap bisa masuk dengan password. |
+| `ENABLE_EMAIL_AUTOCONFIRM` | `true` (akun dibuat oleh admin, tidak perlu konfirmasi email) |
 | `FUNCTIONS_VERIFY_JWT` | `false` (setiap fungsi Balas.id memeriksa login sendiri) |
 
 Tambahkan di file yang sama:
@@ -105,8 +106,8 @@ Caddy mengambil sertifikat Let's Encrypt otomatis.
 sudo crontab -e
 # Backup harian 02:15 (database + file media), simpan 30 hari
 15 2 * * * SUPABASE_DIR=/opt/balas/supabase/docker /opt/balas/app/deploy/scripts/backup.sh >> /var/log/balas-backup.log 2>&1
-# Hapus pesan yang melewati masa retensi organisasi (default 180 hari)
-30 3 * * * cd /opt/balas/supabase/docker && docker compose exec -T db psql -U postgres -d postgres -c "select public.purge_expired_messages();" >> /var/log/balas-retention.log 2>&1
+# Hapus pesan + file media yang melewati masa retensi organisasi (default 180 hari)
+30 3 * * * . /opt/balas/supabase/docker/.env && curl -s -X POST -H "Authorization: Bearer $SERVICE_ROLE_KEY" -H "apikey: $SERVICE_ROLE_KEY" https://api.balas.id/functions/v1/purge-retention >> /var/log/balas-retention.log 2>&1
 ```
 
 Isi `BACKUP_REMOTE` (remote [rclone](https://rclone.org)) agar backup juga tersalin ke luar VPS, dan uji restore sebulan sekali:
@@ -116,3 +117,15 @@ gunzip -c db-<tanggal>.dump.gz | docker compose exec -T db pg_restore -U postgre
 ```
 
 Pantau server dengan [Uptime Kuma](https://github.com/louislam/uptime-kuma) (cek `https://app.balas.id` dan `https://api.balas.id/functions/v1/whatsapp-webhook` → 403 berarti hidup).
+
+## 7. Uji beban (opsional)
+
+Setelah nomor uji terhubung, kirim 200 pesan tiruan ke webhook untuk memastikan server kuat:
+
+```bash
+node scripts/loadtest-webhook.mjs --url https://api.balas.id/functions/v1/whatsapp-webhook \
+  --secret "$WHATSAPP_APP_SECRET" --phone-number-id <phone_number_id nomor uji> \
+  --messages 200 --contacts 50 --concurrency 10
+```
+
+Data uji muncul sebagai kontak "Load Test …" (nomor 6289900…); hapus dari database setelah selesai.

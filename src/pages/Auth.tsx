@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { LogoMark } from '@/components/brand/Logo';
+import { OtpLogin } from '@/components/auth/OtpLogin';
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -102,10 +103,15 @@ export default function Auth() {
 
         <Card className="w-full shadow-lg border-border/50">
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="login">Masuk</TabsTrigger>
+              <TabsTrigger value="otp">Kode email</TabsTrigger>
               <TabsTrigger value="signup">Daftar</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="otp">
+              <OtpLogin />
+            </TabsContent>
             
             <TabsContent value="login">
               <CardHeader>

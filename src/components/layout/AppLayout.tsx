@@ -1,8 +1,13 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { useAuth } from "@/contexts/AuthContext";
+import { useInboxNotifications } from "@/hooks/useInboxNotifications";
 
 export function AppLayout() {
+  const { profile } = useAuth();
+  useInboxNotifications(profile!.organization_id!, profile!.id);
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
