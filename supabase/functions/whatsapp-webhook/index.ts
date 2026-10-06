@@ -6,7 +6,9 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { adminClient } from "../_shared/supabase.ts";
 import { downloadMedia, extensionFor, isValidSignature } from "../_shared/whatsapp.ts";
 
+// Meta's webhook payloads vary by message type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type WaMessage = Record<string, any>;
 
 const MEDIA_TYPES = ["image", "video", "audio", "document", "sticker"];
