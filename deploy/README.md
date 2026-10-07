@@ -43,6 +43,12 @@ Di akhir, skrip menampilkan URL aplikasi, URL webhook dan *verify token* untuk M
 ## 3. Setelah instalasi
 
 1. Buka `https://app.domainanda.com`, daftar sebagai admin pertama, buat organisasi.
+   Atau buat akun awal per role sekaligus (password bawaan `12345678`, wajib diganti saat login pertama):
+   ```bash
+   cd /opt/balas/app && sudo ./deploy/scripts/create-default-users.sh "Nama Toko Anda"
+   ```
+   Hasilnya `admin@balas.id`, `supervisor@balas.id`, dan `agen@balas.id`. Segera login dengan ketiganya dan
+   ganti passwordnya, karena siapa pun yang tahu password bawaan bisa masuk sebelum diganti.
 2. Tutup pendaftaran umum:
    ```bash
    sudo sed -i 's/^DISABLE_SIGNUP=.*/DISABLE_SIGNUP=true/' /opt/balas/supabase/.env
