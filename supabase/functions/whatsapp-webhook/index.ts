@@ -1,215 +1,199 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// Receives WhatsApp Cloud API webhooks: incoming messages and delivery statuses.
+//
+// Env: WHATSAPP_VERIFY_TOKEN, WHATSAPP_APP_SECRET, WHATSAPP_ACCESS_TOKEN
+// (WHATSAPP_SKIP_SIGNATURE=true only for local testing).
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { adminClient } from "../_shared/supabase.ts";
+import { downloadMedia, extensionFor, isValidSignature } from "../_shared/whatsapp.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Meta's webhook payloads vary by message type; fields are read defensively below.
+// deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type WaMessage = Record<string, any>;
+
+const MEDIA_TYPES = ["image", "video", "audio", "document", "sticker"];
+const STATUS_MAP: Record<string, string> = {
+  sent: "sent",
+  delivered: "delivered",
+  read: "read",
+  failed: "failed",
 };
 
-interface WhatsAppMessage {
-  from: string;
-  id: string;
-  text?: {
-    body: string;
-  };
-  type: string;
-}
+Deno.serve(async (req) => {
+  if (req.method === "GET") return verifySubscription(req);
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  const raw = await req.text();
+  const secret = Deno.env.get("WHATSAPP_APP_SECRET");
+  if (secret) {
+    if (!(await isValidSignature(raw, req.headers.get("X-Hub-Signature-256"), secret))) {
+      return new Response("Invalid signature", { status: 401 });
+    }
+  } else if (Deno.env.get("WHATSAPP_SKIP_SIGNATURE") !== "true") {
+    console.error("WHATSAPP_APP_SECRET is not configured; rejecting webhook");
+    return new Response("Webhook not configured", { status: 500 });
   }
 
+  let payload: { entry?: { changes?: { field: string; value: WaMessage }[] }[] };
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    if (req.method === 'GET') {
-      // Webhook verification
-      const url = new URL(req.url);
-      const mode = url.searchParams.get('hub.mode');
-      const token = url.searchParams.get('hub.verify_token');
-      const challenge = url.searchParams.get('hub.challenge');
-
-      if (mode === 'subscribe' && token === Deno.env.get('WHATSAPP_VERIFY_TOKEN')) {
-        console.log('Webhook verified');
-        return new Response(challenge, { status: 200 });
-      } else {
-        return new Response('Forbidden', { status: 403 });
-      }
-    }
-
-    if (req.method === 'POST') {
-      const body = await req.json();
-      console.log('Received webhook:', JSON.stringify(body, null, 2));
-
-      // Process incoming WhatsApp messages
-      if (body.entry && body.entry[0] && body.entry[0].changes) {
-        for (const change of body.entry[0].changes) {
-          if (change.value && change.value.messages) {
-            for (const message of change.value.messages) {
-              await processWhatsAppMessage(supabase, message);
-            }
-          }
-        }
-      }
-
-      return new Response('OK', { status: 200 });
-    }
-
-    return new Response('Method not allowed', { status: 405 });
-  } catch (error) {
-    console.error('Error in whatsapp-webhook:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    payload = JSON.parse(raw);
+  } catch {
+    return new Response("Invalid JSON", { status: 400 });
   }
+
+  const admin = adminClient();
+  try {
+    for (const entry of payload.entry ?? []) {
+      for (const change of entry.changes ?? []) {
+        if (change.field !== "messages") continue;
+        await handleChange(admin, change.value);
+      }
+    }
+  } catch (err) {
+    // A non-2xx makes Meta retry later; ingestion is idempotent so retries are safe.
+    console.error("webhook processing failed", err);
+    return new Response("Temporary failure", { status: 500 });
+  }
+  return new Response("OK", { status: 200 });
 });
 
-async function processWhatsAppMessage(supabase: any, message: WhatsAppMessage) {
-  try {
-    console.log('Processing message:', message);
+function verifySubscription(req: Request): Response {
+  const url = new URL(req.url);
+  const expected = Deno.env.get("WHATSAPP_VERIFY_TOKEN");
+  if (
+    expected &&
+    url.searchParams.get("hub.mode") === "subscribe" &&
+    url.searchParams.get("hub.verify_token") === expected
+  ) {
+    return new Response(url.searchParams.get("hub.challenge") ?? "", { status: 200 });
+  }
+  return new Response("Forbidden", { status: 403 });
+}
 
-    // Find or create chat session
-    let { data: session, error: sessionError } = await supabase
-      .from('chat_sessions')
-      .select('*')
-      .eq('whatsapp_phone', message.from)
-      .eq('status', 'open')
-      .single();
+async function handleChange(admin: SupabaseClient, value: WaMessage) {
+  const phoneNumberId: string | undefined = value.metadata?.phone_number_id;
+  if (!phoneNumberId) return;
 
-    if (sessionError && sessionError.code !== 'PGRST116') {
-      throw sessionError;
-    }
+  const names = new Map<string, string>();
+  for (const c of value.contacts ?? []) names.set(c.wa_id, c.profile?.name ?? "");
 
-    if (!session) {
-      // Create new session - assuming first user for now
-      const { data: users } = await supabase
-        .from('profiles')
-        .select('id')
-        .limit(1);
+  for (const message of value.messages ?? []) {
+    await handleInbound(admin, phoneNumberId, message, names.get(message.from) ?? "");
+  }
 
-      if (!users || users.length === 0) {
-        throw new Error('No users found');
-      }
-
-      const { data: newSession, error: createError } = await supabase
-        .from('chat_sessions')
-        .insert({
-          user_id: users[0].id,
-          whatsapp_phone: message.from,
-          customer_name: `Customer ${message.from.slice(-4)}`,
-          platform: 'whatsapp',
-          status: 'open'
-        })
-        .select()
-        .single();
-
-      if (createError) throw createError;
-      session = newSession;
-    }
-
-    // Save incoming message
-    if (message.text && message.text.body) {
-      const { error: messageError } = await supabase
-        .from('messages')
-        .insert({
-          session_id: session.id,
-          sender_type: 'customer',
-          message_text: message.text.body,
-          whatsapp_message_id: message.id
-        });
-
-      if (messageError) throw messageError;
-
-      // Update session last message time
-      await supabase
-        .from('chat_sessions')
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', session.id);
-
-      // If AI is active, generate response
-      if (session.is_ai_active) {
-        await generateAIResponse(supabase, session, message.text.body);
-      }
-    }
-  } catch (error) {
-    console.error('Error processing WhatsApp message:', error);
+  for (const status of value.statuses ?? []) {
+    const mapped = STATUS_MAP[status.status];
+    if (!mapped) continue;
+    const { error } = await admin.rpc("apply_message_status", {
+      p_wa_message_id: status.id,
+      p_status: mapped,
+      p_error: status.errors?.[0] ?? null,
+    });
+    if (error) throw error;
   }
 }
 
-async function generateAIResponse(supabase: any, session: any, customerMessage: string) {
-  try {
-    // Simple AI response logic - in production, integrate with OpenAI or similar
-    let response = "Terima kasih telah menghubungi kami. Saya sedang memproses permintaan Anda.";
+async function handleInbound(
+  admin: SupabaseClient,
+  phoneNumberId: string,
+  message: WaMessage,
+  profileName: string,
+) {
+  const { body, metadata } = describe(message);
+  const { data, error } = await admin
+    .rpc("ingest_inbound_message", {
+      p_phone_number_id: phoneNumberId,
+      p_wa_id: message.from,
+      p_profile_name: profileName,
+      p_wa_message_id: message.id,
+      p_type: message.type ?? "unknown",
+      p_body: body,
+      p_reply_to_wa_id: message.context?.id ?? null,
+      p_metadata: metadata,
+      p_sent_at: message.timestamp ? new Date(Number(message.timestamp) * 1000).toISOString() : null,
+    })
+    .single<{ message_id: string; conversation_id: string; organization_id: string; inserted: boolean }>();
 
-    // Check knowledge base for relevant responses
-    const { data: knowledgeBase } = await supabase
-      .from('ai_knowledge_base')
-      .select('*')
-      .eq('is_active', true);
-
-    if (knowledgeBase) {
-      const lowerMessage = customerMessage.toLowerCase();
-      const relevantKnowledge = knowledgeBase.find((kb: any) => 
-        lowerMessage.includes(kb.question.toLowerCase()) ||
-        kb.question.toLowerCase().includes(lowerMessage)
-      );
-
-      if (relevantKnowledge) {
-        response = relevantKnowledge.answer;
-      }
-    }
-
-    // Save AI response
-    await supabase
-      .from('messages')
-      .insert({
-        session_id: session.id,
-        sender_type: 'ai',
-        message_text: response
-      });
-
-    // Send response via WhatsApp API
-    await sendWhatsAppMessage(session.whatsapp_phone, response);
-  } catch (error) {
-    console.error('Error generating AI response:', error);
-  }
-}
-
-async function sendWhatsAppMessage(to: string, message: string) {
-  try {
-    const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
-    const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-
-    if (!accessToken || !phoneNumberId) {
-      console.log('WhatsApp credentials not configured');
+  if (error) {
+    if (error.code === "P0002") {
+      console.warn(`ignoring message for unregistered phone_number_id ${phoneNumberId}`);
       return;
     }
+    throw error;
+  }
 
-    const response = await fetch(`https://graph.facebook.com/v17.0/${phoneNumberId}/messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: to,
-        text: { body: message }
-      }),
+  const media = MEDIA_TYPES.includes(message.type) ? message[message.type] : null;
+  if (data.inserted && media?.id) {
+    await storeMedia(admin, data, message.id, media);
+  }
+}
+
+// Copies inbound media into our own storage: Meta's media URLs expire.
+async function storeMedia(
+  admin: SupabaseClient,
+  row: { message_id: string; conversation_id: string; organization_id: string },
+  waMessageId: string,
+  media: { id: string; mime_type?: string; filename?: string },
+) {
+  try {
+    const { bytes, mimeType } = await downloadMedia(media.id);
+    const path = `${row.organization_id}/${row.conversation_id}/${waMessageId}.${extensionFor(mimeType)}`;
+    const upload = await admin.storage.from("media").upload(path, bytes, {
+      contentType: mimeType,
+      upsert: true,
     });
+    if (upload.error) throw upload.error;
+    await admin
+      .from("messages")
+      .update({ media_path: path, media_mime: mimeType, media_filename: media.filename ?? null })
+      .eq("id", row.message_id);
+  } catch (err) {
+    // The message is kept; metadata.media_id allows a later retry.
+    console.error(`could not store media ${media.id}`, err);
+  }
+}
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Failed to send WhatsApp message:', error);
-    } else {
-      console.log('WhatsApp message sent successfully');
+// Turns a webhook message into display text plus the raw details worth keeping.
+function describe(message: WaMessage): { body: string | null; metadata: Record<string, unknown> } {
+  const type: string = message.type;
+  switch (type) {
+    case "text":
+      return { body: message.text?.body ?? null, metadata: {} };
+    case "image":
+    case "video":
+    case "audio":
+    case "document":
+    case "sticker": {
+      const media = message[type] ?? {};
+      return {
+        body: media.caption ?? null,
+        metadata: { media_id: media.id, mime_type: media.mime_type, filename: media.filename },
+      };
     }
-  } catch (error) {
-    console.error('Error sending WhatsApp message:', error);
+    case "location": {
+      const loc = message.location ?? {};
+      const label = [loc.name, loc.address].filter(Boolean).join(", ");
+      return {
+        body: `Lokasi: ${label ? `${label} ` : ""}(${loc.latitude}, ${loc.longitude})`,
+        metadata: { location: loc },
+      };
+    }
+    case "contacts": {
+      const names = (message.contacts ?? []).map((c: WaMessage) => c.name?.formatted_name).filter(Boolean);
+      return { body: `Kontak: ${names.join(", ")}`, metadata: { contacts: message.contacts } };
+    }
+    case "reaction":
+      return {
+        body: message.reaction?.emoji ?? null,
+        metadata: { reaction_to: message.reaction?.message_id },
+      };
+    case "button":
+      return { body: message.button?.text ?? null, metadata: { payload: message.button?.payload } };
+    case "interactive": {
+      const reply = message.interactive?.button_reply ?? message.interactive?.list_reply;
+      return { body: reply?.title ?? null, metadata: { interactive: message.interactive } };
+    }
+    default:
+      return { body: null, metadata: { unsupported: message[type] ?? message.errors ?? null } };
   }
 }

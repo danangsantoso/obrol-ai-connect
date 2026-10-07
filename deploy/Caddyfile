@@ -1,0 +1,27 @@
+# Balas.id on a single VPS. Caddy gets and renews Let's Encrypt certificates
+# automatically; Meta only delivers webhooks to valid HTTPS endpoints.
+#
+# Replace the domains, then: sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+
+# Web app (static Vite build)
+app.balas.id {
+	root * /var/www/balas/dist
+	encode zstd gzip
+	try_files {path} /index.html
+	file_server
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+}
+
+# Supabase API gateway (Kong) from the self-hosted docker stack.
+# Includes /functions/v1/whatsapp-webhook used by Meta.
+api.balas.id {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8000
+}

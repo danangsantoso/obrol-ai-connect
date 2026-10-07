@@ -4,449 +4,985 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[]
+  | Json[];
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
-  }
   public: {
     Tables: {
-      affiliate_commissions: {
+      assignment_logs: {
         Row: {
-          affiliate_id: string
-          commission_amount: number
-          commission_rate: number
-          created_at: string
-          id: string
-          order_amount: number
-          order_id: string
-          paid_at: string | null
-          status: string
-        }
+          actor_id: string | null;
+          conversation_id: string;
+          created_at: string;
+          from_assignee_id: string | null;
+          from_team_id: string | null;
+          id: string;
+          note: string | null;
+          organization_id: string;
+          to_assignee_id: string | null;
+          to_team_id: string | null;
+        };
+        ComputedFields: never;
         Insert: {
-          affiliate_id: string
-          commission_amount: number
-          commission_rate: number
-          created_at?: string
-          id?: string
-          order_amount: number
-          order_id: string
-          paid_at?: string | null
-          status?: string
-        }
+          actor_id?: string | null;
+          conversation_id: string;
+          created_at?: string;
+          from_assignee_id?: string | null;
+          from_team_id?: string | null;
+          id?: string;
+          note?: string | null;
+          organization_id: string;
+          to_assignee_id?: string | null;
+          to_team_id?: string | null;
+        };
         Update: {
-          affiliate_id?: string
-          commission_amount?: number
-          commission_rate?: number
-          created_at?: string
-          id?: string
-          order_amount?: number
-          order_id?: string
-          paid_at?: string | null
-          status?: string
-        }
+          actor_id?: string | null;
+          conversation_id?: string;
+          created_at?: string;
+          from_assignee_id?: string | null;
+          from_team_id?: string | null;
+          id?: string;
+          note?: string | null;
+          organization_id?: string;
+          to_assignee_id?: string | null;
+          to_team_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "affiliate_commissions_affiliate_id_fkey"
-            columns: ["affiliate_id"]
-            isOneToOne: false
-            referencedRelation: "affiliates"
-            referencedColumns: ["id"]
+            foreignKeyName: "assignment_logs_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-      affiliate_links: {
+          {
+            foreignKeyName: "assignment_logs_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "assignment_logs_from_assignee_id_fkey";
+            columns: ["from_assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "assignment_logs_from_team_id_fkey";
+            columns: ["from_team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "assignment_logs_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "assignment_logs_to_assignee_id_fkey";
+            columns: ["to_assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "assignment_logs_to_team_id_fkey";
+            columns: ["to_team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      channels: {
         Row: {
-          affiliate_id: string
-          clicks: number
-          conversions: number
-          created_at: string
-          id: string
-          link_url: string
-          product_id: string
-        }
+          created_at: string;
+          display_phone: string | null;
+          id: string;
+          is_active: boolean;
+          name: string;
+          organization_id: string;
+          phone_number_id: string;
+          updated_at: string;
+          waba_id: string | null;
+        };
+        ComputedFields: never;
         Insert: {
-          affiliate_id: string
-          clicks?: number
-          conversions?: number
-          created_at?: string
-          id?: string
-          link_url: string
-          product_id: string
-        }
+          created_at?: string;
+          display_phone?: string | null;
+          id?: string;
+          is_active?: boolean;
+          name: string;
+          organization_id: string;
+          phone_number_id: string;
+          updated_at?: string;
+          waba_id?: string | null;
+        };
         Update: {
-          affiliate_id?: string
-          clicks?: number
-          conversions?: number
-          created_at?: string
-          id?: string
-          link_url?: string
-          product_id?: string
-        }
+          created_at?: string;
+          display_phone?: string | null;
+          id?: string;
+          is_active?: boolean;
+          name?: string;
+          organization_id?: string;
+          phone_number_id?: string;
+          updated_at?: string;
+          waba_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "affiliate_links_affiliate_id_fkey"
-            columns: ["affiliate_id"]
-            isOneToOne: false
-            referencedRelation: "affiliates"
-            referencedColumns: ["id"]
+            foreignKeyName: "channels_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-      affiliates: {
+        ];
+      };
+      contact_labels: {
         Row: {
-          affiliate_code: string
-          bank_account: string | null
-          bank_holder_name: string | null
-          bank_name: string | null
-          commission_rate: number
-          created_at: string
-          id: string
-          master_affiliate_id: string | null
-          status: Database["public"]["Enums"]["affiliate_status"]
-          total_earnings: number
-          total_referrals: number
-          updated_at: string
-          user_id: string
-        }
+          contact_id: string;
+          label_id: string;
+        };
+        ComputedFields: never;
         Insert: {
-          affiliate_code: string
-          bank_account?: string | null
-          bank_holder_name?: string | null
-          bank_name?: string | null
-          commission_rate?: number
-          created_at?: string
-          id?: string
-          master_affiliate_id?: string | null
-          status?: Database["public"]["Enums"]["affiliate_status"]
-          total_earnings?: number
-          total_referrals?: number
-          updated_at?: string
-          user_id: string
-        }
+          contact_id: string;
+          label_id: string;
+        };
         Update: {
-          affiliate_code?: string
-          bank_account?: string | null
-          bank_holder_name?: string | null
-          bank_name?: string | null
-          commission_rate?: number
-          created_at?: string
-          id?: string
-          master_affiliate_id?: string | null
-          status?: Database["public"]["Enums"]["affiliate_status"]
-          total_earnings?: number
-          total_referrals?: number
-          updated_at?: string
-          user_id?: string
-        }
+          contact_id?: string;
+          label_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "affiliates_master_affiliate_id_fkey"
-            columns: ["master_affiliate_id"]
-            isOneToOne: false
-            referencedRelation: "affiliates"
-            referencedColumns: ["id"]
+            foreignKeyName: "contact_labels_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "affiliates_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "contact_labels_label_id_fkey";
+            columns: ["label_id"];
+            isOneToOne: false;
+            referencedRelation: "labels";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-      ai_knowledge_base: {
+        ];
+      };
+      contacts: {
         Row: {
-          answer: string
-          category: string
-          created_at: string
-          created_by: string | null
-          id: string
-          is_active: boolean | null
-          question: string
-          updated_at: string
-        }
+          company: string | null;
+          created_at: string;
+          custom_fields: NonNullable<Json>;
+          email: string | null;
+          id: string;
+          name: string | null;
+          notes: string | null;
+          opt_in: boolean;
+          organization_id: string;
+          profile_name: string | null;
+          updated_at: string;
+          wa_id: string;
+        };
+        ComputedFields: never;
         Insert: {
-          answer: string
-          category: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          is_active?: boolean | null
-          question: string
-          updated_at?: string
-        }
+          company?: string | null;
+          created_at?: string;
+          custom_fields?: NonNullable<Json>;
+          email?: string | null;
+          id?: string;
+          name?: string | null;
+          notes?: string | null;
+          opt_in?: boolean;
+          organization_id: string;
+          profile_name?: string | null;
+          updated_at?: string;
+          wa_id: string;
+        };
         Update: {
-          answer?: string
-          category?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          is_active?: boolean | null
-          question?: string
-          updated_at?: string
-        }
+          company?: string | null;
+          created_at?: string;
+          custom_fields?: NonNullable<Json>;
+          email?: string | null;
+          id?: string;
+          name?: string | null;
+          notes?: string | null;
+          opt_in?: boolean;
+          organization_id?: string;
+          profile_name?: string | null;
+          updated_at?: string;
+          wa_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "ai_knowledge_base_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "contacts_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-      ai_training_data: {
+        ];
+      };
+      conversation_labels: {
         Row: {
-          answer: string
-          category: string | null
-          confidence_score: number | null
-          created_at: string
-          created_by: string | null
-          id: string
-          is_verified: boolean | null
-          question: string
-          updated_at: string
-        }
+          conversation_id: string;
+          label_id: string;
+        };
+        ComputedFields: never;
         Insert: {
-          answer: string
-          category?: string | null
-          confidence_score?: number | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          is_verified?: boolean | null
-          question: string
-          updated_at?: string
-        }
+          conversation_id: string;
+          label_id: string;
+        };
         Update: {
-          answer?: string
-          category?: string | null
-          confidence_score?: number | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          is_verified?: boolean | null
-          question?: string
-          updated_at?: string
-        }
+          conversation_id?: string;
+          label_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "ai_training_data_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "conversation_labels_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-      chat_sessions: {
+          {
+            foreignKeyName: "conversation_labels_label_id_fkey";
+            columns: ["label_id"];
+            isOneToOne: false;
+            referencedRelation: "labels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      conversations: {
         Row: {
-          assigned_agent_id: string | null
-          created_at: string
-          customer_name: string | null
-          id: string
-          is_ai_active: boolean | null
-          last_message_at: string | null
-          platform: string
-          status: string
-          updated_at: string
-          user_id: string
-          whatsapp_phone: string
-        }
+          assignee_id: string | null;
+          channel_id: string;
+          contact_id: string;
+          created_at: string;
+          first_response_at: string | null;
+          id: string;
+          last_customer_message_at: string | null;
+          last_message_at: string | null;
+          last_message_preview: string | null;
+          opened_at: string;
+          organization_id: string;
+          resolved_at: string | null;
+          status: Database["public"]["Enums"]["conversation_status"];
+          team_id: string | null;
+          unread_count: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
         Insert: {
-          assigned_agent_id?: string | null
-          created_at?: string
-          customer_name?: string | null
-          id?: string
-          is_ai_active?: boolean | null
-          last_message_at?: string | null
-          platform?: string
-          status?: string
-          updated_at?: string
-          user_id: string
-          whatsapp_phone: string
-        }
+          assignee_id?: string | null;
+          channel_id: string;
+          contact_id: string;
+          created_at?: string;
+          first_response_at?: string | null;
+          id?: string;
+          last_customer_message_at?: string | null;
+          last_message_at?: string | null;
+          last_message_preview?: string | null;
+          opened_at?: string;
+          organization_id: string;
+          resolved_at?: string | null;
+          status?: Database["public"]["Enums"]["conversation_status"];
+          team_id?: string | null;
+          unread_count?: number;
+          updated_at?: string;
+        };
         Update: {
-          assigned_agent_id?: string | null
-          created_at?: string
-          customer_name?: string | null
-          id?: string
-          is_ai_active?: boolean | null
-          last_message_at?: string | null
-          platform?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-          whatsapp_phone?: string
-        }
-        Relationships: []
-      }
+          assignee_id?: string | null;
+          channel_id?: string;
+          contact_id?: string;
+          created_at?: string;
+          first_response_at?: string | null;
+          id?: string;
+          last_customer_message_at?: string | null;
+          last_message_at?: string | null;
+          last_message_preview?: string | null;
+          opened_at?: string;
+          organization_id?: string;
+          resolved_at?: string | null;
+          status?: Database["public"]["Enums"]["conversation_status"];
+          team_id?: string | null;
+          unread_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversations_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      labels: {
+        Row: {
+          color: string;
+          created_at: string;
+          id: string;
+          in_pipeline: boolean;
+          name: string;
+          organization_id: string;
+          position: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          color?: string;
+          created_at?: string;
+          id?: string;
+          in_pipeline?: boolean;
+          name: string;
+          organization_id: string;
+          position?: number;
+        };
+        Update: {
+          color?: string;
+          created_at?: string;
+          id?: string;
+          in_pipeline?: boolean;
+          name?: string;
+          organization_id?: string;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "labels_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       messages: {
         Row: {
-          created_at: string
-          id: string
-          is_read: boolean | null
-          message_text: string
-          metadata: Json | null
-          sender_type: string
-          session_id: string
-          whatsapp_message_id: string | null
-        }
+          body: string | null;
+          conversation_id: string;
+          created_at: string;
+          direction: Database["public"]["Enums"]["message_direction"];
+          error: Json | null;
+          id: string;
+          media_filename: string | null;
+          media_mime: string | null;
+          media_path: string | null;
+          metadata: NonNullable<Json>;
+          organization_id: string;
+          reply_to_wa_id: string | null;
+          sender_id: string | null;
+          status: Database["public"]["Enums"]["message_status"];
+          type: string;
+          wa_message_id: string | null;
+        };
+        ComputedFields: never;
         Insert: {
-          created_at?: string
-          id?: string
-          is_read?: boolean | null
-          message_text: string
-          metadata?: Json | null
-          sender_type: string
-          session_id: string
-          whatsapp_message_id?: string | null
-        }
+          body?: string | null;
+          conversation_id: string;
+          created_at?: string;
+          direction: Database["public"]["Enums"]["message_direction"];
+          error?: Json | null;
+          id?: string;
+          media_filename?: string | null;
+          media_mime?: string | null;
+          media_path?: string | null;
+          metadata?: NonNullable<Json>;
+          organization_id: string;
+          reply_to_wa_id?: string | null;
+          sender_id?: string | null;
+          status: Database["public"]["Enums"]["message_status"];
+          type?: string;
+          wa_message_id?: string | null;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          is_read?: boolean | null
-          message_text?: string
-          metadata?: Json | null
-          sender_type?: string
-          session_id?: string
-          whatsapp_message_id?: string | null
-        }
+          body?: string | null;
+          conversation_id?: string;
+          created_at?: string;
+          direction?: Database["public"]["Enums"]["message_direction"];
+          error?: Json | null;
+          id?: string;
+          media_filename?: string | null;
+          media_mime?: string | null;
+          media_path?: string | null;
+          metadata?: NonNullable<Json>;
+          organization_id?: string;
+          reply_to_wa_id?: string | null;
+          sender_id?: string | null;
+          status?: Database["public"]["Enums"]["message_status"];
+          type?: string;
+          wa_message_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "messages_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "chat_sessions"
-            referencedColumns: ["id"]
+            foreignKeyName: "messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+          {
+            foreignKeyName: "messages_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notes: {
+        Row: {
+          author_id: string | null;
+          body: string;
+          conversation_id: string;
+          created_at: string;
+          id: string;
+          mentions: string[];
+          organization_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          author_id?: string | null;
+          body: string;
+          conversation_id: string;
+          created_at?: string;
+          id?: string;
+          mentions?: string[];
+          organization_id: string;
+        };
+        Update: {
+          author_id?: string | null;
+          body?: string;
+          conversation_id?: string;
+          created_at?: string;
+          id?: string;
+          mentions?: string[];
+          organization_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notes_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notes_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notes_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      organizations: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+          retention_days: number;
+          timezone: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: string;
+          name: string;
+          retention_days?: number;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+          retention_days?: number;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
-          avatar_url: string | null
-          created_at: string
-          email: string
-          full_name: string | null
-          id: string
-          phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
-        }
+          avatar_url: string | null;
+          created_at: string;
+          email: string;
+          full_name: string | null;
+          id: string;
+          is_active: boolean;
+          max_open_chats: number;
+          organization_id: string | null;
+          role: Database["public"]["Enums"]["app_role"];
+          status: Database["public"]["Enums"]["agent_status"];
+          updated_at: string;
+        };
+        ComputedFields: never;
         Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          email: string
-          full_name?: string | null
-          id: string
-          phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-        }
+          avatar_url?: string | null;
+          created_at?: string;
+          email: string;
+          full_name?: string | null;
+          id: string;
+          is_active?: boolean;
+          max_open_chats?: number;
+          organization_id?: string | null;
+          role?: Database["public"]["Enums"]["app_role"];
+          status?: Database["public"]["Enums"]["agent_status"];
+          updated_at?: string;
+        };
         Update: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string
-          full_name?: string | null
-          id?: string
-          phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      whatsapp_settings: {
-        Row: {
-          access_token: string | null
-          business_account_id: string | null
-          created_at: string
-          id: string
-          is_active: boolean | null
-          phone_number_id: string | null
-          updated_at: string
-          user_id: string
-          verify_token: string | null
-          webhook_url: string | null
-        }
-        Insert: {
-          access_token?: string | null
-          business_account_id?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean | null
-          phone_number_id?: string | null
-          updated_at?: string
-          user_id: string
-          verify_token?: string | null
-          webhook_url?: string | null
-        }
-        Update: {
-          access_token?: string | null
-          business_account_id?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean | null
-          phone_number_id?: string | null
-          updated_at?: string
-          user_id?: string
-          verify_token?: string | null
-          webhook_url?: string | null
-        }
+          avatar_url?: string | null;
+          created_at?: string;
+          email?: string;
+          full_name?: string | null;
+          id?: string;
+          is_active?: boolean;
+          max_open_chats?: number;
+          organization_id?: string | null;
+          role?: Database["public"]["Enums"]["app_role"];
+          status?: Database["public"]["Enums"]["agent_status"];
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "whatsapp_settings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "profiles_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-    }
+        ];
+      };
+      quick_replies: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: string;
+          organization_id: string;
+          owner_id: string | null;
+          shortcut: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          body: string;
+          created_at?: string;
+          id?: string;
+          organization_id: string;
+          owner_id?: string | null;
+          shortcut: string;
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: string;
+          organization_id?: string;
+          owner_id?: string | null;
+          shortcut?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "quick_replies_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quick_replies_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      team_members: {
+        Row: {
+          created_at: string;
+          profile_id: string;
+          team_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          profile_id: string;
+          team_id: string;
+        };
+        Update: {
+          created_at?: string;
+          profile_id?: string;
+          team_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "team_members_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_members_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      teams: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          id: string;
+          name: string;
+          organization_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          name: string;
+          organization_id: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          name?: string;
+          organization_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "teams_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      templates: {
+        Row: {
+          category: string | null;
+          channel_id: string;
+          components: NonNullable<Json>;
+          id: string;
+          language: string;
+          name: string;
+          organization_id: string;
+          status: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          category?: string | null;
+          channel_id: string;
+          components?: NonNullable<Json>;
+          id?: string;
+          language: string;
+          name: string;
+          organization_id: string;
+          status?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          category?: string | null;
+          channel_id?: string;
+          components?: NonNullable<Json>;
+          id?: string;
+          language?: string;
+          name?: string;
+          organization_id?: string;
+          status?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "templates_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "templates_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
-      generate_affiliate_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-    }
+      apply_message_status: {
+        Args: {
+          p_error: Json;
+          p_status: Database["public"]["Enums"]["message_status"];
+          p_wa_message_id: string;
+        };
+        Returns: undefined;
+      };
+      assign_conversation: {
+        Args: {
+          conv_id: string;
+          note?: string;
+          to_assignee: string;
+          to_team?: string;
+        };
+        Returns: {
+          assignee_id: string | null;
+          channel_id: string;
+          contact_id: string;
+          created_at: string;
+          first_response_at: string | null;
+          id: string;
+          last_customer_message_at: string | null;
+          last_message_at: string | null;
+          last_message_preview: string | null;
+          opened_at: string;
+          organization_id: string;
+          resolved_at: string | null;
+          status: Database["public"]["Enums"]["conversation_status"];
+          team_id: string | null;
+          unread_count: number;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "conversations";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      can_access_conversation: { Args: { conv_id: string }; Returns: boolean };
+      claim_conversation: {
+        Args: { conv_id: string };
+        Returns: {
+          assignee_id: string | null;
+          channel_id: string;
+          contact_id: string;
+          created_at: string;
+          first_response_at: string | null;
+          id: string;
+          last_customer_message_at: string | null;
+          last_message_at: string | null;
+          last_message_preview: string | null;
+          opened_at: string;
+          organization_id: string;
+          resolved_at: string | null;
+          status: Database["public"]["Enums"]["conversation_status"];
+          team_id: string | null;
+          unread_count: number;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "conversations";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      create_organization: { Args: { org_name: string }; Returns: string };
+      current_org_id: { Args: Record<PropertyKey, never>; Returns: string };
+      current_role_name: {
+        Args: Record<PropertyKey, never>;
+        Returns: Database["public"]["Enums"]["app_role"];
+      };
+      current_team_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
+      ingest_inbound_message: {
+        Args: {
+          p_body: string;
+          p_metadata: Json;
+          p_phone_number_id: string;
+          p_profile_name: string;
+          p_reply_to_wa_id: string;
+          p_sent_at: string;
+          p_type: string;
+          p_wa_id: string;
+          p_wa_message_id: string;
+        };
+        Returns: {
+          conversation_id: string;
+          inserted: boolean;
+          message_id: string;
+          organization_id: string;
+        }[];
+      };
+      mark_conversation_read: { Args: { conv_id: string }; Returns: undefined };
+      move_conversation_label: {
+        Args: { conv_id: string; from_label: string; to_label: string };
+        Returns: undefined;
+      };
+      purge_expired_messages: {
+        Args: Record<PropertyKey, never>;
+        Returns: string[];
+      };
+      record_outbound_message: {
+        Args: {
+          p_body: string;
+          p_conversation_id: string;
+          p_media_filename: string;
+          p_media_mime: string;
+          p_media_path: string;
+          p_metadata: Json;
+          p_reply_to_wa_id: string;
+          p_sender_id: string;
+          p_type: string;
+          p_wa_message_id: string;
+        };
+        Returns: {
+          body: string | null;
+          conversation_id: string;
+          created_at: string;
+          direction: Database["public"]["Enums"]["message_direction"];
+          error: Json | null;
+          id: string;
+          media_filename: string | null;
+          media_mime: string | null;
+          media_path: string | null;
+          metadata: NonNullable<Json>;
+          organization_id: string;
+          reply_to_wa_id: string | null;
+          sender_id: string | null;
+          status: Database["public"]["Enums"]["message_status"];
+          type: string;
+          wa_message_id: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "messages";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      set_conversation_status: {
+        Args: {
+          conv_id: string;
+          new_status: Database["public"]["Enums"]["conversation_status"];
+        };
+        Returns: {
+          assignee_id: string | null;
+          channel_id: string;
+          contact_id: string;
+          created_at: string;
+          first_response_at: string | null;
+          id: string;
+          last_customer_message_at: string | null;
+          last_message_at: string | null;
+          last_message_preview: string | null;
+          opened_at: string;
+          organization_id: string;
+          resolved_at: string | null;
+          status: Database["public"]["Enums"]["conversation_status"];
+          team_id: string | null;
+          unread_count: number;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "conversations";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+    };
     Enums: {
-      affiliate_status: "pending" | "active" | "suspended" | "rejected"
-      user_role: "admin" | "master_affiliate" | "affiliate" | "customer"
-    }
+      agent_status: "online" | "away" | "offline";
+      app_role: "admin" | "supervisor" | "agent";
+      conversation_status: "open" | "pending" | "resolved";
+      message_direction: "inbound" | "outbound";
+      message_status: "received" | "sent" | "delivered" | "read" | "failed";
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<
+  keyof Database,
+  "public"
+>];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+      Row: infer R;
     }
     ? R
     : never
@@ -454,101 +990,104 @@ export type Tables<
         DefaultSchema["Views"])
     ? (DefaultSchema["Tables"] &
         DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
+        Row: infer R;
       }
       ? R
       : never
-    : never
+    : never;
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
+      Insert: infer I;
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
+        Insert: infer I;
       }
       ? I
       : never
-    : never
+    : never;
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
+      Update: infer U;
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
+        Update: infer U;
       }
       ? U
       : never
-    : never
+    : never;
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+    : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+    : never;
 
 export const Constants = {
   public: {
     Enums: {
-      affiliate_status: ["pending", "active", "suspended", "rejected"],
-      user_role: ["admin", "master_affiliate", "affiliate", "customer"],
+      agent_status: ["online", "away", "offline"],
+      app_role: ["admin", "supervisor", "agent"],
+      conversation_status: ["open", "pending", "resolved"],
+      message_direction: ["inbound", "outbound"],
+      message_status: ["received", "sent", "delivered", "read", "failed"],
     },
   },
-} as const
+} as const;

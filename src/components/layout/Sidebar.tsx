@@ -1,138 +1,91 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  LayoutDashboard, 
-  MessageSquare, 
-  Bot, 
-  Users, 
-  Send, 
-  Tags, 
-  Package, 
-  GitBranch,
-  BarChart3,
-  Settings,
-  Menu,
-  X,
-  UserCheck,
-  LogOut
-} from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { LayoutDashboard, MessageSquare, Contact, Users, Settings, PanelLeftClose, PanelLeftOpen, Zap, SquareKanban } from "lucide-react";
+import { useAuth, type AppRole } from "@/contexts/AuthContext";
+import { Logo, LogoMark } from "@/components/brand/Logo";
+import { useUnreadTotal } from "@/hooks/useInboxNotifications";
 
-const navigation = [
+const navigation: { name: string; href: string; icon: typeof LayoutDashboard; roles?: AppRole[] }[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Chat Panel", href: "/chat", icon: MessageSquare },
-  { name: "AI Agent", href: "/ai-agent", icon: Bot },
-  { name: "Human Agent", href: "/human-agent", icon: Users },
-  { name: "Broadcast", href: "/broadcast", icon: Send },
-  { name: "Kontak & Label", href: "/contacts", icon: Tags },
-  { name: "Produk", href: "/products", icon: Package },
-  { name: "Affiliate", href: "/affiliate", icon: UserCheck },
-  { name: "Auto Funnel", href: "/funnel", icon: GitBranch },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Pengaturan", href: "/settings", icon: Settings },
+  { name: "Inbox", href: "/inbox", icon: MessageSquare },
+  { name: "Pipeline", href: "/pipeline", icon: SquareKanban },
+  { name: "Kontak", href: "/contacts", icon: Contact },
+  { name: "Balasan Cepat", href: "/quick-replies", icon: Zap },
+  { name: "Tim & Agen", href: "/team", icon: Users, roles: ["admin", "supervisor"] },
+  { name: "Pengaturan", href: "/settings", icon: Settings, roles: ["admin", "supervisor"] },
 ];
 
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const location = useLocation();
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
+  const { data: unread = 0 } = useUnreadTotal(profile!.organization_id!);
 
-  const handleSignOut = async () => {
-    await signOut();
-  };
+  const items = navigation.filter((item) => !item.roles || (profile && item.roles.includes(profile.role)));
 
   return (
-    <div className={cn(
-      "relative flex flex-col h-screen bg-card border-r border-border transition-all duration-300",
-      isCollapsed ? "w-16" : "w-64"
-    )}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
+    <aside
+      className={cn(
+        "flex h-screen flex-col border-r border-border bg-card transition-all duration-300",
+        isCollapsed ? "w-16" : "w-60",
+      )}
+    >
+      <div className="flex items-center justify-between border-b border-border p-3">
+        {isCollapsed ? <LogoMark className="mx-auto h-7 w-7" /> : <Logo className="px-1" />}
         {!isCollapsed && (
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-lg text-primary">Obrol.AI</span>
-          </div>
+          <Button variant="ghost" size="icon" onClick={() => setIsCollapsed(true)} aria-label="Ciutkan menu">
+            <PanelLeftClose className="h-4 w-4" />
+          </Button>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2"
-        >
-          {isCollapsed ? <Menu className="w-4 h-4" /> : <X className="w-4 h-4" />}
-        </Button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          const Icon = item.icon;
-          
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                "flex items-center p-3 rounded-lg transition-all duration-200 group hover:bg-primary/10",
-                isActive && "bg-primary text-primary-foreground hover:bg-primary",
-                isCollapsed && "justify-center"
+      <nav className="flex-1 space-y-1 p-3">
+        {items.map((item) => (
+          <NavLink
+            key={item.href}
+            to={item.href}
+            end={item.href === "/"}
+            title={item.name}
+            className={({ isActive }) =>
+              cn(
+                "group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-primary-light hover:text-primary-dark",
+                isCollapsed && "justify-center px-0",
+              )
+            }
+          >
+            <span className="relative">
+              <item.icon className="h-5 w-5 shrink-0" />
+              {item.href === "/inbox" && unread > 0 && isCollapsed && (
+                <span className="absolute -right-1.5 -top-1.5 h-2.5 w-2.5 rounded-full bg-danger" />
               )}
-            >
-              <Icon className={cn(
-                "w-5 h-5",
-                isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
-              )} />
-              {!isCollapsed && (
-                <span className={cn(
-                  "ml-3 font-medium",
-                  isActive ? "text-primary-foreground" : "text-foreground"
-                )}>
-                  {item.name}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+            </span>
+            {!isCollapsed && <span className="ml-3 flex-1">{item.name}</span>}
+            {!isCollapsed && item.href === "/inbox" && unread > 0 && (
+              <span className="rounded-full bg-danger px-2 text-xs font-semibold text-danger-foreground">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
+          </NavLink>
+        ))}
       </nav>
 
-      {/* User Info */}
-      {!isCollapsed && profile && (
-        <div className="p-4 border-t border-border space-y-3">
-          <div className="flex items-center space-x-3">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={profile.avatar_url} />
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                {profile.full_name?.charAt(0)?.toUpperCase() || profile.email.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {profile.full_name || 'User'}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                {profile.role}
-              </span>
-            </div>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleSignOut}
+      {isCollapsed && (
+        <div className="border-t border-border p-3">
+          <Button
+            variant="ghost"
+            size="icon"
             className="w-full"
+            onClick={() => setIsCollapsed(false)}
+            aria-label="Buka menu"
           >
-            <LogOut className="w-4 h-4 mr-2" />
-            Keluar
+            <PanelLeftOpen className="h-4 w-4" />
           </Button>
         </div>
       )}
-    </div>
+    </aside>
   );
 }

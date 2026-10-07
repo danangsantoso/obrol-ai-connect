@@ -1,74 +1,106 @@
-import { Bell, Search, Settings, User } from "lucide-react";
+import { useState } from "react";
+import { BellRing, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth, type Profile } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { ROLE_LABELS, errorMessage, initials } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+const AGENT_STATUS: { value: Profile["status"]; label: string; dot: string }[] = [
+  { value: "online", label: "Online", dot: "bg-success" },
+  { value: "away", label: "Away", dot: "bg-warning" },
+  { value: "offline", label: "Offline", dot: "bg-muted-foreground" },
+];
 
 export function Header() {
+  const { profile, signOut, refreshProfile } = useAuth();
+  if (!profile) return null;
+
+  const name = profile.full_name || profile.email;
+  const current = AGENT_STATUS.find((s) => s.value === profile.status) ?? AGENT_STATUS[2];
+
+  const setStatus = async (status: string) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ status: status as Profile["status"] })
+      .eq("id", profile.id);
+    if (error) toast.error(errorMessage(error));
+    await refreshProfile();
+  };
+
   return (
-    <header className="bg-card border-b border-border px-6 py-4">
-      <div className="flex items-center justify-between">
-        {/* Search */}
-        <div className="flex items-center space-x-4 flex-1 max-w-md">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Cari chat, kontak, atau produk..."
-              className="pl-10 bg-muted/50 border-none focus:bg-background transition-colors"
-            />
-          </div>
-        </div>
-
-        {/* Right Side */}
-        <div className="flex items-center space-x-4">
-          {/* Notifications */}
-          <Button variant="ghost" size="sm" className="relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 bg-danger text-danger-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              3
-            </span>
+    <header className="flex h-14 items-center justify-end gap-3 border-b border-border bg-card px-6">
+      <NotificationPermission />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="flex items-center gap-3 px-2">
+            <div className="relative">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary text-xs text-primary-foreground">
+                  {initials(name) || <User className="h-4 w-4" />}
+                </AvatarFallback>
+              </Avatar>
+              <span
+                className={cn("absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card", current.dot)}
+              />
+            </div>
+            <div className="hidden text-left md:block">
+              <p className="text-sm font-medium leading-tight">{name}</p>
+              <p className="text-xs leading-tight text-muted-foreground">{ROLE_LABELS[profile.role]}</p>
+            </div>
           </Button>
-
-          {/* Settings */}
-          <Button variant="ghost" size="sm">
-            <Settings className="w-5 h-5" />
-          </Button>
-
-          {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-primary-foreground" />
-                </div>
-                <span className="hidden md:block font-medium">Admin</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Akun Saya</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                <span>Profil</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Pengaturan</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-danger">
-                Keluar
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel className="font-normal">
+            <p className="text-sm font-medium">{name}</p>
+            <p className="text-xs text-muted-foreground">{profile.email}</p>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="text-xs text-muted-foreground">Status</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={profile.status} onValueChange={setStatus}>
+            {AGENT_STATUS.map((s) => (
+              <DropdownMenuRadioItem key={s.value} value={s.value}>
+                <span className={cn("mr-2 h-2 w-2 rounded-full", s.dot)} />
+                {s.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => signOut()} className="text-danger">
+            <LogOut className="mr-2 h-4 w-4" />
+            Keluar
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </header>
+  );
+}
+
+// Browsers only allow notification prompts from a user gesture.
+function NotificationPermission() {
+  const supported = typeof window !== "undefined" && "Notification" in window;
+  const [permission, setPermission] = useState(supported ? Notification.permission : "denied");
+  if (!supported || permission !== "default") return null;
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => Notification.requestPermission().then(setPermission)}
+    >
+      <BellRing className="mr-2 h-4 w-4" />
+      Aktifkan notifikasi
+    </Button>
   );
 }

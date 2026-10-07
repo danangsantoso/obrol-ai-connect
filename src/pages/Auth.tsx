@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,16 +7,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { LogoMark } from '@/components/brand/Logo';
+import { OtpLogin } from '@/components/auth/OtpLogin';
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [signupForm, setSignupForm] = useState({ email: '', password: '', fullName: '', confirmPassword: '' });
   
-  const { signIn, signUp } = useAuth();
+  const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) navigate('/', { replace: true });
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,10 +38,6 @@ export default function Auth() {
           variant: "destructive",
         });
       } else {
-        toast({
-          title: "Berhasil",
-          description: "Login berhasil!",
-        });
         navigate('/');
       }
     } catch (error) {
@@ -75,7 +77,7 @@ export default function Auth() {
       } else {
         toast({
           title: "Berhasil",
-          description: "Akun berhasil dibuat! Silakan cek email untuk verifikasi.",
+          description: "Akun berhasil dibuat. Jika diminta, cek email untuk verifikasi.",
         });
       }
     } catch (error) {
@@ -90,29 +92,32 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-xl flex items-center justify-center">
-            <MessageSquare className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">Obrol.AI</h1>
-          <p className="text-muted-foreground">Platform SaaS Chatbot & Affiliate</p>
+          <LogoMark className="mx-auto h-16 w-16" />
+          <h1 className="text-3xl font-bold text-primary">Balas.id</h1>
+          <p className="text-muted-foreground">Satu nomor WhatsApp untuk seluruh tim CS</p>
         </div>
 
         <Card className="w-full shadow-lg border-border/50">
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="login">Masuk</TabsTrigger>
+              <TabsTrigger value="otp">Kode email</TabsTrigger>
               <TabsTrigger value="signup">Daftar</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="otp">
+              <OtpLogin />
+            </TabsContent>
             
             <TabsContent value="login">
               <CardHeader>
                 <CardTitle>Masuk ke Akun</CardTitle>
                 <CardDescription>
-                  Masukkan email dan password untuk mengakses dashboard
+                  Masukkan email dan password untuk membuka inbox
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -151,7 +156,7 @@ export default function Auth() {
               <CardHeader>
                 <CardTitle>Buat Akun Baru</CardTitle>
                 <CardDescription>
-                  Daftar untuk mulai menggunakan platform Obrol.AI
+                  Untuk admin yang membuat organisasi baru. Agen cukup menunggu undangan dari admin.
                 </CardDescription>
               </CardHeader>
               <CardContent>
