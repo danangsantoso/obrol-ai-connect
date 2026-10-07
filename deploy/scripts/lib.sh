@@ -58,4 +58,6 @@ install_balas_overlay() {
   # QR gateway (Evolution API): API key and the token it sends with webhooks.
   [[ -n "$(env_get EVOLUTION_API_KEY)" ]] || env_set EVOLUTION_API_KEY "$(openssl rand -hex 24)"
   [[ -n "$(env_get EVOLUTION_WEBHOOK_TOKEN)" ]] || env_set EVOLUTION_WEBHOOK_TOKEN "$(openssl rand -hex 24)"
+  # Encrypts AI provider API keys stored in the database. Changing it means re-entering those keys.
+  [[ -n "$(env_get BALAS_SECRET_KEY)" ]] || env_set BALAS_SECRET_KEY "$(openssl rand -hex 32)"
 }

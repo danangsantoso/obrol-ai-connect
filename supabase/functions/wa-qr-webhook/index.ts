@@ -5,6 +5,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { adminClient } from "../_shared/supabase.ts";
 import { extensionFor } from "../_shared/whatsapp.ts";
 import { downloadMedia, isValidToken, mapState } from "../_shared/evolution.ts";
+import { triggerAutoReply } from "../_shared/ai.ts";
 
 // Baileys message payloads vary by message type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
@@ -111,6 +112,9 @@ async function handleMessage(admin: SupabaseClient, channel: Channel, data: Raw)
 
   if (row.inserted && MEDIA_TYPES.includes(described.type)) {
     await storeMedia(admin, channel, row, key.id, described.metadata.filename as string | undefined);
+  }
+  if (row.inserted && !fromMe) {
+    await triggerAutoReply(admin, row.conversation_id).catch((err) => console.error("ai trigger failed", err));
   }
 }
 

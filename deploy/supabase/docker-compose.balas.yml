@@ -35,6 +35,8 @@ services:
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
       EVOLUTION_WEBHOOK_URL: http://functions:9000/wa-qr-webhook
       EVOLUTION_WEBHOOK_TOKEN: ${EVOLUTION_WEBHOOK_TOKEN}
+      # Encryption key for AI provider API keys stored in the database
+      BALAS_SECRET_KEY: ${BALAS_SECRET_KEY}
       # Public URL of the web app: CORS origin and invitation redirect
       APP_ORIGIN: ${APP_URL}
       APP_URL: ${APP_URL}

@@ -438,6 +438,12 @@ verify_jwt = true
 [functions.wa-qr-webhook]
 verify_jwt = false
 
+[functions.ai-reply]
+verify_jwt = true
+
+[functions.ai-admin]
+verify_jwt = true
+
 # Passwordless sign-in email: carries the 6-digit code (served from public/ in production too).
 [auth.email.template.magic_link]
 subject = "Kode masuk Balas.id"

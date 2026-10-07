@@ -94,7 +94,29 @@ Log gateway: `cd /opt/balas/supabase && sudo docker compose logs --tail 100 evol
    - Subscribe field: `messages`
 4. Klik **Sinkron** pada nomor untuk menarik template pesan yang sudah disetujui.
 
-## 5. Update aplikasi
+## 5. AI Agent (balas otomatis)
+
+1. Buat API key di penyedia pilihan Anda; biaya pemakaian ditagih penyedia langsung ke akun Anda:
+   - Claude: console.anthropic.com → API Keys
+   - ChatGPT: platform.openai.com → API keys
+   - DeepSeek: platform.deepseek.com
+   - Gemini: aistudio.google.com
+   - LLM lain yang kompatibel OpenAI (OpenRouter, Groq, Qwen, Ollama): isi juga Base URL-nya
+2. Buka menu **AI Agent → Pengaturan**: pilih penyedia dan model, simpan API key, lalu klik **Cek koneksi**.
+3. Di **Produk & Pengetahuan**:
+   - Isi produk satu per satu, atau impor dari CSV (kolom `nama`, `harga`, `sku`, `deskripsi`, `kata kunci`).
+   - Unggah dokumen per produk atau dokumen umum (PDF, DOCX, TXT, MD, CSV): spesifikasi, FAQ, pengiriman, pembayaran, garansi.
+4. Coba dulu di tab **Uji coba**. Kalau jawabannya sudah pas, nyalakan **Balas otomatis** dan centang nomor yang dijawab AI.
+
+Cara kerja AI:
+- AI hanya menjawab chat yang belum diambil agen. Begitu agen mengambil chat, AI berhenti.
+- Kalau informasinya tidak ada di pengetahuan, pelanggan minta bicara dengan manusia, atau ada komplain/pembayaran/refund, AI mengirim pesan serah-terima. Chat tetap di antrean dengan catatan alasannya untuk agen.
+- Agen bisa mematikan atau menyalakan AI per chat, dan memakai tombol **Saran AI** untuk membuat draf balasan.
+
+API key disimpan terenkripsi dengan `BALAS_SECRET_KEY` (dibuat installer di `.env`). Kalau kunci itu diganti,
+API key harus disimpan ulang. Log AI: tab **Riwayat**, dan `/var/log/balas-ai.log` untuk penyapu per menit.
+
+## 6. Update aplikasi
 
 ```bash
 cd /opt/balas/app && sudo git pull && sudo ./deploy/scripts/deploy.sh
@@ -102,7 +124,7 @@ cd /opt/balas/app && sudo git pull && sudo ./deploy/scripts/deploy.sh
 
 `deploy.sh` menjalankan migrasi database yang belum diterapkan, memasang ulang Edge Functions, dan build web app.
 
-## 6. Backup & pemeliharaan
+## 7. Backup & pemeliharaan
 
 - Backup harian ada di `/var/backups/balas` (database, sesi nomor QR, file media; disimpan 30 hari).
 - Setiap malam (03:30) pesan yang lewat masa simpan organisasi dihapus. Gateway QR hanya menyimpan salinan pesan
@@ -118,7 +140,7 @@ cd /opt/balas/app && sudo git pull && sudo ./deploy/scripts/deploy.sh
 - Pantau dengan [Uptime Kuma](https://github.com/louislam/uptime-kuma): `https://app.domainanda.com` dan
   `https://api.domainanda.com/functions/v1/whatsapp-webhook` (403 berarti hidup).
 
-## 7. Uji beban (opsional)
+## 8. Uji beban (opsional)
 
 Setelah nomor uji terhubung, kirim 200 pesan tiruan ke webhook untuk memastikan server kuat:
 

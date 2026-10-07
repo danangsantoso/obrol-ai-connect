@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Clock, Hand, QrCode, UserRoundCog } from 'lucide-react';
+import { Bot, Clock, Hand, QrCode, UserRoundCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,6 +14,7 @@ import { Timeline } from './Timeline';
 import { TransferDialog } from './TransferDialog';
 import { LabelPicker } from './LabelPicker';
 import { useTimeline } from './useInboxData';
+import { useAiSettings } from '@/components/ai/aiSettings';
 import type { ConversationRow, Label, Member, Team } from './types';
 import { memberName } from './types';
 
@@ -52,6 +53,9 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
   const remaining = windowRemainingMs(conversation.last_customer_message_at, now);
   const windowOpen = viaQr || remaining > 0;
   const assignee = conversation.assignee_id ? memberMap.get(conversation.assignee_id) : undefined;
+  const { data: ai } = useAiSettings(me.organization_id!);
+  const aiReady = Boolean(ai?.enabled && ai.api_key_hint);
+  const aiOnNumber = aiReady && Boolean(conversation.channel?.ai_enabled);
   const name = displayName(conversation.contact);
 
   useEffect(() => {
@@ -75,6 +79,13 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
     afterChange();
   };
 
+  const toggleAi = async () => {
+    const { error } = await supabase.rpc('set_conversation_ai', { conv_id: conversation.id, active: !conversation.ai_active });
+    if (error) toast.error(errorMessage(error));
+    else toast.success(conversation.ai_active ? 'AI dimatikan untuk chat ini' : 'AI diaktifkan untuk chat ini');
+    onChanged();
+  };
+
   const setStatus = async (status: string) => {
     const { error } = await supabase.rpc('set_conversation_status', {
       conv_id: conversation.id,
@@ -87,9 +98,9 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-3">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[14rem] flex-1">
           <p className="truncate font-semibold">{name}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="truncate text-xs text-muted-foreground">
             {formatWaId(conversation.contact.wa_id)} · {assignee ? `Ditangani ${memberName(assignee)}` : 'Belum di-assign'}
           </p>
         </div>
@@ -107,6 +118,24 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
             <Clock className="h-3 w-3" />
             {windowOpen ? `24 jam: sisa ${formatRemaining(remaining)}` : '24 jam: tertutup'}
           </Badge>
+        )}
+        {aiOnNumber && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={toggleAi}
+            className={cn('gap-1', conversation.ai_active ? 'border-primary/40 text-primary' : 'text-muted-foreground')}
+            title={
+              conversation.assignee_id
+                ? 'AI tidak membalas chat yang sudah diambil agen'
+                : conversation.ai_active
+                  ? 'AI membalas chat ini selama belum diambil agen. Klik untuk mematikan.'
+                  : 'Klik agar AI kembali membalas chat ini'
+            }
+          >
+            <Bot className="h-4 w-4" />
+            {conversation.ai_active ? 'AI aktif' : 'AI mati'}
+          </Button>
         )}
         {!conversation.assignee_id && (
           <Button size="sm" onClick={claim}>
@@ -130,6 +159,12 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
             ))}
           </SelectContent>
         </Select>
+        {aiOnNumber && conversation.ai_handoff_at && !conversation.assignee_id && (
+          <p className="basis-full rounded-md bg-warning/10 px-3 py-1.5 text-xs text-warning">
+            AI menyerahkan chat ini ke agen{conversation.ai_handoff_reason ? `: ${conversation.ai_handoff_reason}` : '.'} Ambil chat
+            untuk membalas.
+          </p>
+        )}
         <div className="basis-full">
           <LabelPicker
             conversationId={conversation.id}
@@ -153,6 +188,7 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
         contactName={name}
         members={members}
         windowOpen={windowOpen}
+        aiSuggest={aiReady}
         onSent={(message) => {
           addMessage(message);
           onChanged();

@@ -15,6 +15,12 @@ curl -fsS -X POST \
   -d '{}' "http://127.0.0.1:${port:-8000}/functions/v1/purge-retention"
 echo
 
+# AI activity log (holds reply text) follows the same retention as messages.
+printf '[%s] AI log: ' "$(date -Is)"
+psql_db -tAc "with gone as (delete from public.ai_runs r using public.organizations o
+  where r.organization_id = o.id and r.created_at < now() - make_interval(days => o.retention_days) returning 1)
+  select count(*) || ' catatan AI lama dihapus' from gone"
+
 # The QR gateway keeps its own copy of recent messages (media download, retries).
 # Balas.id holds the chat history, so the gateway only needs a short window.
 GATEWAY_KEEP_DAYS="${GATEWAY_KEEP_DAYS:-30}"

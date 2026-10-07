@@ -6,6 +6,7 @@ Satu nomor WhatsApp untuk seluruh tim CS. Pesan pelanggan masuk ke inbox bersama
 - **Satu chat, satu pemilik**: agen mengambil chat (klaim atomik), memindahkan ke agen atau tim lain dengan catatan, dan mengubah status Open/Pending/Resolved.
 - **Dua cara menghubungkan nomor**: scan QR (nomor WhatsApp biasa, lewat gateway Evolution API) atau WhatsApp API resmi (Meta Cloud API). Keduanya bisa dipakai bersamaan.
 - **Aturan WhatsApp 24 jam** (nomor API resmi): sisa waktu jendela layanan ditampilkan. Di luar jendela itu, balasan hanya bisa lewat template yang disetujui Meta.
+- **AI Agent**: AI membalas chat otomatis (atau membuat draf untuk agen) berdasarkan katalog produk dan dokumen pengetahuan yang diunggah (PDF, Word, TXT, CSV). Pilih model sendiri: Claude, ChatGPT, DeepSeek, Gemini, atau LLM lain yang kompatibel OpenAI. Chat yang tidak bisa dijawab diserahkan ke agen.
 - **Catatan internal**, profil kontak, lampiran media, dan status terkirim/dibaca.
 - **Hak akses**: Admin, Supervisor, dan Agen per tim/divisi, ditegakkan dengan Row Level Security di database.
 - **Self-hosted** di VPS sendiri (lihat [deploy/README.md](deploy/README.md)).
@@ -27,6 +28,8 @@ supabase/functions/
   sync-templates/               tarik template pesan dari Meta
   wa-qr/                        hubungkan nomor scan QR: QR/kode tautan, status, putuskan
   wa-qr-webhook/                terima pesan, status, dan koneksi dari gateway QR
+  ai-reply/                     AI: balas otomatis, draf untuk agen, uji coba
+  ai-admin/                     AI: simpan API key (terenkripsi), cek koneksi
   _shared/                      helper bersama
 src/pages/                      Dashboard, Inbox, Kontak, Tim & Agen, Pengaturan
 deploy/                         Caddyfile, override docker-compose, skrip deploy & backup

@@ -5,6 +5,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { adminClient } from "../_shared/supabase.ts";
 import { downloadMedia, extensionFor, isValidSignature } from "../_shared/whatsapp.ts";
+import { triggerAutoReply } from "../_shared/ai.ts";
 
 // Meta's webhook payloads vary by message type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
@@ -125,6 +126,9 @@ async function handleInbound(
   const media = MEDIA_TYPES.includes(message.type) ? message[message.type] : null;
   if (data.inserted && media?.id) {
     await storeMedia(admin, data, message.id, media);
+  }
+  if (data.inserted) {
+    await triggerAutoReply(admin, data.conversation_id).catch((err) => console.error("ai trigger failed", err));
   }
 }
 

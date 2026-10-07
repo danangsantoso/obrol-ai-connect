@@ -170,7 +170,13 @@ export function ConversationList({
                   )}
                 </div>
                 <p className="mt-1 truncate text-[11px] text-muted-foreground">
-                  {assignee ? `Ditangani ${memberName(assignee)}` : 'Belum di-assign'}
+                  {assignee
+                    ? `Ditangani ${memberName(assignee)}`
+                    : conv.ai_handoff_at
+                      ? <span className="font-medium text-warning">Perlu agen (dari AI)</span>
+                      : conv.ai_last_reply_at && conv.ai_active
+                        ? <span className="font-medium text-primary">Dijawab AI</span>
+                        : 'Belum di-assign'}
                   {conv.status === 'pending' && ' · Pending'}
                 </p>
                 {conv.conversation_labels.length > 0 && (

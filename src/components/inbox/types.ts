@@ -11,7 +11,7 @@ export type QuickReply = Tables<'quick_replies'>;
 
 export type ConversationRow = Tables<'conversations'> & {
   contact: Pick<Contact, 'id' | 'wa_id' | 'name' | 'profile_name'>;
-  channel: Pick<Tables<'channels'>, 'provider' | 'name'> | null;
+  channel: Pick<Tables<'channels'>, 'provider' | 'name' | 'ai_enabled'> | null;
   conversation_labels: { label_id: string }[];
 };
 

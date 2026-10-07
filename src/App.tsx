@@ -17,6 +17,7 @@ const QuickReplies = lazy(() => import("./pages/QuickReplies"));
 const Pipeline = lazy(() => import("./pages/Pipeline"));
 const Team = lazy(() => import("./pages/Team"));
 const Settings = lazy(() => import("./pages/Settings"));
+const AiAgent = lazy(() => import("./pages/AiAgent"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 const queryClient = new QueryClient();
@@ -66,6 +67,14 @@ const App = () => (
                 <Route path="pipeline" element={<Pipeline />} />
                 <Route path="contacts" element={<Contacts />} />
                 <Route path="quick-replies" element={<QuickReplies />} />
+                <Route
+                  path="ai"
+                  element={
+                    <ProtectedRoute roles={["admin", "supervisor"]}>
+                      <AiAgent />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="team"
                   element={
