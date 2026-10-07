@@ -22,6 +22,7 @@ import { LabelChip } from "@/components/inbox/LabelChip";
 import { LABEL_COLORS } from "@/components/inbox/types";
 import { useLabels } from "@/components/inbox/useInboxData";
 import { cn } from "@/lib/utils";
+import { PaymentSettingsCard } from "@/components/orders/PaymentSettingsCard";
 
 const WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`;
 const META_WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-webhook`;
@@ -639,10 +640,11 @@ export default function Settings() {
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold">Pengaturan</h1>
-        <p className="text-muted-foreground">Organisasi, kanal chat (WhatsApp, Messenger, Instagram, Telegram, live chat), dan label.</p>
+        <p className="text-muted-foreground">Organisasi, kanal chat (WhatsApp, Messenger, Instagram, Telegram, live chat), pembayaran, dan label.</p>
       </div>
       <OrganizationCard isAdmin={isAdmin} />
       <ChannelsCard isAdmin={isAdmin} />
+      <PaymentSettingsCard orgId={profile!.organization_id!} isAdmin={isAdmin} />
       <LabelsCard />
     </div>
   );

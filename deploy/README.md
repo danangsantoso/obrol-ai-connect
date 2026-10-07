@@ -219,6 +219,39 @@ Cara kerja AI:
 API key disimpan terenkripsi dengan `BALAS_SECRET_KEY` (dibuat installer di `.env`). Kalau kunci itu diganti,
 API key harus disimpan ulang. Log AI: tab **Riwayat**, dan `/var/log/balas-ai.log` untuk penyapu per menit.
 
+## 5a. Follow-up otomatis
+
+Menu **Follow-up → Urutan pesan**: klik **Pakai contoh 7 lapis** (kata-kata sudah disiapkan) atau buat sendiri,
+maksimal 10 lapis. Atur jeda tiap lapis (hari/jam) dan jam kirim. Pakai `{sapaan}`, `{nama}`, `{agen}`, `{bot}`,
+dan `{toko}` di pesan.
+
+- **Manual**: agen klik tombol **Follow-up** di chat dan memilih urutannya.
+- **Otomatis**: chat masuk sendiri saat kita sudah membalas dan pelanggan diam selama N jam. Bisa dibatasi ke chat
+  berlabel tertentu.
+- Urutan berhenti begitu pelanggan membalas atau membayar pesanan. Hasilnya ada di tab **Pelacakan** (berapa yang
+  membalas, setelah lapis ke berapa, per agen).
+- Nomor WhatsApp API resmi: setelah 24 jam sejak pesan terakhir pelanggan, sebuah lapis hanya bisa terkirim bila diberi
+  template yang sudah disetujui Meta.
+
+Pesan dikirim oleh penyapu per menit (`ai-sweep.sh`, log di `/var/log/balas-ai.log`).
+
+## 5b. Pesanan, pembayaran & ongkir
+
+Atur di **Pengaturan → Pembayaran & ongkir**:
+
+- **Transfer bank**: isi rekening tujuan. Agen menekan **Tandai lunas** setelah memeriksa bukti transfer.
+- **Xendit**: isi secret key (Xendit Dashboard → Settings → API Keys, izin *Money-in write*) dan *callback verification
+  token*. Salin URL callback yang ditampilkan ke Xendit → Settings → Webhooks → *Invoices paid*.
+- **Midtrans**: isi server key, lalu salin URL notifikasi ke Midtrans → Settings → Configuration →
+  *Payment Notification URL*. Matikan **Mode produksi** saat memakai key sandbox.
+- **Ongkir**: tarif tetap, atau tarif kurir otomatis lewat **Biteship** (API key dari biteship.com, plus kode pos asal).
+  Isi berat produk di katalog agar ongkir akurat.
+- **AI boleh membuat pesanan**: AI membuat pesanan begitu pelanggan setuju dan datanya lengkap, lalu mengirim tagihan.
+
+Pesanan dibuat dari tombol **Pesanan** di chat dan dikelola di menu **Pesanan** (lunas, kirim dengan resi, selesai,
+batal, ekspor CSV). Tagihan yang tidak dibayar sampai batas waktu otomatis jadi *Kedaluwarsa*. Event `order.created`,
+`order.paid`, dan `order.status_changed` bisa dikirim ke webhook Anda.
+
 ## 6. Update aplikasi
 
 ```bash

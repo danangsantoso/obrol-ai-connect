@@ -1308,6 +1308,221 @@ export type Database = {
           },
         ];
       };
+      order_counters: {
+        Row: {
+          day: string;
+          last_number: number;
+          organization_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          day: string;
+          last_number?: number;
+          organization_id: string;
+        };
+        Update: {
+          day?: string;
+          last_number?: number;
+          organization_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_counters_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      order_events: {
+        Row: {
+          actor_id: string | null;
+          created_at: string;
+          event: string;
+          id: string;
+          note: string | null;
+          order_id: string;
+          organization_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          actor_id?: string | null;
+          created_at?: string;
+          event: string;
+          id?: string;
+          note?: string | null;
+          order_id: string;
+          organization_id: string;
+        };
+        Update: {
+          actor_id?: string | null;
+          created_at?: string;
+          event?: string;
+          id?: string;
+          note?: string | null;
+          order_id?: string;
+          organization_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_events_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_events_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_events_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      orders: {
+        Row: {
+          address: string | null;
+          cancel_reason: string | null;
+          city: string | null;
+          contact_id: string | null;
+          conversation_id: string | null;
+          courier: string | null;
+          courier_service: string | null;
+          created_at: string;
+          created_by: string | null;
+          created_by_ai: boolean;
+          currency: string;
+          customer_name: string | null;
+          discount: number;
+          expires_at: string | null;
+          id: string;
+          items: NonNullable<Json>;
+          notes: string | null;
+          number: string;
+          organization_id: string;
+          paid_at: string | null;
+          payment_provider: string;
+          payment_ref: string | null;
+          payment_url: string | null;
+          phone: string | null;
+          postal_code: string | null;
+          shipped_at: string | null;
+          shipping_cost: number;
+          status: string;
+          subtotal: number;
+          total: number;
+          tracking_number: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          address?: string | null;
+          cancel_reason?: string | null;
+          city?: string | null;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          courier?: string | null;
+          courier_service?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          created_by_ai?: boolean;
+          currency?: string;
+          customer_name?: string | null;
+          discount?: number;
+          expires_at?: string | null;
+          id?: string;
+          items?: NonNullable<Json>;
+          notes?: string | null;
+          number: string;
+          organization_id: string;
+          paid_at?: string | null;
+          payment_provider?: string;
+          payment_ref?: string | null;
+          payment_url?: string | null;
+          phone?: string | null;
+          postal_code?: string | null;
+          shipped_at?: string | null;
+          shipping_cost?: number;
+          status?: string;
+          subtotal?: number;
+          total?: number;
+          tracking_number?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          address?: string | null;
+          cancel_reason?: string | null;
+          city?: string | null;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          courier?: string | null;
+          courier_service?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          created_by_ai?: boolean;
+          currency?: string;
+          customer_name?: string | null;
+          discount?: number;
+          expires_at?: string | null;
+          id?: string;
+          items?: NonNullable<Json>;
+          notes?: string | null;
+          number?: string;
+          organization_id?: string;
+          paid_at?: string | null;
+          payment_provider?: string;
+          payment_ref?: string | null;
+          payment_url?: string | null;
+          phone?: string | null;
+          postal_code?: string | null;
+          shipped_at?: string | null;
+          shipping_cost?: number;
+          status?: string;
+          subtotal?: number;
+          total?: number;
+          tracking_number?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "orders_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "orders_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "orders_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "orders_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       organizations: {
         Row: {
           auto_rotate: boolean;
@@ -1351,6 +1566,105 @@ export type Database = {
         };
         Relationships: [];
       };
+      payment_secrets: {
+        Row: {
+          biteship_api_key: string | null;
+          midtrans_server_key: string | null;
+          organization_id: string;
+          updated_at: string;
+          xendit_callback_token: string | null;
+          xendit_secret_key: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          biteship_api_key?: string | null;
+          midtrans_server_key?: string | null;
+          organization_id: string;
+          updated_at?: string;
+          xendit_callback_token?: string | null;
+          xendit_secret_key?: string | null;
+        };
+        Update: {
+          biteship_api_key?: string | null;
+          midtrans_server_key?: string | null;
+          organization_id?: string;
+          updated_at?: string;
+          xendit_callback_token?: string | null;
+          xendit_secret_key?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payment_secrets_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payment_settings: {
+        Row: {
+          ai_create_orders: boolean;
+          bank_accounts: NonNullable<Json>;
+          biteship_key_hint: string | null;
+          couriers: string;
+          flat_shipping_cost: number;
+          invoice_hours: number;
+          midtrans_key_hint: string | null;
+          midtrans_production: boolean;
+          organization_id: string;
+          origin_postal_code: string | null;
+          payment_note: string;
+          provider: string;
+          shipping_mode: string;
+          updated_at: string;
+          xendit_key_hint: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          ai_create_orders?: boolean;
+          bank_accounts?: NonNullable<Json>;
+          biteship_key_hint?: string | null;
+          couriers?: string;
+          flat_shipping_cost?: number;
+          invoice_hours?: number;
+          midtrans_key_hint?: string | null;
+          midtrans_production?: boolean;
+          organization_id: string;
+          origin_postal_code?: string | null;
+          payment_note?: string;
+          provider?: string;
+          shipping_mode?: string;
+          updated_at?: string;
+          xendit_key_hint?: string | null;
+        };
+        Update: {
+          ai_create_orders?: boolean;
+          bank_accounts?: NonNullable<Json>;
+          biteship_key_hint?: string | null;
+          couriers?: string;
+          flat_shipping_cost?: number;
+          invoice_hours?: number;
+          midtrans_key_hint?: string | null;
+          midtrans_production?: boolean;
+          organization_id?: string;
+          origin_postal_code?: string | null;
+          payment_note?: string;
+          provider?: string;
+          shipping_mode?: string;
+          updated_at?: string;
+          xendit_key_hint?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payment_settings_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       platform_admins: {
         Row: {
           created_at: string;
@@ -1380,6 +1694,7 @@ export type Database = {
           sku: string | null;
           summary: string;
           updated_at: string;
+          weight_grams: number;
         };
         ComputedFields: never;
         Insert: {
@@ -1394,6 +1709,7 @@ export type Database = {
           sku?: string | null;
           summary?: string;
           updated_at?: string;
+          weight_grams?: number;
         };
         Update: {
           created_at?: string;
@@ -1407,6 +1723,7 @@ export type Database = {
           sku?: string | null;
           summary?: string;
           updated_at?: string;
+          weight_grams?: number;
         };
         Relationships: [
           {
@@ -2008,6 +2325,7 @@ export type Database = {
         Args: { p_data: Json; p_event: string; p_org: string };
         Returns: number;
       };
+      expire_orders: { Args: Record<PropertyKey, never>; Returns: number };
       finish_ai_turn: {
         Args: {
           p_conversation_id: string;
@@ -2291,6 +2609,7 @@ export type Database = {
         Args: { conv_id: string; from_label: string; to_label: string };
         Returns: undefined;
       };
+      next_order_number: { Args: { p_org: string }; Returns: string };
       next_rotation_agent: {
         Args: { p_org: string; p_team: string };
         Returns: string;

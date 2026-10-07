@@ -48,6 +48,10 @@ services:
       META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
       PUBLIC_API_URL: ${SUPABASE_PUBLIC_URL}
       TELEGRAM_API_BASE: ${TELEGRAM_API_BASE:-https://api.telegram.org}
+      # Payment and shipping providers (keys are set per tenant in the app)
+      XENDIT_API_BASE: ${XENDIT_API_BASE:-https://api.xendit.co}
+      MIDTRANS_API_BASE: ${MIDTRANS_API_BASE:-}
+      BITESHIP_API_BASE: ${BITESHIP_API_BASE:-https://api.biteship.com}
       # Encryption key for AI provider API keys and Page tokens stored in the database
       BALAS_SECRET_KEY: ${BALAS_SECRET_KEY}
       # Public URL of the web app: CORS origin and invitation redirect

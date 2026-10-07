@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Every minute: answers chats whose automatic AI reply was missed (e.g. a
-# function restart while the AI was waiting), sends due follow-up messages and
+# function restart while the AI was waiting), sends due follow-up messages, expires unpaid orders and
 # retries webhook deliveries that failed. Installed by setup-vps.sh.
 set -euo pipefail
 
@@ -16,6 +16,10 @@ curl -fsS -o /dev/null -X POST \
 curl -fsS -o /dev/null -X POST \
   -H "Authorization: Bearer $key" -H "apikey: $key" -H "Content-Type: application/json" \
   -d '{"action":"sweep"}' "http://127.0.0.1:${port:-8000}/functions/v1/followup" || echo "followup sweep failed" >&2
+
+curl -fsS -o /dev/null -X POST \
+  -H "Authorization: Bearer $key" -H "apikey: $key" -H "Content-Type: application/json" \
+  -d '{"action":"sweep"}' "http://127.0.0.1:${port:-8000}/functions/v1/orders" || echo "orders sweep failed" >&2
 
 curl -fsS -o /dev/null -X POST -H "Content-Type: application/json" -d '{}' \
   "http://127.0.0.1:${port:-8000}/functions/v1/webhook-dispatch"

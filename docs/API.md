@@ -58,7 +58,11 @@ Pesan dari API tercatat di Inbox dengan sumber `api`. Nomor `08…`, `+62…`, d
 Tambahkan URL di **Integrasi → Webhook**, pilih event (kosong = semua):
 
 `message.received`, `message.sent`, `conversation.created`, `conversation.assigned`,
-`conversation.resolved`, `conversation.status_changed`, `contact.created`, dan `ping` (tombol *Kirim uji*).
+`conversation.resolved`, `conversation.status_changed`, `contact.created`, `order.created`, `order.paid`,
+`order.status_changed`, dan `ping` (tombol *Kirim uji*).
+
+Event pesanan berisi `data` dengan `id`, `number`, `status`, `total`, `items`, `customer_name`, `phone`,
+`conversation_id`, `payment_provider`, `payment_url`, `paid_at`, `courier`, dan `tracking_number`.
 
 Setiap event dikirim sebagai `POST` JSON:
 

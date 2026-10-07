@@ -15,6 +15,7 @@ import { Timeline } from './Timeline';
 import { TransferDialog } from './TransferDialog';
 import { LabelPicker } from './LabelPicker';
 import { ChatFollowup } from '@/components/followup/ChatFollowup';
+import { ChatOrders } from '@/components/orders/ChatOrders';
 import { useTimeline } from './useInboxData';
 import { useAiSettings } from '@/components/ai/aiSettings';
 import type { ConversationRow, Label, Member, Team } from './types';
@@ -193,6 +194,11 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
           Pindahkan
         </Button>
         <ChatFollowup conversationId={conversation.id} orgId={me.organization_id!} />
+        <ChatOrders
+          conversationId={conversation.id}
+          orgId={me.organization_id!}
+          contact={{ name, phone: /^\d{8,15}$/.test(conversation.contact.wa_id) ? conversation.contact.wa_id : '' }}
+        />
         <Select value={conversation.status} onValueChange={setStatus}>
           <SelectTrigger className="h-9 w-32">
             <SelectValue />

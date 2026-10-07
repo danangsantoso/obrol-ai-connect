@@ -38,6 +38,43 @@ export const REPLY_SCHEMA = {
   additionalProperties: false,
 };
 
+const str = { type: "string" };
+
+// The reply shape when the AI may also take orders: the order it collected
+// ("ready" once the customer confirmed and the details are complete) and a
+// postal code to look up shipping rates for.
+export const ORDER_REPLY_SCHEMA = {
+  ...REPLY_SCHEMA,
+  properties: {
+    ...REPLY_SCHEMA.properties,
+    order: {
+      type: "object",
+      properties: {
+        ready: { type: "boolean" },
+        items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { name: str, qty: { type: "integer" } },
+            required: ["name", "qty"],
+            additionalProperties: false,
+          },
+        },
+        customer_name: str,
+        phone: str,
+        address: str,
+        city: str,
+        postal_code: str,
+        notes: str,
+      },
+      required: ["ready", "items", "customer_name", "phone", "address", "city", "postal_code", "notes"],
+      additionalProperties: false,
+    },
+    ongkir_postal_code: str,
+  },
+  required: [...REPLY_SCHEMA.required, "order", "ongkir_postal_code"],
+};
+
 const OPENAI_COMPATIBLE_BASE: Partial<Record<Provider, string>> = {
   openai: "https://api.openai.com/v1",
   deepseek: "https://api.deepseek.com",
@@ -61,8 +98,15 @@ function friendlyStatus(status: number | null, detail: string): string {
   return detail || "Permintaan ke penyedia AI gagal.";
 }
 
-export function complete(cfg: LlmConfig, system: string, messages: ChatMessage[]): Promise<LlmResult> {
-  return cfg.provider === "anthropic" ? completeAnthropic(cfg, system, messages) : completeOpenAiCompatible(cfg, system, messages);
+export function complete(
+  cfg: LlmConfig,
+  system: string,
+  messages: ChatMessage[],
+  schema: Record<string, unknown> = REPLY_SCHEMA,
+): Promise<LlmResult> {
+  return cfg.provider === "anthropic"
+    ? completeAnthropic(cfg, system, messages, schema)
+    : completeOpenAiCompatible(cfg, system, messages, schema);
 }
 
 // ---------------------------------------------------------------------------
@@ -75,7 +119,12 @@ const STRUCTURED_CLAUDE = /^claude-(opus|sonnet|fable|mythos|haiku)-(5|4-[5-9])/
 // Models that accept server-side refusal fallbacks in their "default" form.
 const FALLBACK_CLAUDE = new Set(["claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"]);
 
-async function completeAnthropic(cfg: LlmConfig, system: string, messages: ChatMessage[]): Promise<LlmResult> {
+async function completeAnthropic(
+  cfg: LlmConfig,
+  system: string,
+  messages: ChatMessage[],
+  schema: Record<string, unknown>,
+): Promise<LlmResult> {
   const client = new Anthropic({
     apiKey: cfg.apiKey,
     baseURL: cfg.baseUrl || undefined,
@@ -94,7 +143,7 @@ async function completeAnthropic(cfg: LlmConfig, system: string, messages: ChatM
         ? {
           output_config: {
             ...(CURRENT_CLAUDE.test(cfg.model) ? { effort: "low" as const } : {}),
-            ...(STRUCTURED_CLAUDE.test(cfg.model) ? { format: { type: "json_schema" as const, schema: REPLY_SCHEMA } } : {}),
+            ...(STRUCTURED_CLAUDE.test(cfg.model) ? { format: { type: "json_schema" as const, schema } } : {}),
           },
         }
         : {}),
@@ -133,7 +182,12 @@ async function completeAnthropic(cfg: LlmConfig, system: string, messages: ChatM
 // OpenAI and OpenAI-compatible APIs (DeepSeek, Gemini, custom)
 // ---------------------------------------------------------------------------
 
-async function completeOpenAiCompatible(cfg: LlmConfig, system: string, messages: ChatMessage[]): Promise<LlmResult> {
+async function completeOpenAiCompatible(
+  cfg: LlmConfig,
+  system: string,
+  messages: ChatMessage[],
+  schema: Record<string, unknown>,
+): Promise<LlmResult> {
   const base = (cfg.baseUrl || OPENAI_COMPATIBLE_BASE[cfg.provider] || "").replace(/\/$/, "");
   if (!base) throw new LlmError(null, "Base URL wajib diisi untuk penyedia lain (OpenAI-compatible).");
 
@@ -146,7 +200,7 @@ async function completeOpenAiCompatible(cfg: LlmConfig, system: string, messages
     body.max_completion_tokens = MAX_OUTPUT_TOKENS;
     body.response_format = {
       type: "json_schema",
-      json_schema: { name: "balas_reply", strict: true, schema: REPLY_SCHEMA },
+      json_schema: { name: "balas_reply", strict: true, schema },
     };
   } else {
     body.max_tokens = MAX_OUTPUT_TOKENS;
