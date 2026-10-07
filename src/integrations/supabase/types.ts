@@ -359,23 +359,29 @@ export type Database = {
           color: string;
           created_at: string;
           id: string;
+          in_pipeline: boolean;
           name: string;
           organization_id: string;
+          position: number;
         };
         ComputedFields: never;
         Insert: {
           color?: string;
           created_at?: string;
           id?: string;
+          in_pipeline?: boolean;
           name: string;
           organization_id: string;
+          position?: number;
         };
         Update: {
           color?: string;
           created_at?: string;
           id?: string;
+          in_pipeline?: boolean;
           name?: string;
           organization_id?: string;
+          position?: number;
         };
         Relationships: [
           {
@@ -864,9 +870,13 @@ export type Database = {
         }[];
       };
       mark_conversation_read: { Args: { conv_id: string }; Returns: undefined };
+      move_conversation_label: {
+        Args: { conv_id: string; from_label: string; to_label: string };
+        Returns: undefined;
+      };
       purge_expired_messages: {
         Args: Record<PropertyKey, never>;
-        Returns: number;
+        Returns: string[];
       };
       record_outbound_message: {
         Args: {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Loader2, RefreshCw, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -249,12 +249,39 @@ function LabelsCard() {
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from("labels").insert({ organization_id: orgId, name: name.trim(), color });
+    const submitted = name;
+    const position = labels.reduce((max, l) => Math.max(max, l.position), 0) + 1;
+    const { error } = await supabase
+      .from("labels")
+      .insert({ organization_id: orgId, name: submitted.trim(), color, position });
     if (error) {
       toast.error(error.code === "23505" ? "Label dengan nama itu sudah ada" : errorMessage(error));
       return;
     }
-    setName("");
+    // Keep a name typed while this one was saving.
+    setName((current) => (current === submitted ? "" : current));
+    refresh();
+  };
+
+  // Swap with the neighbour; positions are renumbered so ties from old data resolve.
+  const reorder = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= labels.length) return;
+    const ordered = labels.slice();
+    [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
+    const results = await Promise.all(
+      ordered.map((l, i) =>
+        l.position === i + 1 ? null : supabase.from("labels").update({ position: i + 1 }).eq("id", l.id),
+      ),
+    );
+    const failed = results.find((r) => r?.error);
+    if (failed?.error) toast.error(errorMessage(failed.error));
+    refresh();
+  };
+
+  const setInPipeline = async (id: string, inPipeline: boolean) => {
+    const { error } = await supabase.from("labels").update({ in_pipeline: inPipeline }).eq("id", id);
+    if (error) toast.error(errorMessage(error));
     refresh();
   };
 
@@ -269,20 +296,59 @@ function LabelsCard() {
     <Card>
       <CardHeader>
         <CardTitle>Label</CardTitle>
-        <CardDescription>Kategori chat, mis. Komplain, Order, VIP. Agen memasang label dari ruang chat.</CardDescription>
+        <CardDescription>
+          Kategori chat, mis. Prospek, Negosiasi, Order, Komplain. Urutan di sini menjadi urutan kolom di Pipeline;
+          matikan "Tahap pipeline" untuk label penanda saja (mis. VIP).
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {labels.length === 0 && <p className="text-sm text-muted-foreground">Belum ada label.</p>}
-          {labels.map((l) => (
-            <span key={l.id} className="inline-flex items-center gap-1">
-              <LabelChip label={l} className="text-xs" />
-              <button onClick={() => remove(l.id, l.name)} aria-label={`Hapus ${l.name}`}>
-                <X className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </span>
-          ))}
-        </div>
+        {labels.length === 0 && <p className="text-sm text-muted-foreground">Belum ada label.</p>}
+        {labels.length > 0 && (
+          <div className="max-w-xl divide-y divide-border rounded-lg border border-border">
+            {labels.map((l, i) => (
+              <div key={l.id} className="flex items-center gap-3 px-3 py-2">
+                <div className="flex flex-col">
+                  <button
+                    onClick={() => reorder(i, -1)}
+                    disabled={i === 0}
+                    aria-label={`Naikkan ${l.name}`}
+                    className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => reorder(i, 1)}
+                    disabled={i === labels.length - 1}
+                    aria-label={`Turunkan ${l.name}`}
+                    className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <LabelChip label={l} className="text-xs" />
+                <div className="ml-auto flex items-center gap-2">
+                  <Switch
+                    id={`pipeline-${l.id}`}
+                    checked={l.in_pipeline}
+                    onCheckedChange={(v) => setInPipeline(l.id, v)}
+                  />
+                  <Label htmlFor={`pipeline-${l.id}`} className="text-xs text-muted-foreground">
+                    Tahap pipeline
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => remove(l.id, l.name)}
+                    aria-label={`Hapus ${l.name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <form onSubmit={add} className="flex max-w-xl flex-wrap items-center gap-2">
           <Input
             value={name}

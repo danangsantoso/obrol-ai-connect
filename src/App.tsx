@@ -14,6 +14,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Inbox = lazy(() => import("./pages/Inbox"));
 const Contacts = lazy(() => import("./pages/Contacts"));
 const QuickReplies = lazy(() => import("./pages/QuickReplies"));
+const Pipeline = lazy(() => import("./pages/Pipeline"));
 const Team = lazy(() => import("./pages/Team"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
@@ -62,6 +63,7 @@ const App = () => (
                 <Route index element={<Dashboard />} />
                 <Route path="inbox" element={<Inbox />} />
                 <Route path="inbox/:conversationId" element={<Inbox />} />
+                <Route path="pipeline" element={<Pipeline />} />
                 <Route path="contacts" element={<Contacts />} />
                 <Route path="quick-replies" element={<QuickReplies />} />
                 <Route

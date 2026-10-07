@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, MessageSquare, Contact, Users, Settings, PanelLeftClose, PanelLeftOpen, Zap } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Contact, Users, Settings, PanelLeftClose, PanelLeftOpen, Zap, SquareKanban } from "lucide-react";
 import { useAuth, type AppRole } from "@/contexts/AuthContext";
 import { Logo, LogoMark } from "@/components/brand/Logo";
 import { useUnreadTotal } from "@/hooks/useInboxNotifications";
@@ -10,6 +10,7 @@ import { useUnreadTotal } from "@/hooks/useInboxNotifications";
 const navigation: { name: string; href: string; icon: typeof LayoutDashboard; roles?: AppRole[] }[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Inbox", href: "/inbox", icon: MessageSquare },
+  { name: "Pipeline", href: "/pipeline", icon: SquareKanban },
   { name: "Kontak", href: "/contacts", icon: Contact },
   { name: "Balasan Cepat", href: "/quick-replies", icon: Zap },
   { name: "Tim & Agen", href: "/team", icon: Users, roles: ["admin", "supervisor"] },

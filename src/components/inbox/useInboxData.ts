@@ -83,7 +83,12 @@ export function useLabels(orgId: string) {
   return useQuery({
     queryKey: ['labels', orgId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('labels').select('*').eq('organization_id', orgId).order('name');
+      const { data, error } = await supabase
+        .from('labels')
+        .select('*')
+        .eq('organization_id', orgId)
+        .order('position')
+        .order('name');
       if (error) throw error;
       return data as Label[];
     },
