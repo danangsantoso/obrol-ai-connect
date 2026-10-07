@@ -252,20 +252,23 @@ export type Database = {
       };
       channel_secrets: {
         Row: {
-          access_token_encrypted: string;
+          access_token_encrypted: string | null;
           channel_id: string;
           updated_at: string;
+          webhook_secret: string | null;
         };
         ComputedFields: never;
         Insert: {
-          access_token_encrypted: string;
+          access_token_encrypted?: string | null;
           channel_id: string;
           updated_at?: string;
+          webhook_secret?: string | null;
         };
         Update: {
-          access_token_encrypted?: string;
+          access_token_encrypted?: string | null;
           channel_id?: string;
           updated_at?: string;
+          webhook_secret?: string | null;
         };
         Relationships: [
           {
@@ -280,6 +283,7 @@ export type Database = {
       channels: {
         Row: {
           ai_enabled: boolean;
+          config: NonNullable<Json>;
           connection_status: string;
           connection_updated_at: string | null;
           created_at: string;
@@ -300,6 +304,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           ai_enabled?: boolean;
+          config?: NonNullable<Json>;
           connection_status?: string;
           connection_updated_at?: string | null;
           created_at?: string;
@@ -319,6 +324,7 @@ export type Database = {
         };
         Update: {
           ai_enabled?: boolean;
+          config?: NonNullable<Json>;
           connection_status?: string;
           connection_updated_at?: string | null;
           created_at?: string;
@@ -1214,6 +1220,55 @@ export type Database = {
           },
         ];
       };
+      webchat_visitors: {
+        Row: {
+          channel_id: string;
+          contact_id: string;
+          created_at: string;
+          id: string;
+          last_seen_at: string;
+          page_url: string | null;
+          secret_hash: string;
+          user_agent: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id: string;
+          contact_id: string;
+          created_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          page_url?: string | null;
+          secret_hash: string;
+          user_agent?: string | null;
+        };
+        Update: {
+          channel_id?: string;
+          contact_id?: string;
+          created_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          page_url?: string | null;
+          secret_hash?: string;
+          user_agent?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "webchat_visitors_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "webchat_visitors_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -1513,7 +1568,13 @@ export type Database = {
       agent_status: "online" | "away" | "offline";
       ai_provider: "openai" | "anthropic" | "deepseek" | "gemini" | "custom";
       app_role: "admin" | "supervisor" | "agent";
-      channel_provider: "cloud_api" | "qr" | "messenger" | "instagram";
+      channel_provider:
+        | "cloud_api"
+        | "qr"
+        | "messenger"
+        | "instagram"
+        | "telegram"
+        | "webchat";
       conversation_status: "open" | "pending" | "resolved";
       message_direction: "inbound" | "outbound";
       message_status: "received" | "sent" | "delivered" | "read" | "failed";
@@ -1650,7 +1711,14 @@ export const Constants = {
       agent_status: ["online", "away", "offline"],
       ai_provider: ["openai", "anthropic", "deepseek", "gemini", "custom"],
       app_role: ["admin", "supervisor", "agent"],
-      channel_provider: ["cloud_api", "qr", "messenger", "instagram"],
+      channel_provider: [
+        "cloud_api",
+        "qr",
+        "messenger",
+        "instagram",
+        "telegram",
+        "webchat",
+      ],
       conversation_status: ["open", "pending", "resolved"],
       message_direction: ["inbound", "outbound"],
       message_status: ["received", "sent", "delivered", "read", "failed"],

@@ -17,6 +17,9 @@ __APP_HOST__ {
 	}
 	@assets path /assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
+	# Live chat widget embedded on customers' websites: refresh within minutes.
+	@widget path /widget.js
+	header @widget Cache-Control "public, max-age=300"
 }
 
 # Supabase API gateway from the self-hosted docker stack, including

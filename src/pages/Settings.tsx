@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, BadgeCheck, Copy, Facebook, Loader2, QrCode, RefreshCw, Trash2, Unplug } from "lucide-react";
+import { ArrowDown, ArrowUp, BadgeCheck, Code, Copy, Facebook, Loader2, QrCode, RefreshCw, Trash2, Unplug } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { QrConnectDialog } from "@/components/settings/QrConnectDialog";
 import { SocialConnect } from "@/components/settings/SocialConnect";
+import { TelegramConnect, WebchatCreate, WebchatDialog } from "@/components/settings/TelegramWebchat";
 import { ChannelIcon } from "@/components/inbox/ChannelIcon";
 import { callFunction, errorMessage } from "@/lib/api";
 import { toast } from "sonner";
@@ -24,7 +25,14 @@ import { cn } from "@/lib/utils";
 
 const WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`;
 const META_WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-webhook`;
-const KIND_LABELS: Record<string, string> = { qr: "Scan QR", cloud_api: "API resmi", messenger: "Messenger", instagram: "Instagram" };
+const KIND_LABELS: Record<string, string> = {
+  qr: "Scan QR",
+  cloud_api: "API resmi",
+  messenger: "Messenger",
+  instagram: "Instagram",
+  telegram: "Telegram",
+  webchat: "Live chat",
+};
 const isSocial = (provider: string) => provider === "messenger" || provider === "instagram";
 
 function CopyField({ label, value, hint }: { label: string; value: string; hint: React.ReactNode }) {
@@ -104,6 +112,7 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
   const [syncing, setSyncing] = useState<string | null>(null);
   const [qrChannel, setQrChannel] = useState<{ id: string; name: string } | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [widget, setWidget] = useState<Channel | null>(null);
 
   const { data: channels = [] } = useQuery({
     queryKey: ["channels", orgId],
@@ -205,11 +214,14 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
     const social = isSocial(ch.provider);
     const question = social
       ? `Putuskan ${ch.name}? Pesan baru tidak akan masuk lagi sampai dihubungkan ulang lewat Facebook.`
-      : `Putuskan ${ch.name} dari WhatsApp? Untuk memakai lagi, scan QR ulang.`;
+      : ch.provider === "telegram"
+        ? `Putuskan bot ${ch.name}? Pesan baru tidak akan masuk sampai token bot dimasukkan lagi.`
+        : `Putuskan ${ch.name} dari WhatsApp? Untuk memakai lagi, scan QR ulang.`;
     if (!window.confirm(question)) return;
     setDisconnecting(ch.id);
     try {
       if (social) await callFunction("social-oauth", { action: "disconnect", channel_id: ch.id });
+      else if (ch.provider === "telegram") await callFunction("telegram-connect", { action: "disconnect", channel_id: ch.id });
       else await callFunction("wa-qr", { action: "logout", channel_id: ch.id });
       toast.success("Nomor diputuskan");
       refresh();
@@ -239,7 +251,8 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
         <CardTitle>Kanal chat</CardTitle>
         <CardDescription>
           WhatsApp lewat <b>Scan QR</b> (nomor biasa, seperti WhatsApp Web) atau <b>WhatsApp API resmi</b>, serta{" "}
-          <b>Facebook Messenger</b> dan <b>Instagram</b> lewat login Facebook. Semua masuk ke Inbox yang sama.
+          <b>Facebook Messenger</b> dan <b>Instagram</b> lewat login Facebook, bot <b>Telegram</b>, dan{" "}
+          <b>live chat</b> di website Anda. Semua masuk ke Inbox yang sama.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -273,9 +286,17 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
                       {KIND_LABELS[ch.provider] ?? ch.provider}
                     </Badge>
                   </TableCell>
-                  <TableCell>{ch.display_phone ?? (ch.provider === "instagram" && ch.external_username ? `@${ch.external_username}` : ch.provider === "messenger" ? ch.external_username : null) ?? "–"}</TableCell>
                   <TableCell>
-                    {ch.provider === "qr" || isSocial(ch.provider) ? (
+                    {ch.display_phone ??
+                      ((ch.provider === "instagram" || ch.provider === "telegram") && ch.external_username
+                        ? `@${ch.external_username}`
+                        : ch.provider === "messenger"
+                          ? ch.external_username
+                          : null) ??
+                      "–"}
+                  </TableCell>
+                  <TableCell>
+                    {ch.provider === "qr" || ch.provider === "telegram" || isSocial(ch.provider) ? (
                       <Badge variant="outline" className={connection.className}>
                         {connection.label}
                       </Badge>
@@ -287,7 +308,23 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
                     )}
                   </TableCell>
                   <TableCell>
-                    {isSocial(ch.provider) ? (
+                    {ch.provider === "webchat" ? (
+                      isAdmin && (
+                        <Button size="sm" variant="outline" onClick={() => setWidget(ch)}>
+                          <Code className="mr-1 h-3 w-3" />
+                          Kode pasang & tampilan
+                        </Button>
+                      )
+                    ) : ch.provider === "telegram" ? (
+                      isAdmin &&
+                      ch.is_active &&
+                      ch.connection_status === "connected" && (
+                        <Button size="sm" variant="outline" onClick={() => disconnect(ch)} disabled={disconnecting === ch.id}>
+                          {disconnecting === ch.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Unplug className="mr-1 h-3 w-3" />}
+                          Putuskan
+                        </Button>
+                      )
+                    ) : isSocial(ch.provider) ? (
                       isAdmin && (
                         <div className="flex flex-wrap gap-2">
                           {ch.is_active && ch.connection_status === "connected" ? (
@@ -393,6 +430,16 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
         )}
 
         {isAdmin && <SocialConnect onConnected={refresh} />}
+        {isAdmin && <TelegramConnect onConnected={refresh} />}
+        {isAdmin && (
+          <WebchatCreate
+            orgId={orgId}
+            onCreated={(ch) => {
+              refresh();
+              setWidget(ch);
+            }}
+          />
+        )}
 
         {channels.some((ch) => ch.provider === "cloud_api") && (
           <CopyField
@@ -429,6 +476,13 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
         )}
       </CardContent>
       <QrConnectDialog channel={qrChannel} onOpenChange={closeQr} onConnected={refresh} />
+      <WebchatDialog
+        channel={widget}
+        onOpenChange={(open) => {
+          if (!open) setWidget(null);
+        }}
+        onSaved={refresh}
+      />
     </Card>
   );
 }
@@ -585,7 +639,7 @@ export default function Settings() {
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold">Pengaturan</h1>
-        <p className="text-muted-foreground">Organisasi, kanal chat (WhatsApp, Messenger, Instagram), dan label.</p>
+        <p className="text-muted-foreground">Organisasi, kanal chat (WhatsApp, Messenger, Instagram, Telegram, live chat), dan label.</p>
       </div>
       <OrganizationCard isAdmin={isAdmin} />
       <ChannelsCard isAdmin={isAdmin} />

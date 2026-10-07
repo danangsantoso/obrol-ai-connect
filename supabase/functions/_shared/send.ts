@@ -7,6 +7,7 @@ import { sendMessage, uploadMedia } from "./whatsapp.ts";
 import * as evolution from "./evolution.ts";
 import { decryptSecret } from "./crypto.ts";
 import { sendSocial, type SocialAttachment, userIdFromKey } from "./meta.ts";
+import * as telegram from "./telegram.ts";
 
 export type MediaType = "image" | "video" | "audio" | "document";
 
@@ -43,7 +44,7 @@ export async function sendToConversation(
       contacts: { wa_id: string };
       channels: {
         id: string;
-        provider: "cloud_api" | "qr" | "messenger" | "instagram";
+        provider: "cloud_api" | "qr" | "messenger" | "instagram" | "telegram" | "webchat";
         phone_number_id: string | null;
         instance_name: string | null;
         page_id: string | null;
@@ -54,6 +55,9 @@ export async function sendToConversation(
   if (!conv.channels.is_active) throw new HttpError(409, "This WhatsApp number is disabled", "channel_inactive");
   if (conv.channels.provider === "messenger" || conv.channels.provider === "instagram") {
     return await sendSocialMessage(admin, conv, input, senderId, extraMetadata);
+  }
+  if (conv.channels.provider === "telegram" || conv.channels.provider === "webchat") {
+    return await sendDirectMessage(admin, conv, input, senderId, extraMetadata);
   }
 
   // The 24-hour customer service window and templates only exist on the Cloud API.
@@ -162,6 +166,18 @@ export async function sendToConversation(
   return message;
 }
 
+// Short-lived link to a stored file that works from outside the server
+// (Meta's servers, website visitors).
+export async function publicSignedUrl(admin: SupabaseClient, path: string, seconds = 3600): Promise<string> {
+  const signed = await admin.storage.from("media").createSignedUrl(path, seconds);
+  if (signed.error) throw signed.error;
+  const publicBase = (Deno.env.get("PUBLIC_API_URL") ?? "").replace(/\/$/, "");
+  const internalBase = (Deno.env.get("SUPABASE_URL") ?? "").replace(/\/$/, "");
+  return publicBase && signed.data.signedUrl.startsWith(internalBase)
+    ? publicBase + signed.data.signedUrl.slice(internalBase.length)
+    : signed.data.signedUrl;
+}
+
 interface SocialConversation {
   id: string;
   organization_id: string;
@@ -245,13 +261,7 @@ async function sendSocialMessage(
   const file = await admin.storage.from("media").download(path);
   if (file.error) throw new HttpError(400, "Uploaded file not found", "invalid_request");
   // Meta fetches the file itself: a short-lived signed link on the public API address.
-  const signed = await admin.storage.from("media").createSignedUrl(path, 3600);
-  if (signed.error) throw signed.error;
-  const publicBase = (Deno.env.get("PUBLIC_API_URL") ?? "").replace(/\/$/, "");
-  const internalBase = (Deno.env.get("SUPABASE_URL") ?? "").replace(/\/$/, "");
-  const url = publicBase && signed.data.signedUrl.startsWith(internalBase)
-    ? publicBase + signed.data.signedUrl.slice(internalBase.length)
-    : signed.data.signedUrl;
+  const url = await publicSignedUrl(admin, path);
 
   const caption = input.text?.trim();
   if (caption) {
@@ -261,6 +271,59 @@ async function sendSocialMessage(
   const media = { path, mime: file.data.type || "application/octet-stream", filename: input.filename || path.split("/").pop()! };
   const mid = await sendSocial(token, recipient, { attachment: { type: SOCIAL_ATTACHMENT[input.type as MediaType], url } }, tag);
   return await record(admin, conv.id, senderId, mid, input.type, null, media, metadata);
+}
+
+// Telegram bots and the website widget: no reply window, no templates.
+// Telegram gets the message through the Bot API; the widget picks it up by polling.
+async function sendDirectMessage(
+  admin: SupabaseClient,
+  conv: SocialConversation,
+  input: SendInput,
+  senderId: string | null,
+  metadata: Record<string, unknown>,
+) {
+  if (input.type === "template") throw new HttpError(400, "Template hanya untuk WhatsApp API resmi", "invalid_request");
+  const viaTelegram = conv.channels.provider === "telegram";
+  let token = "";
+  if (viaTelegram) {
+    const { data: secret } = await admin
+      .from("channel_secrets")
+      .select("access_token_encrypted")
+      .eq("channel_id", conv.channels.id)
+      .maybeSingle();
+    if (!secret?.access_token_encrypted) {
+      throw new HttpError(409, "Bot Telegram belum terhubung. Hubungkan ulang di Pengaturan.", "channel_inactive");
+    }
+    token = await decryptSecret(secret.access_token_encrypted);
+  }
+  const chatId = conv.contacts.wa_id.replace(/^tg:/, "");
+
+  if (input.type === "text") {
+    const text = input.text?.trim() ?? "";
+    if (!text) throw new HttpError(400, "Message text is empty", "invalid_request");
+    if (text.length > 4096) throw new HttpError(400, "Message is longer than 4096 characters", "invalid_request");
+    const id = viaTelegram
+      ? telegram.telegramMessageId(chatId, await telegram.sendText(token, chatId, text))
+      : `web:${crypto.randomUUID()}`;
+    return await record(admin, conv.id, senderId, id, "text", text, null, metadata);
+  }
+
+  if (!MEDIA_TYPES.includes(input.type as MediaType)) throw new HttpError(400, "Unsupported message type", "invalid_request");
+  const path = input.media_path ?? "";
+  if (!path.startsWith(`${conv.organization_id}/outbound/`)) {
+    throw new HttpError(400, "media_path must be an uploaded outbound file", "invalid_request");
+  }
+  const file = await admin.storage.from("media").download(path);
+  if (file.error) throw new HttpError(400, "Uploaded file not found", "invalid_request");
+  const media = { path, mime: file.data.type || "application/octet-stream", filename: input.filename || path.split("/").pop()! };
+  const caption = input.text?.trim() || null;
+  const id = viaTelegram
+    ? telegram.telegramMessageId(
+      chatId,
+      await telegram.sendFile(token, chatId, input.type as MediaType, file.data, media.filename, caption),
+    )
+    : `web:${crypto.randomUUID()}`;
+  return await record(admin, conv.id, senderId, id, input.type, caption, media, metadata);
 }
 
 // Fills {{1}}, {{2}}, ... in the template's BODY text so the inbox shows what was sent.

@@ -65,7 +65,7 @@ export function ContactPanel({ contactId }: { contactId: string }) {
         <p className="mt-1 text-sm">{formatWaId(contact.wa_id, contact.username)}</p>
         {contact.profile_name && (
           <p className="text-xs text-muted-foreground">
-            Nama di {contact.wa_id.startsWith('ig:') ? 'Instagram' : contact.wa_id.startsWith('fb:') ? 'Facebook' : 'WhatsApp'}: {contact.profile_name}
+            Nama di {contact.wa_id.startsWith('ig:') ? 'Instagram' : contact.wa_id.startsWith('fb:') ? 'Facebook' : contact.wa_id.startsWith('tg:') ? 'Telegram' : contact.wa_id.startsWith('web:') ? 'live chat' : 'WhatsApp'}: {contact.profile_name}
           </p>
         )}
       </div>

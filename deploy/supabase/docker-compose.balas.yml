@@ -41,6 +41,7 @@ services:
       META_APP_SECRET: ${META_APP_SECRET:-}
       META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
       PUBLIC_API_URL: ${SUPABASE_PUBLIC_URL}
+      TELEGRAM_API_BASE: ${TELEGRAM_API_BASE:-https://api.telegram.org}
       # Encryption key for AI provider API keys and Page tokens stored in the database
       BALAS_SECRET_KEY: ${BALAS_SECRET_KEY}
       # Public URL of the web app: CORS origin and invitation redirect
