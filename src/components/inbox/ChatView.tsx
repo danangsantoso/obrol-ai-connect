@@ -90,6 +90,14 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
     afterChange();
   };
 
+  const handToAi = async () => {
+    if (!window.confirm('Serahkan chat ini ke AI? Chat dilepas dari agen dan AI menjawab pesan pelanggan berikutnya.')) return;
+    const { error } = await supabase.rpc('hand_to_ai', { conv_id: conversation.id });
+    if (error) toast.error(errorMessage(error));
+    else toast.success('Chat diserahkan ke AI');
+    afterChange();
+  };
+
   const toggleAi = async () => {
     const { error } = await supabase.rpc('set_conversation_ai', { conv_id: conversation.id, active: !conversation.ai_active });
     if (error) toast.error(errorMessage(error));
@@ -144,18 +152,28 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
             {windowOpen ? `24 jam: sisa ${formatRemaining(remaining)}` : '24 jam: tertutup'}
           </Badge>
         )}
-        {aiOnNumber && (
+        {aiOnNumber && conversation.assignee_id && !takeable && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handToAi}
+            className="gap-1 border-primary/40 text-primary"
+            title="Lepas chat ini dari agen; AI menjawab pesan pelanggan berikutnya"
+          >
+            <Bot className="h-4 w-4" />
+            Serahkan ke AI
+          </Button>
+        )}
+        {aiOnNumber && !conversation.assignee_id && (
           <Button
             size="sm"
             variant="outline"
             onClick={toggleAi}
             className={cn('gap-1', conversation.ai_active ? 'border-primary/40 text-primary' : 'text-muted-foreground')}
             title={
-              conversation.assignee_id
-                ? 'AI tidak membalas chat yang sudah diambil agen'
-                : conversation.ai_active
-                  ? 'AI membalas chat ini selama belum diambil agen. Klik untuk mematikan.'
-                  : 'Klik agar AI kembali membalas chat ini'
+              conversation.ai_active
+                ? 'AI membalas chat ini selama belum diambil agen. Klik untuk mematikan.'
+                : 'Klik agar AI kembali membalas chat ini'
             }
           >
             <Bot className="h-4 w-4" />

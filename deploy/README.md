@@ -48,7 +48,14 @@ Di akhir, skrip menampilkan URL aplikasi, URL webhook dan *verify token* untuk M
 cd /opt/balas/app && sudo ./deploy/scripts/create-master-admin.sh master@domainanda.com "Nama Anda"
 ```
 
-Login dengan email itu dan password `12345678` (wajib diganti), lalu klik **Tenant baru**. Menonaktifkan tenant
+Login dengan email itu dan password `12345678` (wajib diganti), lalu klik **Tenant baru**. Atau tentukan password
+sendiri (tanda kutip satu wajib, agar karakter seperti `!` dan `$` tidak diubah shell; menjalankan ulang perintah ini
+juga mengganti password akun yang sudah ada):
+
+```bash
+sudo MASTER_PASSWORD='password-anda' ./deploy/scripts/create-master-admin.sh master@domainanda.com "Nama Anda"
+```
+ Menonaktifkan tenant
 langsung memblokir login semua anggotanya, menghentikan AI dan webhook-nya; datanya tetap tersimpan.
 
 Calon pelanggan juga bisa **mendaftar sendiri** (Google atau email): mereka mengisi nama usaha, lalu menunggu. Master
