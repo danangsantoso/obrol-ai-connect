@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Loader2, Paperclip, Send, StickyNote, X } from 'lucide-react';
+import { Loader2, Paperclip, Send, Sparkles, StickyNote, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,10 +37,12 @@ interface Props {
   contactName: string;
   members: Member[];
   windowOpen: boolean;
+  // Shows the "Saran AI" button (AI configured for the organization).
+  aiSuggest?: boolean;
   onSent: (message: Message) => void;
 }
 
-export function Composer({ conversationId, orgId, userId, contactName, members, windowOpen, onSent }: Props) {
+export function Composer({ conversationId, orgId, userId, contactName, members, windowOpen, aiSuggest, onSent }: Props) {
   const [mode, setMode] = useState<Mode>(windowOpen ? 'reply' : 'note');
   const [text, setText] = useState('');
   const [caret, setCaret] = useState(0);
@@ -49,6 +51,7 @@ export function Composer({ conversationId, orgId, userId, contactName, members, 
   const [mentioned, setMentioned] = useState<Map<string, string>>(new Map());
   const [highlight, setHighlight] = useState(0);
   const [dismissed, setDismissed] = useState(false);
+  const [drafting, setDrafting] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const { data: quickReplies = [] } = useQuickReplies(orgId);
@@ -101,6 +104,27 @@ export function Composer({ conversationId, orgId, userId, contactName, members, 
       textarea.current?.focus();
       textarea.current?.setSelectionRange(position, position);
     });
+  };
+
+  // Fills the box with an AI draft; the agent edits and sends it.
+  const draft = async () => {
+    setDrafting(true);
+    try {
+      const result = await callFunction<{ reply: string; handoff: boolean; reason: string }>('ai-reply', {
+        action: 'suggest',
+        conversation_id: conversationId,
+      });
+      if (result.reply) {
+        setText(result.reply);
+        setCaret(result.reply.length);
+        textarea.current?.focus();
+      }
+      if (result.handoff) toast.info(`AI menyarankan ditangani agen: ${result.reason || 'informasi tidak tersedia'}`);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setDrafting(false);
+    }
   };
 
   const submit = async () => {
@@ -191,6 +215,12 @@ export function Composer({ conversationId, orgId, userId, contactName, members, 
           <StickyNote className="mr-1 h-3.5 w-3.5" />
           Catatan internal
         </Button>
+        {aiSuggest && mode === 'reply' && (
+          <Button size="sm" variant="ghost" onClick={draft} disabled={drafting || !windowOpen} title="Buat draf balasan dengan AI">
+            {drafting ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1 h-3.5 w-3.5" />}
+            Saran AI
+          </Button>
+        )}
         <span className="ml-auto hidden text-[11px] text-muted-foreground md:inline">
           Ketik <kbd className="rounded border px-1">/</kbd> untuk balasan cepat
           {mode === 'note' && (

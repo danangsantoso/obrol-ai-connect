@@ -51,11 +51,13 @@ install_balas_overlay() {
 
   [[ -n "$(env_get WHATSAPP_VERIFY_TOKEN)" ]] || env_set WHATSAPP_VERIFY_TOKEN "balas-$(openssl rand -hex 16)"
   local key
-  for key in WHATSAPP_APP_SECRET WHATSAPP_ACCESS_TOKEN; do
+  for key in WHATSAPP_APP_SECRET WHATSAPP_ACCESS_TOKEN META_APP_ID META_APP_SECRET; do
     grep -qE "^$key=" "$SUPABASE_DIR/.env" || env_set "$key" ""
   done
   [[ -n "$(env_get WHATSAPP_GRAPH_VERSION)" ]] || env_set WHATSAPP_GRAPH_VERSION v23.0
   # QR gateway (Evolution API): API key and the token it sends with webhooks.
   [[ -n "$(env_get EVOLUTION_API_KEY)" ]] || env_set EVOLUTION_API_KEY "$(openssl rand -hex 24)"
   [[ -n "$(env_get EVOLUTION_WEBHOOK_TOKEN)" ]] || env_set EVOLUTION_WEBHOOK_TOKEN "$(openssl rand -hex 24)"
+  # Encrypts AI provider API keys stored in the database. Changing it means re-entering those keys.
+  [[ -n "$(env_get BALAS_SECRET_KEY)" ]] || env_set BALAS_SECRET_KEY "$(openssl rand -hex 32)"
 }

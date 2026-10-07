@@ -37,6 +37,14 @@ function MediaContent({ message }: { message: Message }) {
   );
 }
 
+// Outbound messages come from an agent, the AI agent, or the linked phone (QR numbers).
+function senderLabel(message: Message, sender?: Member) {
+  const meta = (message.metadata ?? {}) as { ai?: boolean; bot_name?: string; sent_from_phone?: boolean };
+  if (meta.ai) return `🤖 ${meta.bot_name || 'AI'}`;
+  if (meta.sent_from_phone) return 'Dari HP';
+  return memberName(sender);
+}
+
 function MessageBubble({ message, sender }: { message: Message; sender?: Member }) {
   const outbound = message.direction === 'outbound';
   const hasMedia = ['image', 'video', 'audio', 'document', 'sticker'].includes(message.type);
@@ -53,7 +61,7 @@ function MessageBubble({ message, sender }: { message: Message; sender?: Member 
         {outbound && (
           <p className="text-[11px] font-semibold opacity-80">
             {message.type === 'template' ? 'Template · ' : ''}
-            {memberName(sender)}
+            {senderLabel(message, sender)}
           </p>
         )}
         {hasMedia && <MediaContent message={message} />}
@@ -111,7 +119,7 @@ export function Timeline({
               <div className="mx-auto max-w-[85%] rounded-lg border border-primary/20 bg-primary-light px-3 py-2 text-sm">
                 <p className="mb-1 flex items-center gap-1 text-[11px] font-semibold text-primary-dark">
                   <StickyNote className="h-3 w-3" />
-                  Catatan internal · {memberName(item.note.author_id ? members.get(item.note.author_id) : undefined)} ·{' '}
+                  Catatan internal · {item.note.author_id ? memberName(members.get(item.note.author_id)) : '🤖 AI'} ·{' '}
                   {format(new Date(item.note.created_at), 'HH:mm')}
                 </p>
                 <p className="whitespace-pre-wrap break-words">{item.note.body}</p>

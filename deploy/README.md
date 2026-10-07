@@ -56,7 +56,7 @@ Isi `SMTP_ADMIN_EMAIL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMT
 `/opt/balas/supabase/.env` (Gmail SMTP, Brevo, Mailgun, dll.), lalu `cd /opt/balas/supabase && sudo docker compose up -d`.
 Tanpa SMTP, agen tetap bisa masuk dengan password.
 
-## 4. Hubungkan WhatsApp
+## 4. Hubungkan kanal chat (WhatsApp, Messenger, Instagram)
 
 Ada dua cara, dan keduanya bisa dipakai bersamaan (misalnya nomor utama lewat API resmi, nomor cadangan lewat QR):
 
@@ -94,7 +94,61 @@ Log gateway: `cd /opt/balas/supabase && sudo docker compose logs --tail 100 evol
    - Subscribe field: `messages`
 4. Klik **Sinkron** pada nomor untuk menarik template pesan yang sudah disetujui.
 
-## 5. Update aplikasi
+### 4c. Facebook Messenger & Instagram Direct
+
+Sekali siapkan aplikasi Meta (boleh aplikasi yang sama dengan WhatsApp), lalu admin cukup klik **Hubungkan dengan
+Facebook**:
+
+1. developers.facebook.com → aplikasi Anda (tipe *Business*) → tambahkan produk **Facebook Login for Business**,
+   **Messenger**, dan **Instagram** (*API setup with Facebook login*).
+2. Facebook Login → Settings → **Valid OAuth Redirect URIs**: `https://api.domainanda.com/functions/v1/social-oauth`
+3. Webhooks:
+   - Callback URL: `https://api.domainanda.com/functions/v1/meta-webhook`; verify token: sama dengan WhatsApp
+     (`WHATSAPP_VERIFY_TOKEN`).
+   - Objek **Page**: field `messages`, `message_echoes`, `message_deliveries`, `message_reads`, `messaging_postbacks`.
+   - Objek **Instagram**: field `messages`.
+4. Isi di `/opt/balas/supabase/.env`, lalu jalankan `cd /opt/balas/supabase && sudo docker compose up -d functions`:
+   ```bash
+   META_APP_ID=<App ID>
+   META_APP_SECRET=<App secret>   # kosongkan bila sama dengan WHATSAPP_APP_SECRET
+   ```
+5. Di Balas.id: **Pengaturan → Kanal chat → Hubungkan dengan Facebook**. Login dengan akun yang menjadi admin Halaman,
+   centang Halaman (Messenger) dan akun Instagram Bisnis yang tertaut, lalu klik **Hubungkan**.
+
+Catatan:
+- Selama aplikasi Meta masih *Development*, hanya akun yang terdaftar sebagai admin/tester aplikasi yang bisa login dan
+  mengirim pesan uji. Untuk pelanggan umum, ajukan **App Review** untuk izin `pages_messaging`,
+  `instagram_manage_messages`, `pages_manage_metadata`, `pages_show_list`, `instagram_basic`,
+  `business_management`, dan lakukan **Business Verification**.
+- Akun Instagram harus akun **Bisnis/Kreator** yang tertaut ke Halaman Facebook, dan pengaturan Instagram
+  *Izinkan akses ke pesan* harus aktif.
+- Aturan balasan Meta: bebas dalam 24 jam sejak pesan terakhir pelanggan; sampai 7 hari dikirim dengan tag *Human Agent*
+  (perlu izin Human Agent di App Review); lewat 7 hari tidak bisa dibalas.
+- Threads belum punya API pesan langsung. X/Twitter butuh paket API berbayar, jadi belum didukung.
+
+## 5. AI Agent (balas otomatis)
+
+1. Buat API key di penyedia pilihan Anda; biaya pemakaian ditagih penyedia langsung ke akun Anda:
+   - Claude: console.anthropic.com → API Keys
+   - ChatGPT: platform.openai.com → API keys
+   - DeepSeek: platform.deepseek.com
+   - Gemini: aistudio.google.com
+   - LLM lain yang kompatibel OpenAI (OpenRouter, Groq, Qwen, Ollama): isi juga Base URL-nya
+2. Buka menu **AI Agent → Pengaturan**: pilih penyedia dan model, simpan API key, lalu klik **Cek koneksi**.
+3. Di **Produk & Pengetahuan**:
+   - Isi produk satu per satu, atau impor dari CSV (kolom `nama`, `harga`, `sku`, `deskripsi`, `kata kunci`).
+   - Unggah dokumen per produk atau dokumen umum (PDF, DOCX, TXT, MD, CSV): spesifikasi, FAQ, pengiriman, pembayaran, garansi.
+4. Coba dulu di tab **Uji coba**. Kalau jawabannya sudah pas, nyalakan **Balas otomatis** dan centang nomor yang dijawab AI.
+
+Cara kerja AI:
+- AI hanya menjawab chat yang belum diambil agen. Begitu agen mengambil chat, AI berhenti.
+- Kalau informasinya tidak ada di pengetahuan, pelanggan minta bicara dengan manusia, atau ada komplain/pembayaran/refund, AI mengirim pesan serah-terima. Chat tetap di antrean dengan catatan alasannya untuk agen.
+- Agen bisa mematikan atau menyalakan AI per chat, dan memakai tombol **Saran AI** untuk membuat draf balasan.
+
+API key disimpan terenkripsi dengan `BALAS_SECRET_KEY` (dibuat installer di `.env`). Kalau kunci itu diganti,
+API key harus disimpan ulang. Log AI: tab **Riwayat**, dan `/var/log/balas-ai.log` untuk penyapu per menit.
+
+## 6. Update aplikasi
 
 ```bash
 cd /opt/balas/app && sudo git pull && sudo ./deploy/scripts/deploy.sh
@@ -102,7 +156,7 @@ cd /opt/balas/app && sudo git pull && sudo ./deploy/scripts/deploy.sh
 
 `deploy.sh` menjalankan migrasi database yang belum diterapkan, memasang ulang Edge Functions, dan build web app.
 
-## 6. Backup & pemeliharaan
+## 7. Backup & pemeliharaan
 
 - Backup harian ada di `/var/backups/balas` (database, sesi nomor QR, file media; disimpan 30 hari).
 - Setiap malam (03:30) pesan yang lewat masa simpan organisasi dihapus. Gateway QR hanya menyimpan salinan pesan
@@ -118,7 +172,7 @@ cd /opt/balas/app && sudo git pull && sudo ./deploy/scripts/deploy.sh
 - Pantau dengan [Uptime Kuma](https://github.com/louislam/uptime-kuma): `https://app.domainanda.com` dan
   `https://api.domainanda.com/functions/v1/whatsapp-webhook` (403 berarti hidup).
 
-## 7. Uji beban (opsional)
+## 8. Uji beban (opsional)
 
 Setelah nomor uji terhubung, kirim 200 pesan tiruan ke webhook untuk memastikan server kuat:
 

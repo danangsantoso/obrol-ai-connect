@@ -32,8 +32,11 @@ export const STATUS_LABELS = {
   resolved: 'Resolved',
 } as const;
 
-// Customers on QR numbers can appear under a WhatsApp linked id (…@lid) instead of a phone number.
-export function formatWaId(waId: string) {
+// WhatsApp customers are stored by number; QR numbers can see a linked id (…@lid)
+// instead; Messenger and Instagram customers by their page-scoped id (fb:…, ig:…).
+export function formatWaId(waId: string, username?: string | null) {
+  if (waId.startsWith('fb:')) return 'Facebook Messenger';
+  if (waId.startsWith('ig:')) return username ? `Instagram @${username}` : 'Instagram';
   return waId.includes('@') ? 'Nomor disembunyikan' : `+${waId}`;
 }
 
@@ -56,4 +59,12 @@ export const WINDOW_MS = 24 * 60 * 60 * 1000;
 export function windowRemainingMs(lastCustomerMessageAt: string | null, now = Date.now()) {
   if (!lastCustomerMessageAt) return 0;
   return Math.max(0, new Date(lastCustomerMessageAt).getTime() + WINDOW_MS - now);
+}
+
+// Messenger / Instagram allow replies for 7 days with the HUMAN_AGENT tag.
+export const HUMAN_AGENT_WINDOW_MS = 7 * WINDOW_MS;
+
+export function socialWindowRemainingMs(lastCustomerMessageAt: string | null, now = Date.now()) {
+  if (!lastCustomerMessageAt) return 0;
+  return Math.max(0, new Date(lastCustomerMessageAt).getTime() + HUMAN_AGENT_WINDOW_MS - now);
 }

@@ -189,6 +189,7 @@ if [[ $LOCAL_TEST == 0 ]]; then
 SUPABASE_DIR=$SUPABASE_DIR
 15 2 * * * root $APP_DIR/deploy/scripts/backup.sh >> /var/log/balas-backup.log 2>&1
 30 3 * * * root $APP_DIR/deploy/scripts/purge-retention.sh >> /var/log/balas-retention.log 2>&1
+* * * * * root $APP_DIR/deploy/scripts/ai-sweep.sh >> /var/log/balas-ai.log 2>&1
 EOF
   chmod 644 /etc/cron.d/balas
 fi

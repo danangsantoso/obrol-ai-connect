@@ -8,7 +8,7 @@ APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$APP_DIR/deploy/scripts/lib.sh"
 WEB_ROOT="${WEB_ROOT:-/var/www/balas}"
-FUNCTIONS=(_shared whatsapp-webhook send-message invite-member sync-templates purge-retention wa-qr wa-qr-webhook)
+FUNCTIONS=(_shared whatsapp-webhook send-message invite-member sync-templates purge-retention wa-qr wa-qr-webhook ai-reply ai-admin social-oauth meta-webhook)
 
 [[ -f "$SUPABASE_DIR/.env" ]] || die "Supabase belum terpasang di $SUPABASE_DIR (jalankan setup-vps.sh dulu)"
 cd "$APP_DIR"
@@ -52,5 +52,10 @@ rm -rf "${WEB_ROOT:?}/dist.new" "${WEB_ROOT:?}/dist.old"
 cp -r dist "$WEB_ROOT/dist.new"
 if [[ -d "$WEB_ROOT/dist" ]]; then mv "$WEB_ROOT/dist" "$WEB_ROOT/dist.old"; fi
 mv "$WEB_ROOT/dist.new" "$WEB_ROOT/dist"
+
+# Jobs added after the first install (the rest of /etc/cron.d/balas may carry local edits).
+if [[ -f /etc/cron.d/balas ]] && ! grep -q ai-sweep.sh /etc/cron.d/balas; then
+  echo "* * * * * root $APP_DIR/deploy/scripts/ai-sweep.sh >> /var/log/balas-ai.log 2>&1" >>/etc/cron.d/balas
+fi
 
 log "Selesai deploy $(git rev-parse --short HEAD)"

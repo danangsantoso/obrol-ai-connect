@@ -9,6 +9,157 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_runs: {
+        Row: {
+          conversation_id: string | null;
+          created_at: string;
+          error: string | null;
+          id: string;
+          input_tokens: number | null;
+          kind: string;
+          latency_ms: number | null;
+          model: string | null;
+          organization_id: string;
+          output_tokens: number | null;
+          provider: Database["public"]["Enums"]["ai_provider"] | null;
+          reason: string | null;
+          reply: string | null;
+          sources: NonNullable<Json>;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          conversation_id?: string | null;
+          created_at?: string;
+          error?: string | null;
+          id?: string;
+          input_tokens?: number | null;
+          kind: string;
+          latency_ms?: number | null;
+          model?: string | null;
+          organization_id: string;
+          output_tokens?: number | null;
+          provider?: Database["public"]["Enums"]["ai_provider"] | null;
+          reason?: string | null;
+          reply?: string | null;
+          sources?: NonNullable<Json>;
+          status: string;
+        };
+        Update: {
+          conversation_id?: string | null;
+          created_at?: string;
+          error?: string | null;
+          id?: string;
+          input_tokens?: number | null;
+          kind?: string;
+          latency_ms?: number | null;
+          model?: string | null;
+          organization_id?: string;
+          output_tokens?: number | null;
+          provider?: Database["public"]["Enums"]["ai_provider"] | null;
+          reason?: string | null;
+          reply?: string | null;
+          sources?: NonNullable<Json>;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_runs_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_runs_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ai_secrets: {
+        Row: {
+          api_key_encrypted: string;
+          organization_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          api_key_encrypted: string;
+          organization_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          api_key_encrypted?: string;
+          organization_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_secrets_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ai_settings: {
+        Row: {
+          api_key_hint: string | null;
+          base_url: string | null;
+          bot_name: string;
+          enabled: boolean;
+          handoff_message: string;
+          instructions: string;
+          max_auto_replies: number;
+          model: string;
+          organization_id: string;
+          provider: Database["public"]["Enums"]["ai_provider"];
+          reply_delay_seconds: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          api_key_hint?: string | null;
+          base_url?: string | null;
+          bot_name?: string;
+          enabled?: boolean;
+          handoff_message?: string;
+          instructions?: string;
+          max_auto_replies?: number;
+          model?: string;
+          organization_id: string;
+          provider?: Database["public"]["Enums"]["ai_provider"];
+          reply_delay_seconds?: number;
+          updated_at?: string;
+        };
+        Update: {
+          api_key_hint?: string | null;
+          base_url?: string | null;
+          bot_name?: string;
+          enabled?: boolean;
+          handoff_message?: string;
+          instructions?: string;
+          max_auto_replies?: number;
+          model?: string;
+          organization_id?: string;
+          provider?: Database["public"]["Enums"]["ai_provider"];
+          reply_delay_seconds?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_settings_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       assignment_logs: {
         Row: {
           actor_id: string | null;
@@ -99,17 +250,48 @@ export type Database = {
           },
         ];
       };
+      channel_secrets: {
+        Row: {
+          access_token_encrypted: string;
+          channel_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          access_token_encrypted: string;
+          channel_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          access_token_encrypted?: string;
+          channel_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "channel_secrets_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: true;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       channels: {
         Row: {
+          ai_enabled: boolean;
           connection_status: string;
           connection_updated_at: string | null;
           created_at: string;
           display_phone: string | null;
+          external_id: string | null;
+          external_username: string | null;
           id: string;
           instance_name: string | null;
           is_active: boolean;
           name: string;
           organization_id: string;
+          page_id: string | null;
           phone_number_id: string | null;
           provider: Database["public"]["Enums"]["channel_provider"];
           updated_at: string;
@@ -117,30 +299,38 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          ai_enabled?: boolean;
           connection_status?: string;
           connection_updated_at?: string | null;
           created_at?: string;
           display_phone?: string | null;
+          external_id?: string | null;
+          external_username?: string | null;
           id?: string;
           instance_name?: string | null;
           is_active?: boolean;
           name: string;
           organization_id: string;
+          page_id?: string | null;
           phone_number_id?: string | null;
           provider?: Database["public"]["Enums"]["channel_provider"];
           updated_at?: string;
           waba_id?: string | null;
         };
         Update: {
+          ai_enabled?: boolean;
           connection_status?: string;
           connection_updated_at?: string | null;
           created_at?: string;
           display_phone?: string | null;
+          external_id?: string | null;
+          external_username?: string | null;
           id?: string;
           instance_name?: string | null;
           is_active?: boolean;
           name?: string;
           organization_id?: string;
+          page_id?: string | null;
           phone_number_id?: string | null;
           provider?: Database["public"]["Enums"]["channel_provider"];
           updated_at?: string;
@@ -189,6 +379,7 @@ export type Database = {
       };
       contacts: {
         Row: {
+          avatar_url: string | null;
           company: string | null;
           created_at: string;
           custom_fields: NonNullable<Json>;
@@ -200,10 +391,12 @@ export type Database = {
           organization_id: string;
           profile_name: string | null;
           updated_at: string;
+          username: string | null;
           wa_id: string;
         };
         ComputedFields: never;
         Insert: {
+          avatar_url?: string | null;
           company?: string | null;
           created_at?: string;
           custom_fields?: NonNullable<Json>;
@@ -215,9 +408,11 @@ export type Database = {
           organization_id: string;
           profile_name?: string | null;
           updated_at?: string;
+          username?: string | null;
           wa_id: string;
         };
         Update: {
+          avatar_url?: string | null;
           company?: string | null;
           created_at?: string;
           custom_fields?: NonNullable<Json>;
@@ -229,6 +424,7 @@ export type Database = {
           organization_id?: string;
           profile_name?: string | null;
           updated_at?: string;
+          username?: string | null;
           wa_id?: string;
         };
         Relationships: [
@@ -274,6 +470,14 @@ export type Database = {
       };
       conversations: {
         Row: {
+          ai_active: boolean;
+          ai_busy_until: string | null;
+          ai_handoff_at: string | null;
+          ai_handoff_reason: string | null;
+          ai_last_reply_at: string | null;
+          ai_pending_at: string | null;
+          ai_pending_message_id: string | null;
+          ai_reply_count: number;
           assignee_id: string | null;
           channel_id: string;
           contact_id: string;
@@ -293,6 +497,14 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          ai_active?: boolean;
+          ai_busy_until?: string | null;
+          ai_handoff_at?: string | null;
+          ai_handoff_reason?: string | null;
+          ai_last_reply_at?: string | null;
+          ai_pending_at?: string | null;
+          ai_pending_message_id?: string | null;
+          ai_reply_count?: number;
           assignee_id?: string | null;
           channel_id: string;
           contact_id: string;
@@ -311,6 +523,14 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          ai_active?: boolean;
+          ai_busy_until?: string | null;
+          ai_handoff_at?: string | null;
+          ai_handoff_reason?: string | null;
+          ai_last_reply_at?: string | null;
+          ai_pending_at?: string | null;
+          ai_pending_message_id?: string | null;
+          ai_reply_count?: number;
           assignee_id?: string | null;
           channel_id?: string;
           contact_id?: string;
@@ -362,6 +582,124 @@ export type Database = {
             columns: ["team_id"];
             isOneToOne: false;
             referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      knowledge_chunks: {
+        Row: {
+          content: string;
+          doc_id: string;
+          fts: unknown;
+          id: string;
+          organization_id: string;
+          position: number;
+          product_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          content: string;
+          doc_id: string;
+          fts?: never;
+          id?: string;
+          organization_id: string;
+          position: number;
+          product_id?: string | null;
+        };
+        Update: {
+          content?: string;
+          doc_id?: string;
+          fts?: never;
+          id?: string;
+          organization_id?: string;
+          position?: number;
+          product_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_chunks_doc_id_fkey";
+            columns: ["doc_id"];
+            isOneToOne: false;
+            referencedRelation: "knowledge_docs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "knowledge_chunks_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "knowledge_chunks_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      knowledge_docs: {
+        Row: {
+          char_count: number | null;
+          content: string;
+          created_at: string;
+          created_by: string | null;
+          file_name: string | null;
+          id: string;
+          organization_id: string;
+          product_id: string | null;
+          source: string;
+          title: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          char_count?: never;
+          content: string;
+          created_at?: string;
+          created_by?: string | null;
+          file_name?: string | null;
+          id?: string;
+          organization_id: string;
+          product_id?: string | null;
+          source?: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          char_count?: never;
+          content?: string;
+          created_at?: string;
+          created_by?: string | null;
+          file_name?: string | null;
+          id?: string;
+          organization_id?: string;
+          product_id?: string | null;
+          source?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_docs_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "knowledge_docs_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "knowledge_docs_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
             referencedColumns: ["id"];
           },
         ];
@@ -538,6 +876,49 @@ export type Database = {
           },
         ];
       };
+      oauth_states: {
+        Row: {
+          created_at: string;
+          error: string | null;
+          organization_id: string;
+          result: Json | null;
+          state: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          error?: string | null;
+          organization_id: string;
+          result?: Json | null;
+          state: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          error?: string | null;
+          organization_id?: string;
+          result?: Json | null;
+          state?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "oauth_states_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "oauth_states_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       organizations: {
         Row: {
           created_at: string;
@@ -565,6 +946,57 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      products: {
+        Row: {
+          created_at: string;
+          currency: string;
+          id: string;
+          is_active: boolean;
+          keywords: string;
+          name: string;
+          organization_id: string;
+          price: number | null;
+          sku: string | null;
+          summary: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          is_active?: boolean;
+          keywords?: string;
+          name: string;
+          organization_id: string;
+          price?: number | null;
+          sku?: string | null;
+          summary?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          is_active?: boolean;
+          keywords?: string;
+          name?: string;
+          organization_id?: string;
+          price?: number | null;
+          sku?: string | null;
+          summary?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "products_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       profiles: {
         Row: {
@@ -803,6 +1235,14 @@ export type Database = {
           to_team?: string;
         };
         Returns: {
+          ai_active: boolean;
+          ai_busy_until: string | null;
+          ai_handoff_at: string | null;
+          ai_handoff_reason: string | null;
+          ai_last_reply_at: string | null;
+          ai_pending_at: string | null;
+          ai_pending_message_id: string | null;
+          ai_reply_count: number;
           assignee_id: string | null;
           channel_id: string;
           contact_id: string;
@@ -828,9 +1268,29 @@ export type Database = {
         };
       };
       can_access_conversation: { Args: { conv_id: string }; Returns: boolean };
+      chunk_text: {
+        Args: { p_max?: number; p_text: string };
+        Returns: string[];
+      };
+      claim_ai_turn: {
+        Args: { p_conversation_id: string };
+        Returns: {
+          message_id: string;
+          outcome: string;
+          wait_ms: number;
+        }[];
+      };
       claim_conversation: {
         Args: { conv_id: string };
         Returns: {
+          ai_active: boolean;
+          ai_busy_until: string | null;
+          ai_handoff_at: string | null;
+          ai_handoff_reason: string | null;
+          ai_last_reply_at: string | null;
+          ai_pending_at: string | null;
+          ai_pending_message_id: string | null;
+          ai_reply_count: number;
           assignee_id: string | null;
           channel_id: string;
           contact_id: string;
@@ -862,6 +1322,14 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"];
       };
       current_team_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
+      finish_ai_turn: {
+        Args: {
+          p_conversation_id: string;
+          p_outcome: string;
+          p_reason: string;
+        };
+        Returns: undefined;
+      };
       ingest_channel_message: {
         Args: {
           p_body: string;
@@ -948,6 +1416,17 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      search_knowledge: {
+        Args: { p_limit?: number; p_org: string; p_query: string };
+        Returns: {
+          chunk_id: string;
+          content: string;
+          doc_title: string;
+          product_id: string;
+          product_name: string;
+          rank: number;
+        }[];
+      };
       set_channel_connection: {
         Args: {
           p_display_phone: string;
@@ -956,12 +1435,55 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_conversation_ai: {
+        Args: { active: boolean; conv_id: string };
+        Returns: {
+          ai_active: boolean;
+          ai_busy_until: string | null;
+          ai_handoff_at: string | null;
+          ai_handoff_reason: string | null;
+          ai_last_reply_at: string | null;
+          ai_pending_at: string | null;
+          ai_pending_message_id: string | null;
+          ai_reply_count: number;
+          assignee_id: string | null;
+          channel_id: string;
+          contact_id: string;
+          created_at: string;
+          first_response_at: string | null;
+          id: string;
+          last_customer_message_at: string | null;
+          last_message_at: string | null;
+          last_message_preview: string | null;
+          opened_at: string;
+          organization_id: string;
+          resolved_at: string | null;
+          status: Database["public"]["Enums"]["conversation_status"];
+          team_id: string | null;
+          unread_count: number;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "conversations";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       set_conversation_status: {
         Args: {
           conv_id: string;
           new_status: Database["public"]["Enums"]["conversation_status"];
         };
         Returns: {
+          ai_active: boolean;
+          ai_busy_until: string | null;
+          ai_handoff_at: string | null;
+          ai_handoff_reason: string | null;
+          ai_last_reply_at: string | null;
+          ai_pending_at: string | null;
+          ai_pending_message_id: string | null;
+          ai_reply_count: number;
           assignee_id: string | null;
           channel_id: string;
           contact_id: string;
@@ -989,8 +1511,9 @@ export type Database = {
     };
     Enums: {
       agent_status: "online" | "away" | "offline";
+      ai_provider: "openai" | "anthropic" | "deepseek" | "gemini" | "custom";
       app_role: "admin" | "supervisor" | "agent";
-      channel_provider: "cloud_api" | "qr";
+      channel_provider: "cloud_api" | "qr" | "messenger" | "instagram";
       conversation_status: "open" | "pending" | "resolved";
       message_direction: "inbound" | "outbound";
       message_status: "received" | "sent" | "delivered" | "read" | "failed";
@@ -1125,8 +1648,9 @@ export const Constants = {
   public: {
     Enums: {
       agent_status: ["online", "away", "offline"],
+      ai_provider: ["openai", "anthropic", "deepseek", "gemini", "custom"],
       app_role: ["admin", "supervisor", "agent"],
-      channel_provider: ["cloud_api", "qr"],
+      channel_provider: ["cloud_api", "qr", "messenger", "instagram"],
       conversation_status: ["open", "pending", "resolved"],
       message_direction: ["inbound", "outbound"],
       message_status: ["received", "sent", "delivered", "read", "failed"],
