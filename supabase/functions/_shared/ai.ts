@@ -277,6 +277,13 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // Answers a chat on its own once the customer has stopped typing. Safe to call
 // several times for the same chat: claim_ai_turn lets only one call through.
 export async function autoReply(admin: SupabaseClient, conversationId: string, deadlineMs = Date.now() + 50_000) {
+  // A tenant suspended by the Master Admin gets no AI replies.
+  const { data: tenant } = await admin
+    .from("conversations")
+    .select("organizations(is_active)")
+    .eq("id", conversationId)
+    .maybeSingle<{ organizations: { is_active: boolean } | null }>();
+  if (tenant?.organizations?.is_active === false) return;
   while (Date.now() < deadlineMs) {
     const { data, error } = await admin.rpc("claim_ai_turn", { p_conversation_id: conversationId }).single<{
       outcome: "claimed" | "wait" | "skip";
@@ -352,10 +359,17 @@ async function runTurn(admin: SupabaseClient, conversationId: string) {
 export async function triggerAutoReply(admin: SupabaseClient, conversationId: string) {
   const { data } = await admin
     .from("conversations")
-    .select("assignee_id, ai_active, channels(ai_enabled), organization_id")
+    .select("assignee_id, ai_active, channels(ai_enabled), organization_id, organizations(is_active)")
     .eq("id", conversationId)
-    .single<{ assignee_id: string | null; ai_active: boolean; channels: { ai_enabled: boolean }; organization_id: string }>();
+    .single<{
+      assignee_id: string | null;
+      ai_active: boolean;
+      channels: { ai_enabled: boolean };
+      organization_id: string;
+      organizations: { is_active: boolean } | null;
+    }>();
   if (!data || data.assignee_id || !data.ai_active || !data.channels.ai_enabled) return;
+  if (data.organizations?.is_active === false) return;
   const { data: settings } = await admin.from("ai_settings").select("enabled").eq("organization_id", data.organization_id).maybeSingle();
   if (!settings?.enabled) return;
 

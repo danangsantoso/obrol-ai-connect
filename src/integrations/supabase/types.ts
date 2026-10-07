@@ -1005,9 +1005,11 @@ export type Database = {
           created_at: string;
           followup_alert_days: number;
           id: string;
+          is_active: boolean;
           name: string;
           retention_days: number;
           rotate_timeout_minutes: number;
+          suspended_at: string | null;
           timezone: string;
           updated_at: string;
         };
@@ -1017,9 +1019,11 @@ export type Database = {
           created_at?: string;
           followup_alert_days?: number;
           id?: string;
+          is_active?: boolean;
           name: string;
           retention_days?: number;
           rotate_timeout_minutes?: number;
+          suspended_at?: string | null;
           timezone?: string;
           updated_at?: string;
         };
@@ -1028,11 +1032,29 @@ export type Database = {
           created_at?: string;
           followup_alert_days?: number;
           id?: string;
+          is_active?: boolean;
           name?: string;
           retention_days?: number;
           rotate_timeout_minutes?: number;
+          suspended_at?: string | null;
           timezone?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      platform_admins: {
+        Row: {
+          created_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          user_id?: string;
         };
         Relationships: [];
       };
@@ -1654,7 +1676,22 @@ export type Database = {
           organization_id: string;
         }[];
       };
+      is_master_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       mark_conversation_read: { Args: { conv_id: string }; Returns: undefined };
+      master_tenant_overview: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          channels: number;
+          conversations: number;
+          created_at: string;
+          id: string;
+          is_active: boolean;
+          members: number;
+          name: string;
+          superadmins: Json;
+          suspended_at: string;
+        }[];
+      };
       move_conversation_label: {
         Args: { conv_id: string; from_label: string; to_label: string };
         Returns: undefined;

@@ -12,13 +12,14 @@ import { errorMessage } from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function Onboarding() {
-  const { user, profile, loading, refreshProfile, signOut } = useAuth();
+  const { user, profile, loading, isMaster, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
 
   if (loading) return null;
   if (!user) return <Navigate to="/auth" replace />;
+  if (isMaster) return <Navigate to="/master" replace />;
   if (profile?.organization_id) return <Navigate to="/" replace />;
 
   const submit = async (e: React.FormEvent) => {

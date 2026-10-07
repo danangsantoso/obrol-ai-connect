@@ -28,11 +28,14 @@ export async function authenticateApiKey(req: Request, admin: SupabaseClient): P
   }
   const { data } = await admin
     .from("api_keys")
-    .select("id, organization_id, last_used_at")
+    .select("id, organization_id, last_used_at, organizations(is_active)")
     .eq("key_hash", await sha256Hex(key))
     .is("revoked_at", null)
     .maybeSingle();
   if (!data) throw new HttpError(401, "API key is not valid or was revoked", "unauthorized");
+  if ((data as unknown as { organizations?: { is_active: boolean } | null }).organizations?.is_active === false) {
+    throw new HttpError(403, "This organization is suspended", "suspended");
+  }
   if (!data.last_used_at || Date.now() - new Date(data.last_used_at).getTime() > 60_000) {
     await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
   }

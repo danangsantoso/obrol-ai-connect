@@ -52,11 +52,14 @@ serveJson(async (req) => {
   let userId: string;
   let invited = false;
   if (existing) {
-    if (existing.organization_id && existing.organization_id !== caller.organization_id) {
-      throw new HttpError(409, "This email already belongs to another organization", "conflict");
-    }
     if (existing.organization_id === caller.organization_id) {
       throw new HttpError(409, "This person is already a member", "conflict");
+    }
+    // Same answer whether the address is used by another tenant or by the
+    // platform's Master Admin: tenants learn nothing about each other.
+    const { data: master } = await admin.from("platform_admins").select("user_id").eq("user_id", existing.id).maybeSingle();
+    if (existing.organization_id || master) {
+      throw new HttpError(409, "Email ini sudah dipakai. Gunakan email lain.", "conflict");
     }
     userId = existing.id;
   } else if (password) {

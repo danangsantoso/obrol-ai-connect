@@ -42,6 +42,18 @@ Di akhir, skrip menampilkan URL aplikasi, URL webhook dan *verify token* untuk M
 
 ## 3. Setelah instalasi
 
+**Banyak perusahaan (multi-tenant):** buat Master Admin, lalu buat tenant dan Superadmin-nya dari halaman Master Admin.
+
+```bash
+cd /opt/balas/app && sudo ./deploy/scripts/create-master-admin.sh master@domainanda.com "Nama Anda"
+```
+
+Login dengan email itu dan password `12345678` (wajib diganti), lalu klik **Tenant baru**. Setelah Master Admin
+ada, pengguna tidak bisa lagi membuat organisasi sendiri lewat pendaftaran. Menonaktifkan tenant langsung memblokir
+login semua anggotanya, menghentikan AI dan webhook-nya; datanya tetap tersimpan.
+
+**Satu perusahaan saja:**
+
 1. Buka `https://app.domainanda.com`, daftar sebagai admin pertama, buat organisasi.
    Atau buat akun awal per role sekaligus (password bawaan `12345678`, wajib diganti saat login pertama):
    ```bash

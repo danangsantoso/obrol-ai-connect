@@ -11,6 +11,10 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  /** Platform owner, outside all tenants. */
+  isMaster: boolean;
+  /** The user's tenant was suspended by the Master Admin. */
+  tenantSuspended: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<{ error: Error | null }>;
@@ -24,9 +28,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMaster, setIsMaster] = useState(false);
+  const [tenantSuspended, setTenantSuspended] = useState(false);
 
   const loadProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+    const [{ data }, { data: master }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+      supabase.rpc('is_master_admin'),
+    ]);
+    // A suspended tenant is invisible to its own members (RLS).
+    let suspended = false;
+    if (data?.organization_id) {
+      const { data: org } = await supabase.from('organizations').select('id').eq('id', data.organization_id).maybeSingle();
+      suspended = !org;
+    }
+    setIsMaster(master === true);
+    setTenantSuspended(suspended);
     setProfile(data);
   }, []);
 
@@ -36,6 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       if (!session?.user) {
         setProfile(null);
+        setIsMaster(false);
+        setTenantSuspended(false);
         setLoading(false);
         return;
       }
@@ -80,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, session, profile, loading, signIn, signUp, signOut, refreshProfile }}
+      value={{ user, session, profile, loading, isMaster, tenantSuspended, signIn, signUp, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>
