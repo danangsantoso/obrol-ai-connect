@@ -252,6 +252,19 @@ Pesanan dibuat dari tombol **Pesanan** di chat dan dikelola di menu **Pesanan** 
 batal, ekspor CSV). Tagihan yang tidak dibayar sampai batas waktu otomatis jadi *Kedaluwarsa*. Event `order.created`,
 `order.paid`, dan `order.status_changed` bisa dikirim ke webhook Anda.
 
+## 5c. Broadcast
+
+Menu **Broadcast** (admin dan supervisor): satu pesan ke banyak kontak, dengan filter label dan "aktif chat dalam N
+hari", jadwal kirim, dan kecepatan per menit. Hasil per broadcast: terkirim, diterima, dibaca, dan membalas.
+
+- **WhatsApp API resmi**: wajib template yang disetujui Meta (kategori *Marketing* untuk promo). Sinkronkan template di
+  Pengaturan.
+- **WhatsApp scan QR**: teks biasa. Nomor bisa diblokir WhatsApp kalau mengirim promo ke banyak orang yang tidak
+  menyimpan nomor Anda. Kirim hanya ke pelanggan yang pernah chat, dengan kecepatan rendah (bawaan 8 pesan/menit).
+- **Telegram**: teks ke pengguna yang pernah chat dengan bot.
+- Messenger dan Instagram tidak didukung karena Meta melarang pesan promosi di luar 24 jam.
+- Pelanggan yang membalas **STOP** atau **BERHENTI** tidak akan menerima broadcast lagi.
+
 ## 6. Update aplikasi
 
 ```bash

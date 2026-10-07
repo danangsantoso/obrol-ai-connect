@@ -45,7 +45,9 @@ function senderLabel(message: Message, sender?: Member) {
     bot_name?: string;
     sent_from_phone?: boolean;
     followup?: { step: number; of: number };
+    broadcast?: { name: string };
   };
+  if (meta.broadcast) return `📣 Broadcast · ${meta.broadcast.name}`;
   if (meta.followup) return `⏰ Follow-up otomatis · lapis ${meta.followup.step}/${meta.followup.of}`;
   if (meta.ai) return `🤖 ${meta.bot_name || 'AI'}`;
   if (meta.sent_from_phone) return 'Dari HP';

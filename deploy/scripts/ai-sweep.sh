@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Every minute: answers chats whose automatic AI reply was missed (e.g. a
-# function restart while the AI was waiting), sends due follow-up messages, expires unpaid orders and
-# retries webhook deliveries that failed. Installed by setup-vps.sh.
+# function restart while the AI was waiting), sends due follow-up messages and
+# broadcasts, expires unpaid orders, and retries webhook deliveries that
+# failed. Installed by setup-vps.sh.
 set -euo pipefail
 
 # shellcheck source=lib.sh
@@ -9,17 +10,17 @@ source "$(dirname "$0")/lib.sh"
 key="$(env_get SERVICE_ROLE_KEY)"
 port="$(env_get API_GW_HTTP_PORT)"
 
-curl -fsS -o /dev/null -X POST \
-  -H "Authorization: Bearer $key" -H "apikey: $key" -H "Content-Type: application/json" \
-  -d '{"action":"sweep"}' "http://127.0.0.1:${port:-8000}/functions/v1/ai-reply"
+# Each sweep can take up to ~50 seconds, so they run side by side.
+sweep() {
+  curl -fsS -o /dev/null -X POST --max-time 58 \
+    -H "Authorization: Bearer $key" -H "apikey: $key" -H "Content-Type: application/json" \
+    -d '{"action":"sweep"}' "http://127.0.0.1:${port:-8000}/functions/v1/$1" || echo "$1 sweep failed" >&2
+}
 
-curl -fsS -o /dev/null -X POST \
-  -H "Authorization: Bearer $key" -H "apikey: $key" -H "Content-Type: application/json" \
-  -d '{"action":"sweep"}' "http://127.0.0.1:${port:-8000}/functions/v1/followup" || echo "followup sweep failed" >&2
-
-curl -fsS -o /dev/null -X POST \
-  -H "Authorization: Bearer $key" -H "apikey: $key" -H "Content-Type: application/json" \
-  -d '{"action":"sweep"}' "http://127.0.0.1:${port:-8000}/functions/v1/orders" || echo "orders sweep failed" >&2
-
-curl -fsS -o /dev/null -X POST -H "Content-Type: application/json" -d '{}' \
-  "http://127.0.0.1:${port:-8000}/functions/v1/webhook-dispatch"
+sweep ai-reply &
+sweep followup &
+sweep orders &
+sweep broadcast &
+curl -fsS -o /dev/null -X POST --max-time 58 -H "Content-Type: application/json" -d '{}' \
+  "http://127.0.0.1:${port:-8000}/functions/v1/webhook-dispatch" || echo "webhook-dispatch failed" >&2 &
+wait

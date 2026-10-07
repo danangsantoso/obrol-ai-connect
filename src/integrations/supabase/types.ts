@@ -342,6 +342,183 @@ export type Database = {
           },
         ];
       };
+      broadcast_recipients: {
+        Row: {
+          broadcast_id: string;
+          claimed_at: string | null;
+          contact_id: string;
+          conversation_id: string | null;
+          error: string | null;
+          id: string;
+          message_id: string | null;
+          organization_id: string;
+          replied_at: string | null;
+          sent_at: string | null;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          broadcast_id: string;
+          claimed_at?: string | null;
+          contact_id: string;
+          conversation_id?: string | null;
+          error?: string | null;
+          id?: string;
+          message_id?: string | null;
+          organization_id: string;
+          replied_at?: string | null;
+          sent_at?: string | null;
+          status?: string;
+        };
+        Update: {
+          broadcast_id?: string;
+          claimed_at?: string | null;
+          contact_id?: string;
+          conversation_id?: string | null;
+          error?: string | null;
+          id?: string;
+          message_id?: string | null;
+          organization_id?: string;
+          replied_at?: string | null;
+          sent_at?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_recipients_broadcast_id_fkey";
+            columns: ["broadcast_id"];
+            isOneToOne: false;
+            referencedRelation: "broadcasts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "broadcast_recipients_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "broadcast_recipients_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "broadcast_recipients_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "broadcast_recipients_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      broadcasts: {
+        Row: {
+          active_within_days: number | null;
+          add_opt_out: boolean;
+          body: string;
+          channel_id: string;
+          created_at: string;
+          created_by: string | null;
+          finished_at: string | null;
+          id: string;
+          kind: string;
+          label_ids: string[];
+          name: string;
+          only_opt_in: boolean;
+          organization_id: string;
+          per_minute: number;
+          scheduled_at: string | null;
+          started_at: string | null;
+          status: string;
+          template_language: string | null;
+          template_name: string | null;
+          template_params: string[];
+          total: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active_within_days?: number | null;
+          add_opt_out?: boolean;
+          body?: string;
+          channel_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          finished_at?: string | null;
+          id?: string;
+          kind?: string;
+          label_ids?: string[];
+          name: string;
+          only_opt_in?: boolean;
+          organization_id: string;
+          per_minute?: number;
+          scheduled_at?: string | null;
+          started_at?: string | null;
+          status?: string;
+          template_language?: string | null;
+          template_name?: string | null;
+          template_params?: string[];
+          total?: number;
+          updated_at?: string;
+        };
+        Update: {
+          active_within_days?: number | null;
+          add_opt_out?: boolean;
+          body?: string;
+          channel_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          finished_at?: string | null;
+          id?: string;
+          kind?: string;
+          label_ids?: string[];
+          name?: string;
+          only_opt_in?: boolean;
+          organization_id?: string;
+          per_minute?: number;
+          scheduled_at?: string | null;
+          started_at?: string | null;
+          status?: string;
+          template_language?: string | null;
+          template_name?: string | null;
+          template_params?: string[];
+          total?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "broadcasts_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "broadcasts_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "broadcasts_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       channel_secrets: {
         Row: {
           access_token_encrypted: string | null;
@@ -478,6 +655,7 @@ export type Database = {
       contacts: {
         Row: {
           avatar_url: string | null;
+          broadcast_opt_out: boolean;
           company: string | null;
           created_at: string;
           custom_fields: NonNullable<Json>;
@@ -495,6 +673,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           avatar_url?: string | null;
+          broadcast_opt_out?: boolean;
           company?: string | null;
           created_at?: string;
           custom_fields?: NonNullable<Json>;
@@ -511,6 +690,7 @@ export type Database = {
         };
         Update: {
           avatar_url?: string | null;
+          broadcast_opt_out?: boolean;
           company?: string | null;
           created_at?: string;
           custom_fields?: NonNullable<Json>;
@@ -2239,6 +2419,66 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      broadcast_audience: {
+        Args: {
+          p_active_days: number;
+          p_channel: string;
+          p_label_ids: string[];
+          p_only_opt_in: boolean;
+          p_org: string;
+        };
+        Returns: {
+          contact_id: string;
+        }[];
+      };
+      broadcast_audience_count: {
+        Args: {
+          p_active_days: number;
+          p_channel: string;
+          p_label_ids: string[];
+          p_only_opt_in: boolean;
+        };
+        Returns: number;
+      };
+      broadcast_claim: {
+        Args: { p_id: string; p_limit: number };
+        Returns: {
+          broadcast_id: string;
+          claimed_at: string | null;
+          contact_id: string;
+          conversation_id: string | null;
+          error: string | null;
+          id: string;
+          message_id: string | null;
+          organization_id: string;
+          replied_at: string | null;
+          sent_at: string | null;
+          status: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "broadcast_recipients";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      broadcast_conversation: {
+        Args: { p_channel: string; p_contact: string };
+        Returns: string;
+      };
+      broadcast_prepare: { Args: { p_id: string }; Returns: number };
+      broadcast_stats: {
+        Args: { p_ids: string[] };
+        Returns: {
+          broadcast_id: string;
+          delivered: number;
+          failed: number;
+          pending: number;
+          read: number;
+          replied: number;
+          sent: number;
+        }[];
       };
       can_access_conversation: { Args: { conv_id: string }; Returns: boolean };
       chunk_text: {
