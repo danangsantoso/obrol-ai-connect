@@ -5,7 +5,7 @@
 //  test     - try a question against the current settings and knowledge (admins, supervisors)
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
 import { adminClient, callerClient, requireMember } from "../_shared/supabase.ts";
-import { answer, autoReply, loadAi, logRun, suggest, toChat } from "../_shared/ai.ts";
+import { answer, autoReply, cleanName, loadAi, logRun, suggest, toChat } from "../_shared/ai.ts";
 import { LlmError } from "../_shared/llm.ts";
 
 interface AiRequest {
@@ -13,6 +13,7 @@ interface AiRequest {
   conversation_id?: string;
   question?: string;
   history?: { role: "customer" | "agent"; text: string }[];
+  customer_name?: string;
 }
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
@@ -89,12 +90,13 @@ serveJson(async (req) => {
       { direction: "inbound", type: "text", body: question },
     ]);
     try {
-      const result = await answer(admin, ai, chat, "auto");
+      const result = await answer(admin, ai, chat, "auto", { name: cleanName(input.customer_name) });
       await logRun(admin, { organization_id: member.organization_id, kind: "test", llm: ai.llm, status: result.handoff ? "handoff" : "replied", answer: result });
       return json({
         reply: result.reply,
         handoff: result.handoff,
         reason: result.reason,
+        customer_name: result.customerName,
         sources: result.sources,
         handoff_message: ai.settings.handoff_message,
         usage: { input_tokens: result.inputTokens, output_tokens: result.outputTokens, latency_ms: result.latencyMs },

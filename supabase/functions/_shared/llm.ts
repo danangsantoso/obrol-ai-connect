@@ -32,8 +32,9 @@ export const REPLY_SCHEMA = {
     reply: { type: "string" },
     handoff: { type: "boolean" },
     reason: { type: "string" },
+    customer_name: { type: "string" },
   },
-  required: ["reply", "handoff", "reason"],
+  required: ["reply", "handoff", "reason", "customer_name"],
   additionalProperties: false,
 };
 

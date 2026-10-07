@@ -124,8 +124,10 @@ export type Database = {
           provider: Database["public"]["Enums"]["ai_provider"];
           reclaim_on_resolve: boolean;
           reply_delay_seconds: number;
+          salutation: string;
           simulate_typing: boolean;
           updated_at: string;
+          use_emoji: boolean;
         };
         ComputedFields: never;
         Insert: {
@@ -145,8 +147,10 @@ export type Database = {
           provider?: Database["public"]["Enums"]["ai_provider"];
           reclaim_on_resolve?: boolean;
           reply_delay_seconds?: number;
+          salutation?: string;
           simulate_typing?: boolean;
           updated_at?: string;
+          use_emoji?: boolean;
         };
         Update: {
           agent_wait_minutes?: number;
@@ -165,8 +169,10 @@ export type Database = {
           provider?: Database["public"]["Enums"]["ai_provider"];
           reclaim_on_resolve?: boolean;
           reply_delay_seconds?: number;
+          salutation?: string;
           simulate_typing?: boolean;
           updated_at?: string;
+          use_emoji?: boolean;
         };
         Relationships: [
           {

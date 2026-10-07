@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { HttpError } from "./http.ts";
 import { sendMessage, typingIndicator, uploadMedia } from "./whatsapp.ts";
+import { toTelegramHtml, toUnicodeBold } from "./format.ts";
 import * as evolution from "./evolution.ts";
 import { decryptSecret } from "./crypto.ts";
 import { sendSocial, type SocialAttachment, typingOn, userIdFromKey } from "./meta.ts";
@@ -249,7 +250,7 @@ async function sendSocialMessage(
     const text = input.text?.trim() ?? "";
     if (!text) throw new HttpError(400, "Message text is empty", "invalid_request");
     if (text.length > 2000) throw new HttpError(400, "Pesan Messenger/Instagram maksimal 2000 karakter", "invalid_request");
-    const mid = await sendSocial(token, recipient, { text }, tag);
+    const mid = await sendSocial(token, recipient, { text: toUnicodeBold(text) }, tag);
     return await record(admin, conv.id, senderId, mid, "text", text, null, metadata);
   }
 
@@ -265,7 +266,7 @@ async function sendSocialMessage(
 
   const caption = input.text?.trim();
   if (caption) {
-    const textMid = await sendSocial(token, recipient, { text: caption.slice(0, 2000) }, tag);
+    const textMid = await sendSocial(token, recipient, { text: toUnicodeBold(caption).slice(0, 2000) }, tag);
     await record(admin, conv.id, senderId, textMid, "text", caption, null, metadata);
   }
   const media = { path, mime: file.data.type || "application/octet-stream", filename: input.filename || path.split("/").pop()! };
@@ -303,7 +304,7 @@ async function sendDirectMessage(
     if (!text) throw new HttpError(400, "Message text is empty", "invalid_request");
     if (text.length > 4096) throw new HttpError(400, "Message is longer than 4096 characters", "invalid_request");
     const id = viaTelegram
-      ? telegram.telegramMessageId(chatId, await telegram.sendText(token, chatId, text))
+      ? telegram.telegramMessageId(chatId, await telegram.sendText(token, chatId, text, toTelegramHtml(text)))
       : `web:${crypto.randomUUID()}`;
     return await record(admin, conv.id, senderId, id, "text", text, null, metadata);
   }

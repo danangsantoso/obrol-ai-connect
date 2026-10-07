@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { callFunction, errorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { ChatText } from "@/components/chat/ChatText";
 
 interface TestAnswer {
   reply: string;
   handoff: boolean;
   reason: string;
+  customer_name: string;
   handoff_message: string;
   sources: { doc_title: string; product_name: string | null }[];
   usage: { input_tokens: number | null; output_tokens: number | null; latency_ms: number };
@@ -25,6 +27,8 @@ export function PlaygroundTab() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
+  // The customer's name as a WhatsApp profile would give it; the AI also picks it up from the chat.
+  const [customerName, setCustomerName] = useState("");
 
   const ask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +39,13 @@ export function PlaygroundTab() {
     setQuestion("");
     setBusy(true);
     try {
-      const answer = await callFunction<TestAnswer>("ai-reply", { action: "test", question: text, history });
+      const answer = await callFunction<TestAnswer>("ai-reply", {
+        action: "test",
+        question: text,
+        history,
+        customer_name: customerName.trim() || undefined,
+      });
+      if (answer.customer_name && !customerName.trim()) setCustomerName(answer.customer_name);
       const shown = answer.handoff ? [answer.reply, answer.handoff_message].filter(Boolean).join("\n\n") : answer.reply;
       setTurns((t) => [...t, { role: "agent", text: shown, answer }]);
     } catch (err) {
@@ -55,11 +65,29 @@ export function PlaygroundTab() {
             ke WhatsApp.
           </CardDescription>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setTurns([])} disabled={!turns.length}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setTurns([]);
+            setCustomerName("");
+          }}
+          disabled={!turns.length && !customerName}
+        >
           <RotateCcw className="mr-1 h-4 w-4" /> Ulang
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex items-center gap-2">
+          <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <Input
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            placeholder="Nama pelanggan (opsional, seperti nama profil WhatsApp)"
+            aria-label="Nama pelanggan uji"
+            className="h-8 max-w-sm"
+          />
+        </div>
         <div className="max-h-[480px] min-h-[200px] space-y-3 overflow-y-auto rounded-lg border bg-muted/40 p-4">
           {turns.length === 0 && (
             <p className="text-center text-sm text-muted-foreground">Contoh: "Kak, madu hutan ada garansinya? Ongkir ke Bandung berapa?"</p>
@@ -77,7 +105,9 @@ export function PlaygroundTab() {
                 {t.role === "agent" && t.error ? (
                   <p>{t.error}</p>
                 ) : (
-                  <p className="whitespace-pre-wrap" data-testid={t.role === "agent" ? "ai-answer" : undefined}>{t.text}</p>
+                  <p className="whitespace-pre-wrap" data-testid={t.role === "agent" ? "ai-answer" : undefined}>
+                    <ChatText text={t.text} />
+                  </p>
                 )}
                 {t.role === "agent" && t.answer && (
                   <div className="mt-2 space-y-1 border-t border-primary-foreground/20 pt-2 text-xs opacity-90">

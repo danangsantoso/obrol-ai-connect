@@ -15,6 +15,7 @@ import { PROVIDERS, type Provider, useAiSettings } from "./aiSettings";
 import { callFunction, errorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { DEFAULT_SOUL } from "./soul";
+import { ChatText } from "@/components/chat/ChatText";
 
 const DEFAULTS = {
   enabled: false,
@@ -29,8 +30,19 @@ const DEFAULTS = {
   reclaim_on_resolve: true,
   agent_wait_minutes: 3,
   simulate_typing: true,
+  use_emoji: true,
+  salutation: "auto" as Salutation,
   handoff_rules: "",
   persona: "",
+};
+
+type Salutation = "auto" | "kak" | "bapak_ibu" | "name_only";
+
+const SALUTATIONS: Record<Salutation, { label: string; example: string }> = {
+  auto: { label: "Otomatis (Bapak/Ibu bila jelas, selain itu Kak)", example: "Izinkan {bot} membantu *Bapak Budi* ya 😊" },
+  kak: { label: "Selalu Kak", example: "Izinkan {bot} membantu *Kak Budi* ya 😊" },
+  bapak_ibu: { label: "Selalu Bapak/Ibu", example: "Izinkan {bot} membantu *Ibu Siti* ya 😊" },
+  name_only: { label: "Nama saja", example: "Izinkan {bot} membantu *Budi* ya 😊" },
 };
 
 // One phrase per line (commas also split), lower-cased, without duplicates.
@@ -75,6 +87,8 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
       reclaim_on_resolve: settings.reclaim_on_resolve,
       agent_wait_minutes: settings.agent_wait_minutes,
       simulate_typing: settings.simulate_typing,
+      use_emoji: settings.use_emoji,
+      salutation: settings.salutation as Salutation,
       handoff_rules: settings.handoff_rules,
       persona: settings.persona,
     });
@@ -370,6 +384,50 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
                   onChange={(e) => setForm({ ...form, max_auto_replies: Number(e.target.value) })}
                 />
               </div>
+            </div>
+            <label className="flex max-w-3xl items-start gap-3 rounded-lg border p-3 text-sm">
+              <Switch
+                checked={form.use_emoji}
+                disabled={!isAdmin}
+                onCheckedChange={(v) => setForm({ ...form, use_emoji: v })}
+                aria-label="AI memakai emoji"
+              />
+              <span>
+                <span className="font-medium">AI memakai emoji 😊</span>
+                <span className="block text-muted-foreground">
+                  Balasan AI diberi 1–2 emoji agar terasa ramah (dikurangi saat pelanggan komplain). Matikan untuk gaya formal tanpa
+                  emoji.
+                </span>
+              </span>
+            </label>
+            <div className="max-w-3xl space-y-2 rounded-lg border p-3 text-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-medium">Sapa pelanggan dengan namanya</span>
+                <Select
+                  value={form.salutation}
+                  disabled={!isAdmin}
+                  onValueChange={(v) => setForm({ ...form, salutation: v as Salutation })}
+                >
+                  <SelectTrigger className="h-8 w-auto min-w-[260px]" aria-label="Cara memanggil pelanggan">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(SALUTATIONS) as Salutation[]).map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {SALUTATIONS[k].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-muted-foreground">
+                AI memakai nama dari profil WhatsApp/Instagram/Telegram, form live chat, atau nama yang disebut pelanggan di chat
+                (lalu disimpan ke kontak). Nama ditulis <strong>tebal</strong> dan diulang di setiap balasan, misalnya:{" "}
+                <span className="rounded bg-muted px-1.5 py-0.5 text-foreground">
+                  <ChatText text={SALUTATIONS[form.salutation].example.replace("{bot}", form.bot_name.trim() || "Asisten").replace(" 😊", form.use_emoji ? " 😊" : "")} />
+                </span>
+                . Jika nama belum diketahui, AI menanyakannya dengan sopan.
+              </p>
             </div>
             <label className="flex max-w-3xl items-start gap-3 rounded-lg border p-3 text-sm">
               <Switch

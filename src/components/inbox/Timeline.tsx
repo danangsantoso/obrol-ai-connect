@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useSignedUrl } from './useInboxData';
 import type { AssignmentLog, Member, Message, TimelineItem } from './types';
 import { memberName } from './types';
+import { ChatText } from "@/components/chat/ChatText";
 
 function StatusIcon({ message }: { message: Message }) {
   if (message.status === 'failed') return <AlertCircle className="h-3.5 w-3.5 text-red-200" />;
@@ -65,7 +66,7 @@ function MessageBubble({ message, sender }: { message: Message; sender?: Member 
           </p>
         )}
         {hasMedia && <MediaContent message={message} />}
-        {message.body && <p className="whitespace-pre-wrap break-words">{message.body}</p>}
+        {message.body && <p className="whitespace-pre-wrap break-words"><ChatText text={message.body} /></p>}
         {!message.body && !hasMedia && <p className="italic opacity-70">[{message.type}]</p>}
         <div className={cn('flex items-center justify-end gap-1 text-[10px]', outbound ? 'opacity-80' : 'text-muted-foreground')}>
           {format(new Date(message.created_at), 'HH:mm')}
