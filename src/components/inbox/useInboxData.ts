@@ -71,7 +71,7 @@ export function useMembers(orgId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role, status, is_active')
+        .select('id, full_name, email, role, status, is_active, must_change_password')
         .eq('organization_id', orgId)
         .order('full_name');
       if (error) throw error;

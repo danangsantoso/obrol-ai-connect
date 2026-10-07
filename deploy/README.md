@@ -48,7 +48,8 @@ Di akhir, skrip menampilkan URL aplikasi, URL webhook dan *verify token* untuk M
    sudo sed -i 's/^DISABLE_SIGNUP=.*/DISABLE_SIGNUP=true/' /opt/balas/supabase/.env
    cd /opt/balas/supabase && sudo docker compose up -d
    ```
-3. Tambahkan agen dari menu **Tim & Agen** (password sementara).
+3. Tambahkan agen dari menu **Tim & Agen**. Password bawaan `12345678`; agen wajib menggantinya saat login pertama.
+   Admin bisa mereset password agen ke `12345678` dari tabel anggota (agen kembali wajib mengganti).
 
 ### Email (opsional: masuk dengan kode OTP, undangan via email)
 

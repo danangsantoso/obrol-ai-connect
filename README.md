@@ -25,7 +25,8 @@ supabase/migrations/            skema database, RLS, fungsi RPC
 supabase/functions/
   whatsapp-webhook/             terima pesan & status dari Meta (verifikasi signature, idempoten)
   send-message/                 kirim teks/media/template atas nama agen
-  invite-member/                admin menambah anggota tim
+  invite-member/                admin menambah anggota tim (password bawaan 12345678)
+  member-password/              ganti password wajib saat login pertama, reset oleh admin
   sync-templates/               tarik template pesan dari Meta
   wa-qr/                        hubungkan nomor scan QR: QR/kode tautan, status, putuskan
   wa-qr-webhook/                terima pesan, status, dan koneksi dari gateway QR

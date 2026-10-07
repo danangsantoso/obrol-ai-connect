@@ -1,5 +1,6 @@
-// Admin adds a team member: either an email invitation (needs SMTP) or an
-// account with a temporary password the admin hands over.
+// Admin adds a team member: an account with the default password 12345678
+// (or one the admin chooses), which the member must change at first sign-in;
+// or an email invitation (needs SMTP).
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
 import { adminClient, requireMember, type Role } from "../_shared/supabase.ts";
 
@@ -9,7 +10,11 @@ interface InviteRequest {
   role: Role;
   team_ids?: string[];
   password?: string;
+  // Send an email invitation instead of creating the account with a password.
+  invite_by_email?: boolean;
 }
+
+const DEFAULT_PASSWORD = "12345678";
 
 const ROLES: Role[] = ["admin", "supervisor", "agent"];
 
@@ -21,7 +26,8 @@ serveJson(async (req) => {
   const email = input.email?.trim().toLowerCase() ?? "";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, "Email is not valid", "invalid_request");
   if (!ROLES.includes(input.role)) throw new HttpError(400, "Role is not valid", "invalid_request");
-  if (input.password !== undefined && input.password.length < 8) {
+  const password = input.invite_by_email ? undefined : input.password?.trim() || DEFAULT_PASSWORD;
+  if (password !== undefined && password.length < 8) {
     throw new HttpError(400, "Password must be at least 8 characters", "invalid_request");
   }
   const fullName = input.full_name?.trim() ?? "";
@@ -53,10 +59,10 @@ serveJson(async (req) => {
       throw new HttpError(409, "This person is already a member", "conflict");
     }
     userId = existing.id;
-  } else if (input.password) {
+  } else if (password) {
     const { data, error } = await admin.auth.admin.createUser({
       email,
-      password: input.password,
+      password,
       email_confirm: true,
       user_metadata: { full_name: fullName },
     });
@@ -72,7 +78,12 @@ serveJson(async (req) => {
     invited = true;
   }
 
-  const update: Record<string, unknown> = { organization_id: caller.organization_id, role: input.role };
+  const update: Record<string, unknown> = {
+    organization_id: caller.organization_id,
+    role: input.role,
+    // A password chosen by someone else is temporary.
+    must_change_password: Boolean(password) && !existing,
+  };
   if (fullName) update.full_name = fullName;
   const { error: profileError } = await admin.from("profiles").update(update).eq("id", userId);
   if (profileError) throw profileError;
