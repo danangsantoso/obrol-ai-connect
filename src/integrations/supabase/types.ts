@@ -120,6 +120,7 @@ export type Database = {
           max_auto_replies: number;
           model: string;
           organization_id: string;
+          persona: string;
           provider: Database["public"]["Enums"]["ai_provider"];
           reclaim_on_resolve: boolean;
           reply_delay_seconds: number;
@@ -140,6 +141,7 @@ export type Database = {
           max_auto_replies?: number;
           model?: string;
           organization_id: string;
+          persona?: string;
           provider?: Database["public"]["Enums"]["ai_provider"];
           reclaim_on_resolve?: boolean;
           reply_delay_seconds?: number;
@@ -159,6 +161,7 @@ export type Database = {
           max_auto_replies?: number;
           model?: string;
           organization_id?: string;
+          persona?: string;
           provider?: Database["public"]["Enums"]["ai_provider"];
           reclaim_on_resolve?: boolean;
           reply_delay_seconds?: number;

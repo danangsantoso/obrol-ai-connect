@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PROVIDERS, type Provider, useAiSettings } from "./aiSettings";
 import { callFunction, errorMessage } from "@/lib/api";
 import { toast } from "sonner";
+import { DEFAULT_SOUL } from "./soul";
 
 const DEFAULTS = {
   enabled: false,
@@ -24,11 +25,12 @@ const DEFAULTS = {
   instructions: "",
   handoff_message: "Baik kak, saya sambungkan ke tim CS kami ya. Mohon ditunggu sebentar 🙏",
   reply_delay_seconds: 6,
-  max_auto_replies: 10,
+  max_auto_replies: 30,
   reclaim_on_resolve: true,
   agent_wait_minutes: 3,
   simulate_typing: true,
   handoff_rules: "",
+  persona: "",
 };
 
 // One phrase per line (commas also split), lower-cased, without duplicates.
@@ -74,6 +76,7 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
       agent_wait_minutes: settings.agent_wait_minutes,
       simulate_typing: settings.simulate_typing,
       handoff_rules: settings.handoff_rules,
+      persona: settings.persona,
     });
     setPhrases(settings.handoff_keywords.join("\n"));
   }, [settings, isFetched]);
@@ -398,6 +401,71 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
                 </span>
               </span>
             </label>
+            <div className="max-w-3xl space-y-2 rounded-lg border p-4">
+              <div>
+                <p className="font-medium">Jiwa AI (soul.md)</p>
+                <p className="text-sm text-muted-foreground">
+                  Karakter, gaya bicara, dan cara berjualan CS AI Anda. Tulis bebas seperti menjelaskan ke karyawan baru,
+                  atau unggah file soul.md. Jika dikosongkan, AI memakai jiwa bawaan: CS ramah yang mengejar closing.
+                </p>
+              </div>
+              <Textarea
+                id="ai-persona"
+                rows={12}
+                maxLength={8000}
+                disabled={!isAdmin}
+                className="font-mono text-xs"
+                placeholder={DEFAULT_SOUL}
+                value={form.persona}
+                onChange={(e) => setForm({ ...form, persona: e.target.value })}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                {isAdmin && (
+                  <>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, persona: DEFAULT_SOUL })}>
+                      Pakai contoh
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <label className="cursor-pointer">
+                        Unggah soul.md
+                        <input
+                          type="file"
+                          accept=".md,.markdown,.txt,text/markdown,text/plain"
+                          className="hidden"
+                          aria-label="Unggah soul.md"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            if (!file) return;
+                            if (file.size > 32_000) {
+                              toast.error("File terlalu besar (maks. 8.000 karakter)");
+                              return;
+                            }
+                            const text = (await file.text()).slice(0, 8000);
+                            setForm((f) => ({ ...f, persona: text }));
+                            toast.success(`${file.name} dimuat. Klik Simpan pengaturan.`);
+                          }}
+                        />
+                      </label>
+                    </Button>
+                  </>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const url = URL.createObjectURL(new Blob([form.persona || DEFAULT_SOUL], { type: "text/markdown" }));
+                    const a = Object.assign(document.createElement("a"), { href: url, download: "soul.md" });
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  Unduh soul.md
+                </Button>
+                <span className="ml-auto text-xs text-muted-foreground">{form.persona.length}/8000</span>
+              </div>
+            </div>
             <div className="max-w-3xl space-y-1">
               <Label htmlFor="ai-instructions">Instruksi untuk AI</Label>
               <Textarea
