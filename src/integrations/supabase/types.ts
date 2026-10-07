@@ -101,36 +101,48 @@ export type Database = {
       };
       channels: {
         Row: {
+          connection_status: string;
+          connection_updated_at: string | null;
           created_at: string;
           display_phone: string | null;
           id: string;
+          instance_name: string | null;
           is_active: boolean;
           name: string;
           organization_id: string;
-          phone_number_id: string;
+          phone_number_id: string | null;
+          provider: Database["public"]["Enums"]["channel_provider"];
           updated_at: string;
           waba_id: string | null;
         };
         ComputedFields: never;
         Insert: {
+          connection_status?: string;
+          connection_updated_at?: string | null;
           created_at?: string;
           display_phone?: string | null;
           id?: string;
+          instance_name?: string | null;
           is_active?: boolean;
           name: string;
           organization_id: string;
-          phone_number_id: string;
+          phone_number_id?: string | null;
+          provider?: Database["public"]["Enums"]["channel_provider"];
           updated_at?: string;
           waba_id?: string | null;
         };
         Update: {
+          connection_status?: string;
+          connection_updated_at?: string | null;
           created_at?: string;
           display_phone?: string | null;
           id?: string;
+          instance_name?: string | null;
           is_active?: boolean;
           name?: string;
           organization_id?: string;
-          phone_number_id?: string;
+          phone_number_id?: string | null;
+          provider?: Database["public"]["Enums"]["channel_provider"];
           updated_at?: string;
           waba_id?: string | null;
         };
@@ -850,6 +862,26 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"];
       };
       current_team_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
+      ingest_channel_message: {
+        Args: {
+          p_body: string;
+          p_channel_id: string;
+          p_direction: Database["public"]["Enums"]["message_direction"];
+          p_metadata: Json;
+          p_profile_name: string;
+          p_reply_to_wa_id: string;
+          p_sent_at: string;
+          p_type: string;
+          p_wa_id: string;
+          p_wa_message_id: string;
+        };
+        Returns: {
+          conversation_id: string;
+          inserted: boolean;
+          message_id: string;
+          organization_id: string;
+        }[];
+      };
       ingest_inbound_message: {
         Args: {
           p_body: string;
@@ -916,6 +948,14 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      set_channel_connection: {
+        Args: {
+          p_display_phone: string;
+          p_instance_name: string;
+          p_status: string;
+        };
+        Returns: undefined;
+      };
       set_conversation_status: {
         Args: {
           conv_id: string;
@@ -950,6 +990,7 @@ export type Database = {
     Enums: {
       agent_status: "online" | "away" | "offline";
       app_role: "admin" | "supervisor" | "agent";
+      channel_provider: "cloud_api" | "qr";
       conversation_status: "open" | "pending" | "resolved";
       message_direction: "inbound" | "outbound";
       message_status: "received" | "sent" | "delivered" | "read" | "failed";
@@ -1085,6 +1126,7 @@ export const Constants = {
     Enums: {
       agent_status: ["online", "away", "offline"],
       app_role: ["admin", "supervisor", "agent"],
+      channel_provider: ["cloud_api", "qr"],
       conversation_status: ["open", "pending", "resolved"],
       message_direction: ["inbound", "outbound"],
       message_status: ["received", "sent", "delivered", "read", "failed"],

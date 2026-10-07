@@ -8,10 +8,18 @@ APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$APP_DIR/deploy/scripts/lib.sh"
 WEB_ROOT="${WEB_ROOT:-/var/www/balas}"
-FUNCTIONS=(_shared whatsapp-webhook send-message invite-member sync-templates purge-retention)
+FUNCTIONS=(_shared whatsapp-webhook send-message invite-member sync-templates purge-retention wa-qr wa-qr-webhook)
 
 [[ -f "$SUPABASE_DIR/.env" ]] || die "Supabase belum terpasang di $SUPABASE_DIR (jalankan setup-vps.sh dulu)"
 cd "$APP_DIR"
+
+log "Layanan Docker"
+# New services or settings from the repo (e.g. the QR gateway) start here.
+install_balas_overlay "$APP_DIR"
+compose up -d --wait --wait-timeout 600 >/dev/null || {
+  compose ps
+  die "Sebagian layanan gagal menyala. Lihat log: cd $SUPABASE_DIR && docker compose logs --tail 50"
+}
 
 log "Migrasi database"
 # Applies supabase/migrations/<version>_<name>.sql files not yet recorded in

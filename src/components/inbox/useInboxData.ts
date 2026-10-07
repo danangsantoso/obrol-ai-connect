@@ -3,7 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { AssignmentLog, ConversationRow, Label, Member, Message, Note, QuickReply, Team, TimelineItem } from './types';
 
-const CONVERSATION_SELECT = '*, contact:contacts!inner(id, wa_id, name, profile_name), conversation_labels(label_id)';
+const CONVERSATION_SELECT =
+  '*, contact:contacts!inner(id, wa_id, name, profile_name), channel:channels(provider, name), conversation_labels(label_id)';
 
 export function useConversations(orgId: string) {
   const queryClient = useQueryClient();

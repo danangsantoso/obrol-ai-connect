@@ -18,6 +18,13 @@ echo "[$(date -Is)] dumping database"
 compose exec -T db pg_dump -U supabase_admin -d postgres --format=custom --no-owner \
   >"$BACKUP_DIR/db-$stamp.dump"
 
+# QR-linked WhatsApp sessions (Evolution API); without it numbers must be scanned again after a restore.
+if [[ -n "$(compose exec -T db psql -U supabase_admin -d postgres -tAc "select 1 from pg_database where datname = 'evolution'")" ]]; then
+  echo "[$(date -Is)] dumping QR gateway sessions"
+  compose exec -T db pg_dump -U supabase_admin -d evolution --format=custom --no-owner \
+    >"$BACKUP_DIR/evolution-$stamp.dump"
+fi
+
 echo "[$(date -Is)] archiving storage files"
 tar -C "$SUPABASE_DIR/volumes" -czf "$BACKUP_DIR/storage-$stamp.tar.gz" storage
 

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Clock, Hand, UserRoundCog } from 'lucide-react';
+import { Clock, Hand, QrCode, UserRoundCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import type { Profile } from '@/contexts/AuthContext';
-import { STATUS_LABELS, displayName, errorMessage, windowRemainingMs } from '@/lib/api';
+import { STATUS_LABELS, displayName, errorMessage, formatWaId, windowRemainingMs } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Composer } from './Composer';
@@ -47,8 +47,10 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
   const [transferOpen, setTransferOpen] = useState(false);
   const now = useNow(30_000);
 
+  // QR-linked numbers have no 24-hour window and no templates.
+  const viaQr = conversation.channel?.provider === 'qr';
   const remaining = windowRemainingMs(conversation.last_customer_message_at, now);
-  const windowOpen = remaining > 0;
+  const windowOpen = viaQr || remaining > 0;
   const assignee = conversation.assignee_id ? memberMap.get(conversation.assignee_id) : undefined;
   const name = displayName(conversation.contact);
 
@@ -88,17 +90,24 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{name}</p>
           <p className="text-xs text-muted-foreground">
-            +{conversation.contact.wa_id} · {assignee ? `Ditangani ${memberName(assignee)}` : 'Belum di-assign'}
+            {formatWaId(conversation.contact.wa_id)} · {assignee ? `Ditangani ${memberName(assignee)}` : 'Belum di-assign'}
           </p>
         </div>
-        <Badge
-          variant="outline"
-          className={cn('gap-1', windowOpen ? 'border-success/40 text-success' : 'border-warning/50 text-warning')}
-          title="Jendela layanan 24 jam WhatsApp sejak pesan terakhir pelanggan"
-        >
-          <Clock className="h-3 w-3" />
-          {windowOpen ? `24 jam: sisa ${formatRemaining(remaining)}` : '24 jam: tertutup'}
-        </Badge>
+        {viaQr ? (
+          <Badge variant="outline" className="gap-1" title="Nomor ini terhubung lewat scan QR">
+            <QrCode className="h-3 w-3" />
+            {conversation.channel?.name ?? 'Nomor QR'}
+          </Badge>
+        ) : (
+          <Badge
+            variant="outline"
+            className={cn('gap-1', windowOpen ? 'border-success/40 text-success' : 'border-warning/50 text-warning')}
+            title="Jendela layanan 24 jam WhatsApp sejak pesan terakhir pelanggan"
+          >
+            <Clock className="h-3 w-3" />
+            {windowOpen ? `24 jam: sisa ${formatRemaining(remaining)}` : '24 jam: tertutup'}
+          </Badge>
+        )}
         {!conversation.assignee_id && (
           <Button size="sm" onClick={claim}>
             <Hand className="mr-1 h-4 w-4" />

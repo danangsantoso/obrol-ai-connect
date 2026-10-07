@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { displayName } from "@/lib/api";
+import { displayName, formatWaId } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { ImportContactsDialog } from "@/components/contacts/ImportContactsDialog";
 
@@ -99,7 +99,7 @@ export default function Contacts() {
                     onClick={() => conversationId && navigate(`/inbox/${conversationId}`)}
                   >
                     <TableCell className="font-medium">{displayName(c)}</TableCell>
-                    <TableCell>+{c.wa_id}</TableCell>
+                    <TableCell>{formatWaId(c.wa_id)}</TableCell>
                     <TableCell>{c.email ?? "–"}</TableCell>
                     <TableCell>{c.company ?? "–"}</TableCell>
                     <TableCell>{format(new Date(c.created_at), "d MMM yyyy", { locale: localeId })}</TableCell>

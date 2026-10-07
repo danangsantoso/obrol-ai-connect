@@ -141,11 +141,7 @@ command -v docker >/dev/null || die "Docker tidak terpasang"
 chmod 600 "$SUPABASE_DIR/.env"
 
 log "Konfigurasi Balas.id"
-cp "$APP_DIR/deploy/supabase/docker-compose.balas.yml" "$SUPABASE_DIR/docker-compose.balas.yml"
-compose_files="$(env_get COMPOSE_FILE)"
-compose_files="${compose_files:-docker-compose.yml}"
-[[ ":$compose_files:" == *":docker-compose.balas.yml:"* ]] || compose_files="$compose_files:docker-compose.balas.yml"
-env_set COMPOSE_FILE "$compose_files"
+install_balas_overlay "$APP_DIR"
 env_set SUPABASE_PUBLIC_URL "$API_URL"
 env_set API_EXTERNAL_URL "$API_URL/auth/v1"
 env_set SITE_URL "$APP_URL"
@@ -157,11 +153,6 @@ env_set ENABLE_EMAIL_AUTOCONFIRM true
 env_set STUDIO_DEFAULT_ORGANIZATION '"Balas.id"'
 env_set STUDIO_DEFAULT_PROJECT '"Balas.id"'
 [[ -n "$(env_get DISABLE_SIGNUP)" ]] || env_set DISABLE_SIGNUP false
-[[ -n "$(env_get WHATSAPP_VERIFY_TOKEN)" ]] || env_set WHATSAPP_VERIFY_TOKEN "balas-$(openssl rand -hex 16)"
-for key in WHATSAPP_APP_SECRET WHATSAPP_ACCESS_TOKEN; do
-  grep -qE "^$key=" "$SUPABASE_DIR/.env" || env_set "$key" ""
-done
-[[ -n "$(env_get WHATSAPP_GRAPH_VERSION)" ]] || env_set WHATSAPP_GRAPH_VERSION v23.0
 
 log "Menyalakan Supabase"
 compose up -d --wait --wait-timeout 600 || {
@@ -216,7 +207,10 @@ $(printf '\033[1;32m')Balas.id terpasang.$(printf '\033[0m')
        cd $SUPABASE_DIR && sudo docker compose up -d
   3. Tambahkan agen dari menu Tim & Agen (pakai password sementara).
 
-  Sambungkan WhatsApp (Meta App -> WhatsApp -> Configuration):
+  Sambungkan WhatsApp, pilih salah satu atau keduanya:
+  a) Scan QR (nomor WhatsApp biasa): Pengaturan -> Nomor WhatsApp -> Scan QR,
+     lalu scan dari HP (WhatsApp -> Perangkat tertaut). Tidak perlu akun Meta.
+  b) WhatsApp API resmi (Meta App -> WhatsApp -> Configuration):
      Callback URL : $API_URL/functions/v1/whatsapp-webhook
      Verify token : $(env_get WHATSAPP_VERIFY_TOKEN)
      Field        : messages
