@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -112,6 +113,8 @@ interface WidgetConfig {
   color?: string;
   ask_name?: boolean;
   allowed_origins?: string[];
+  position?: "right" | "left";
+  button_label?: string;
 }
 
 function embedCode(widgetKey: string) {
@@ -149,6 +152,8 @@ export function WebchatDialog({
       greeting: form.greeting?.trim() || "Halo! Ada yang bisa kami bantu?",
       color: /^#[0-9a-fA-F]{6}$/.test(form.color ?? "") ? form.color : "#2563eb",
       ask_name: form.ask_name !== false,
+      position: form.position === "left" ? "left" : "right",
+      button_label: (form.button_label ?? "Chat dengan kami").trim().slice(0, 40),
       allowed_origins: form.origins
         .split(/[\s,]+/)
         .map((o) => o.trim().replace(/\/$/, ""))
@@ -197,6 +202,30 @@ export function WebchatDialog({
             <div className="space-y-1">
               <Label htmlFor="wc-color">Warna</Label>
               <Input id="wc-color" type="color" className="h-10 w-16 p-1" value={form.color ?? "#2563eb"} onChange={(e) => setForm({ ...form, color: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <div className="space-y-1">
+              <Label htmlFor="wc-button">Teks tombol melayang</Label>
+              <Input
+                id="wc-button"
+                value={form.button_label ?? "Chat dengan kami"}
+                maxLength={40}
+                placeholder="Kosongkan untuk ikon saja"
+                onChange={(e) => setForm({ ...form, button_label: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Posisi tombol</Label>
+              <Select value={form.position ?? "right"} onValueChange={(v) => setForm({ ...form, position: v as "right" | "left" })}>
+                <SelectTrigger className="w-40" aria-label="Posisi tombol">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="right">Kanan bawah</SelectItem>
+                  <SelectItem value="left">Kiri bawah</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="space-y-1">

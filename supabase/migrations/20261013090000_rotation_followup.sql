@@ -53,6 +53,8 @@ as $$
   limit 1
 $$;
 
+revoke execute on function public.next_rotation_agent(uuid, uuid) from public, anon, authenticated;
+
 create or replace function public.rotate_conversation_before()
 returns trigger
 language plpgsql
