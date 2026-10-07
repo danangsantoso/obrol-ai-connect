@@ -14,7 +14,7 @@ const DEFAULT_PASSWORD = "12345678";
 // Shown instead of the app while the member still uses the default password
 // (new account or an admin reset). Nothing else opens until it is changed.
 export default function ChangePassword() {
-  const { profile, signOut, refreshProfile } = useAuth();
+  const { user, profile, signIn, signOut, refreshProfile } = useAuth();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -34,6 +34,10 @@ export default function ChangePassword() {
     setBusy(true);
     try {
       await callFunction("member-password", { action: "change", password });
+      // Changing the password ends every session on the server, including this
+      // one; sign in again so later calls carry a live session.
+      const { error } = await signIn(user?.email ?? profile?.email ?? "", password);
+      if (error) throw error;
       await refreshProfile();
       toast.success("Password berhasil diganti");
     } catch (err) {
