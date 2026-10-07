@@ -25,6 +25,7 @@ const DEFAULTS = {
   handoff_message: "Baik kak, saya sambungkan ke tim CS kami ya. Mohon ditunggu sebentar 🙏",
   reply_delay_seconds: 6,
   max_auto_replies: 10,
+  reclaim_on_resolve: true,
 };
 
 export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: boolean }) {
@@ -60,6 +61,7 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
       handoff_message: settings.handoff_message,
       reply_delay_seconds: settings.reply_delay_seconds,
       max_auto_replies: settings.max_auto_replies,
+      reclaim_on_resolve: settings.reclaim_on_resolve,
     });
   }, [settings, isFetched]);
 
@@ -333,6 +335,21 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
                 />
               </div>
             </div>
+            <label className="flex max-w-3xl items-start gap-3 rounded-lg border p-3 text-sm">
+              <Switch
+                checked={form.reclaim_on_resolve}
+                disabled={!isAdmin}
+                onCheckedChange={(v) => setForm({ ...form, reclaim_on_resolve: v })}
+                aria-label="Chat selesai kembali ke AI"
+              />
+              <span>
+                <span className="font-medium">Chat yang diselesaikan kembali ke AI</span>
+                <span className="block text-muted-foreground">
+                  Saat agen menandai chat Selesai, chat dilepas dari agen. Jika pelanggan menghubungi lagi, AI yang menjawab
+                  dulu. Matikan jika pelanggan lama harus selalu kembali ke agen yang sama.
+                </span>
+              </span>
+            </label>
             <div className="max-w-3xl space-y-1">
               <Label htmlFor="ai-instructions">Instruksi untuk AI</Label>
               <Textarea

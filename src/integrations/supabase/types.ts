@@ -118,6 +118,7 @@ export type Database = {
           model: string;
           organization_id: string;
           provider: Database["public"]["Enums"]["ai_provider"];
+          reclaim_on_resolve: boolean;
           reply_delay_seconds: number;
           updated_at: string;
         };
@@ -133,6 +134,7 @@ export type Database = {
           model?: string;
           organization_id: string;
           provider?: Database["public"]["Enums"]["ai_provider"];
+          reclaim_on_resolve?: boolean;
           reply_delay_seconds?: number;
           updated_at?: string;
         };
@@ -147,6 +149,7 @@ export type Database = {
           model?: string;
           organization_id?: string;
           provider?: Database["public"]["Enums"]["ai_provider"];
+          reclaim_on_resolve?: boolean;
           reply_delay_seconds?: number;
           updated_at?: string;
         };
@@ -1700,6 +1703,43 @@ export type Database = {
           p_reason: string;
         };
         Returns: undefined;
+      };
+      hand_to_ai: {
+        Args: { conv_id: string };
+        Returns: {
+          ai_active: boolean;
+          ai_busy_until: string | null;
+          ai_handoff_at: string | null;
+          ai_handoff_reason: string | null;
+          ai_last_reply_at: string | null;
+          ai_pending_at: string | null;
+          ai_pending_message_id: string | null;
+          ai_reply_count: number;
+          assignee_id: string | null;
+          channel_id: string;
+          contact_id: string;
+          created_at: string;
+          first_response_at: string | null;
+          id: string;
+          last_customer_message_at: string | null;
+          last_message_at: string | null;
+          last_message_preview: string | null;
+          opened_at: string;
+          organization_id: string;
+          resolved_at: string | null;
+          rotated_at: string | null;
+          rotation_deadline: string | null;
+          status: Database["public"]["Enums"]["conversation_status"];
+          team_id: string | null;
+          unread_count: number;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "conversations";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       ingest_channel_message: {
         Args: {
