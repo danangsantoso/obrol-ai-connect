@@ -43,14 +43,17 @@ serveJson(async (req) => {
       inBackground(autoReply(admin, input.conversation_id));
       return json({ accepted: true }, 202);
     }
-    // Chats still marked as waiting a while after their last message.
+    // Chats still marked as waiting a while after their last message, whose
+    // turn is due (the AI may be giving agents a few minutes first).
+    const now = new Date().toISOString();
     const { data, error } = await admin
       .from("conversations")
       .select("id")
       .not("ai_pending_message_id", "is", null)
       .lt("ai_pending_at", new Date(Date.now() - 20_000).toISOString())
+      .or(`ai_due_at.is.null,ai_due_at.lte.${now}`)
       .order("ai_pending_at")
-      .limit(10);
+      .limit(20);
     if (error) throw error;
     const deadline = Date.now() + 50_000;
     inBackground((async () => {

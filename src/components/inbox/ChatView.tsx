@@ -212,7 +212,7 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
             Chat dari rotasi otomatis. Balas sebelum pukul {replyDeadline}, setelah itu agen lain bisa mengambil alih.
           </p>
         )}
-        {aiOnNumber && conversation.ai_handoff_at && !conversation.assignee_id && (
+        {aiOnNumber && conversation.ai_handoff_at && !conversation.ai_engaged && !conversation.assignee_id && (
           <p className="basis-full rounded-md bg-warning/10 px-3 py-1.5 text-xs text-warning">
             AI menyerahkan chat ini ke agen{conversation.ai_handoff_reason ? `: ${conversation.ai_handoff_reason}` : '.'} Ambil chat
             untuk membalas.

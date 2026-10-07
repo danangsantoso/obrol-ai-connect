@@ -108,6 +108,7 @@ export type Database = {
       };
       ai_settings: {
         Row: {
+          agent_wait_minutes: number;
           api_key_hint: string | null;
           base_url: string | null;
           bot_name: string;
@@ -124,6 +125,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          agent_wait_minutes?: number;
           api_key_hint?: string | null;
           base_url?: string | null;
           bot_name?: string;
@@ -139,6 +141,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          agent_wait_minutes?: number;
           api_key_hint?: string | null;
           base_url?: string | null;
           bot_name?: string;
@@ -549,6 +552,8 @@ export type Database = {
         Row: {
           ai_active: boolean;
           ai_busy_until: string | null;
+          ai_due_at: string | null;
+          ai_engaged: boolean;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
           ai_last_reply_at: string | null;
@@ -578,6 +583,8 @@ export type Database = {
         Insert: {
           ai_active?: boolean;
           ai_busy_until?: string | null;
+          ai_due_at?: string | null;
+          ai_engaged?: boolean;
           ai_handoff_at?: string | null;
           ai_handoff_reason?: string | null;
           ai_last_reply_at?: string | null;
@@ -606,6 +613,8 @@ export type Database = {
         Update: {
           ai_active?: boolean;
           ai_busy_until?: string | null;
+          ai_due_at?: string | null;
+          ai_engaged?: boolean;
           ai_handoff_at?: string | null;
           ai_handoff_reason?: string | null;
           ai_last_reply_at?: string | null;
@@ -1582,6 +1591,8 @@ export type Database = {
         Returns: {
           ai_active: boolean;
           ai_busy_until: string | null;
+          ai_due_at: string | null;
+          ai_engaged: boolean;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
           ai_last_reply_at: string | null;
@@ -1632,6 +1643,8 @@ export type Database = {
         Returns: {
           ai_active: boolean;
           ai_busy_until: string | null;
+          ai_due_at: string | null;
+          ai_engaged: boolean;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
           ai_last_reply_at: string | null;
@@ -1709,6 +1722,8 @@ export type Database = {
         Returns: {
           ai_active: boolean;
           ai_busy_until: string | null;
+          ai_due_at: string | null;
+          ai_engaged: boolean;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
           ai_last_reply_at: string | null;
@@ -1930,6 +1945,8 @@ export type Database = {
         Returns: {
           ai_active: boolean;
           ai_busy_until: string | null;
+          ai_due_at: string | null;
+          ai_engaged: boolean;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
           ai_last_reply_at: string | null;
@@ -1970,6 +1987,8 @@ export type Database = {
         Returns: {
           ai_active: boolean;
           ai_busy_until: string | null;
+          ai_due_at: string | null;
+          ai_engaged: boolean;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
           ai_last_reply_at: string | null;

@@ -26,6 +26,7 @@ const DEFAULTS = {
   reply_delay_seconds: 6,
   max_auto_replies: 10,
   reclaim_on_resolve: true,
+  agent_wait_minutes: 3,
 };
 
 export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: boolean }) {
@@ -62,6 +63,7 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
       reply_delay_seconds: settings.reply_delay_seconds,
       max_auto_replies: settings.max_auto_replies,
       reclaim_on_resolve: settings.reclaim_on_resolve,
+      agent_wait_minutes: settings.agent_wait_minutes,
     });
   }, [settings, isFetched]);
 
@@ -304,6 +306,24 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
                 aria-label="Aktifkan balas otomatis"
               />
             </label>
+
+            <div className="max-w-3xl space-y-1 rounded-lg border p-3">
+              <Label htmlFor="ai-wait">Beri waktu agen dulu sebelum AI mengambil alih (menit)</Label>
+              <Input
+                id="ai-wait"
+                type="number"
+                min={0}
+                max={120}
+                className="w-32"
+                value={form.agent_wait_minutes}
+                disabled={!isAdmin}
+                onChange={(e) => setForm({ ...form, agent_wait_minutes: Math.max(0, Math.min(120, Number(e.target.value) || 0)) })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Chat masuk ditangani agen dulu (termasuk lewat rotasi). Jika belum ada agen yang membalas dalam waktu ini, AI
+                mengambil alih dan terus menjawab sampai ada agen yang mengambil chat. Isi 0 agar AI langsung menjawab.
+              </p>
+            </div>
 
             <div className="grid max-w-3xl gap-3 md:grid-cols-3">
               <div className="space-y-1">

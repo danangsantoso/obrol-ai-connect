@@ -359,16 +359,19 @@ async function runTurn(admin: SupabaseClient, conversationId: string) {
 export async function triggerAutoReply(admin: SupabaseClient, conversationId: string) {
   const { data } = await admin
     .from("conversations")
-    .select("assignee_id, ai_active, channels(ai_enabled), organization_id, organizations(is_active)")
+    .select("assignee_id, rotation_deadline, ai_active, channels(ai_enabled), organization_id, organizations(is_active)")
     .eq("id", conversationId)
     .single<{
       assignee_id: string | null;
+      rotation_deadline: string | null;
       ai_active: boolean;
       channels: { ai_enabled: boolean };
       organization_id: string;
       organizations: { is_active: boolean } | null;
     }>();
-  if (!data || data.assignee_id || !data.ai_active || !data.channels.ai_enabled) return;
+  // A rotated agent who has not answered yet does not stop the AI from taking over later.
+  const heldByAgent = data?.assignee_id && !data.rotation_deadline;
+  if (!data || heldByAgent || !data.ai_active || !data.channels.ai_enabled) return;
   if (data.organizations?.is_active === false) return;
   const { data: settings } = await admin.from("ai_settings").select("enabled").eq("organization_id", data.organization_id).maybeSingle();
   if (!settings?.enabled) return;
