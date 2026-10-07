@@ -1,0 +1,35 @@
+# Balas.id additions to the official self-hosted Supabase stack.
+# setup-vps.sh copies this next to docker-compose.yml and adds it to COMPOSE_FILE in .env.
+services:
+  # Docker publishes ports past the ufw firewall, so everything listens on
+  # localhost only; Caddy is the single public entry point (80/443).
+  api-gw:
+    ports: !override
+      - "127.0.0.1:${API_GW_HTTP_PORT:-8000}:8000/tcp"
+
+  # Balas.id does not use the connection pooler (functions go through the API,
+  # migrations through the db container), so it only starts on request:
+  # docker compose --profile pooler up -d
+  supavisor:
+    profiles: ["pooler"]
+    ports: !override
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
+      - "127.0.0.1:${POOLER_PROXY_PORT_TRANSACTION}:6543"
+
+  auth:
+    environment:
+      # Sign-in code email (the file ships with the web app build).
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: ${APP_URL}/email/magic-link.html
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Kode masuk Balas.id"
+
+  functions:
+    environment:
+      # WhatsApp Cloud API (Meta Business Manager -> WhatsApp -> API Setup / App settings)
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      WHATSAPP_GRAPH_VERSION: ${WHATSAPP_GRAPH_VERSION:-v23.0}
+      WHATSAPP_GRAPH_BASE_URL: ${WHATSAPP_GRAPH_BASE_URL:-https://graph.facebook.com}
+      # Public URL of the web app: CORS origin and invitation redirect
+      APP_ORIGIN: ${APP_URL}
+      APP_URL: ${APP_URL}

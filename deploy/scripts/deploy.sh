@@ -1,23 +1,21 @@
 #!/usr/bin/env bash
 # Deploys the current checkout to the VPS: database migrations, Edge Functions, web app.
-# Run on the VPS from the repo checkout (e.g. /opt/balas/app) after `git pull`.
+# Run on the VPS from the repo checkout (e.g. /opt/balas/app) after `git pull`:
+#   sudo ./deploy/scripts/deploy.sh
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-SUPABASE_DIR="${SUPABASE_DIR:-/opt/balas/supabase/docker}"
+# shellcheck source=lib.sh
+source "$APP_DIR/deploy/scripts/lib.sh"
 WEB_ROOT="${WEB_ROOT:-/var/www/balas}"
 FUNCTIONS=(_shared whatsapp-webhook send-message invite-member sync-templates purge-retention)
 
+[[ -f "$SUPABASE_DIR/.env" ]] || die "Supabase belum terpasang di $SUPABASE_DIR (jalankan setup-vps.sh dulu)"
 cd "$APP_DIR"
-set -a; source "$SUPABASE_DIR/.env"; set +a
 
-echo "== migrations"
+log "Migrasi database"
 # Applies supabase/migrations/<version>_<name>.sql files not yet recorded in
 # supabase_migrations.schema_migrations (the same table the Supabase CLI uses).
-psql_db() {
-  docker compose -f "$SUPABASE_DIR/docker-compose.yml" exec -T db \
-    psql -U postgres -d postgres -v ON_ERROR_STOP=1 "$@"
-}
 psql_db -q -c "create schema if not exists supabase_migrations;
   create table if not exists supabase_migrations.schema_migrations (version text primary key, statements text[], name text);"
 for file in supabase/migrations/*.sql; do
@@ -25,24 +23,26 @@ for file in supabase/migrations/*.sql; do
   version="${base%%_*}"
   if [[ -z "$(psql_db -tAc "select 1 from supabase_migrations.schema_migrations where version = '$version'")" ]]; then
     echo "applying $base"
-    psql_db --single-transaction -q < "$file"
+    psql_db --single-transaction -q <"$file"
     psql_db -q -c "insert into supabase_migrations.schema_migrations (version, name) values ('$version', '${base#*_}')"
   fi
 done
 
-echo "== edge functions"
+log "Edge Functions"
+FUNCTIONS_DIR="${SUPABASE_DIR:?}/volumes/functions"
 for fn in "${FUNCTIONS[@]}"; do
-  rm -rf "$SUPABASE_DIR/volumes/functions/$fn"
-  cp -r "supabase/functions/$fn" "$SUPABASE_DIR/volumes/functions/$fn"
+  rm -rf "${FUNCTIONS_DIR:?}/${fn:?}"
+  cp -r "supabase/functions/$fn" "$FUNCTIONS_DIR/$fn"
 done
-docker compose -f "$SUPABASE_DIR/docker-compose.yml" restart functions
+compose restart functions >/dev/null
 
-echo "== web app"
-npm ci --no-audit --no-fund
-VITE_SUPABASE_URL="$API_EXTERNAL_URL" VITE_SUPABASE_ANON_KEY="$ANON_KEY" npm run build
+log "Build web app"
+npm ci --no-audit --no-fund --loglevel=error
+VITE_SUPABASE_URL="$(env_get SUPABASE_PUBLIC_URL)" VITE_SUPABASE_ANON_KEY="$(env_get ANON_KEY)" npm run build
 mkdir -p "$WEB_ROOT"
-rm -rf "$WEB_ROOT/dist.new" && cp -r dist "$WEB_ROOT/dist.new"
-rm -rf "$WEB_ROOT/dist.old" && { [[ -d "$WEB_ROOT/dist" ]] && mv "$WEB_ROOT/dist" "$WEB_ROOT/dist.old" || true; }
+rm -rf "${WEB_ROOT:?}/dist.new" "${WEB_ROOT:?}/dist.old"
+cp -r dist "$WEB_ROOT/dist.new"
+if [[ -d "$WEB_ROOT/dist" ]]; then mv "$WEB_ROOT/dist" "$WEB_ROOT/dist.old"; fi
 mv "$WEB_ROOT/dist.new" "$WEB_ROOT/dist"
 
-echo "Deployed $(git rev-parse --short HEAD)"
+log "Selesai deploy $(git rev-parse --short HEAD)"
