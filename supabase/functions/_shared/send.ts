@@ -3,10 +3,10 @@
 // Cloud API numbers go through Meta; QR-linked numbers through the Evolution gateway.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { HttpError } from "./http.ts";
-import { sendMessage, uploadMedia } from "./whatsapp.ts";
+import { sendMessage, typingIndicator, uploadMedia } from "./whatsapp.ts";
 import * as evolution from "./evolution.ts";
 import { decryptSecret } from "./crypto.ts";
-import { sendSocial, type SocialAttachment, userIdFromKey } from "./meta.ts";
+import { sendSocial, type SocialAttachment, typingOn, userIdFromKey } from "./meta.ts";
 import * as telegram from "./telegram.ts";
 
 export type MediaType = "image" | "video" | "audio" | "document";
@@ -334,4 +334,81 @@ function renderTemplate(components: unknown, params: string[]): string | null {
     | undefined;
   if (!bodyPart?.text) return null;
   return bodyPart.text.replace(/\{\{(\d+)\}\}/g, (match, n) => params[Number(n) - 1] ?? match);
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// How long a person would take to type `text`: 1.5 to 8 seconds.
+export function typingMs(text: string): number {
+  return Math.round(Math.min(8000, Math.max(1500, 1200 + text.length * 30)));
+}
+
+// Shows "sedang mengetik..." to the customer for `ms`, then returns. Best effort:
+// a channel that refuses the indicator still gets the reply afterwards.
+export async function showTyping(admin: SupabaseClient, conversationId: string, ms: number): Promise<void> {
+  const until = new Date(Date.now() + ms).toISOString();
+  const { data: conv } = await admin
+    .from("conversations")
+    .update({ typing_until: until })
+    .eq("id", conversationId)
+    .select("id, contacts(wa_id), channels(id, provider, phone_number_id, instance_name)")
+    .single<{
+      id: string;
+      contacts: { wa_id: string };
+      channels: { id: string; provider: string; phone_number_id: string | null; instance_name: string | null };
+    }>();
+  if (!conv) return;
+  const started = Date.now();
+  const token = async () => {
+    const { data } = await admin.from("channel_secrets").select("access_token_encrypted").eq("channel_id", conv.channels.id).maybeSingle();
+    return data?.access_token_encrypted ? await decryptSecret(data.access_token_encrypted) : null;
+  };
+  try {
+    switch (conv.channels.provider) {
+      case "qr":
+        // The gateway keeps "composing" on for the delay (and may hold the request that long).
+        await evolution.sendPresence(conv.channels.instance_name ?? "", conv.contacts.wa_id, ms);
+        break;
+      case "cloud_api": {
+        const { data: last } = await admin
+          .from("messages")
+          .select("wa_message_id")
+          .eq("conversation_id", conv.id)
+          .eq("direction", "inbound")
+          .not("wa_message_id", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (last?.wa_message_id) await typingIndicator(conv.channels.phone_number_id ?? "", last.wa_message_id);
+        break;
+      }
+      case "messenger":
+      case "instagram": {
+        const pageToken = await token();
+        if (pageToken) await typingOn(pageToken, userIdFromKey(conv.contacts.wa_id));
+        break;
+      }
+      case "telegram": {
+        const botToken = await token();
+        const chatId = conv.contacts.wa_id.replace(/^tg:/, "");
+        if (botToken) {
+          // Telegram shows it for ~5 s: repeat until the reply goes out.
+          for (let t = 0; t < ms; t += 4500) {
+            await telegram.sendTyping(botToken, chatId);
+            if (ms - t > 4500) await sleep(4500);
+          }
+        }
+        break;
+      }
+      // webchat: the widget reads typing_until when it polls.
+    }
+  } catch (err) {
+    console.error("typing indicator failed", conv.channels.provider, err instanceof Error ? err.message : err);
+  }
+  const left = ms - (Date.now() - started);
+  if (left > 0) await sleep(left);
+}
+
+export async function clearTyping(admin: SupabaseClient, conversationId: string): Promise<void> {
+  await admin.from("conversations").update({ typing_until: null }).eq("id", conversationId).not("typing_until", "is", null);
 }

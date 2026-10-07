@@ -27,6 +27,7 @@ const DEFAULTS = {
   max_auto_replies: 10,
   reclaim_on_resolve: true,
   agent_wait_minutes: 3,
+  simulate_typing: true,
 };
 
 export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: boolean }) {
@@ -64,6 +65,7 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
       max_auto_replies: settings.max_auto_replies,
       reclaim_on_resolve: settings.reclaim_on_resolve,
       agent_wait_minutes: settings.agent_wait_minutes,
+      simulate_typing: settings.simulate_typing,
     });
   }, [settings, isFetched]);
 
@@ -355,6 +357,21 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
                 />
               </div>
             </div>
+            <label className="flex max-w-3xl items-start gap-3 rounded-lg border p-3 text-sm">
+              <Switch
+                checked={form.simulate_typing}
+                disabled={!isAdmin}
+                onCheckedChange={(v) => setForm({ ...form, simulate_typing: v })}
+                aria-label="Tampilkan sedang mengetik"
+              />
+              <span>
+                <span className="font-medium">Tampilkan "sedang mengetik…" sebelum AI membalas</span>
+                <span className="block text-muted-foreground">
+                  Pelanggan melihat status mengetik selama ±1,5–8 detik (sesuai panjang jawaban) di WhatsApp, Messenger,
+                  Instagram, dan Telegram. Di live chat website, jawaban muncul huruf demi huruf.
+                </span>
+              </span>
+            </label>
             <label className="flex max-w-3xl items-start gap-3 rounded-lg border p-3 text-sm">
               <Switch
                 checked={form.reclaim_on_resolve}

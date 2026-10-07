@@ -243,3 +243,12 @@ export function isValidToken(given: string | null): boolean {
   for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ given.charCodeAt(i);
   return diff === 0;
 }
+
+// "Sedang mengetik..." on the customer's phone for `delayMs`.
+export function sendPresence(instance: string, waId: string, delayMs: number) {
+  return evolution<unknown>("POST", `/chat/sendPresence/${name(instance)}`, {
+    number: recipient(waId),
+    presence: "composing",
+    delay: delayMs,
+  });
+}

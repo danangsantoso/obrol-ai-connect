@@ -97,3 +97,8 @@ export async function sendFile(
 // Contacts from Telegram are stored as tg:<chat id>; message ids as tg:<chat id>:<message id>.
 export const telegramKey = (chatId: number | string) => `tg:${chatId}`;
 export const telegramMessageId = (chatId: number | string, messageId: number) => `tg:${chatId}:${messageId}`;
+
+// "typing..." in Telegram; it lasts about 5 seconds, so repeat it for longer waits.
+export function sendTyping(token: string, chatId: string) {
+  return call<boolean>(token, "sendChatAction", { chat_id: chatId, action: "typing" });
+}

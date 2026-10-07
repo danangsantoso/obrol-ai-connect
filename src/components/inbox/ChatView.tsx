@@ -64,6 +64,7 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
   const aiOnNumber = aiReady && Boolean(conversation.channel?.ai_enabled);
   const name = displayName(conversation.contact);
   const takeable = isTakeable(conversation, me.id);
+  const typing = useTypingNow(conversation.typing_until);
   const replyDeadline =
     conversation.assignee_id === me.id && conversation.rotation_deadline && new Date(conversation.rotation_deadline).getTime() > Date.now()
       ? new Date(conversation.rotation_deadline).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
@@ -202,6 +203,11 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
             ))}
           </SelectContent>
         </Select>
+        {typing && (
+          <p className="basis-full animate-pulse text-xs font-medium text-primary" role="status">
+            {aiOnNumber && conversation.ai_engaged ? `${ai?.bot_name ?? 'AI'} sedang mengetik…` : 'Sedang mengetik…'}
+          </p>
+        )}
         {takeable && (
           <p className="basis-full rounded-md bg-warning/10 px-3 py-1.5 text-xs text-warning">
             Chat rotasi ini belum dibalas {memberName(assignee)}. Agen lain boleh mengambil alih.
@@ -259,4 +265,16 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
       />
     </div>
   );
+}
+
+// True while `until` is in the future; re-renders when it passes.
+function useTypingNow(until: string | null) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const ms = until ? new Date(until).getTime() - Date.now() : 0;
+    if (ms <= 0) return;
+    const timer = setTimeout(() => tick((t) => t + 1), ms + 50);
+    return () => clearTimeout(timer);
+  }, [until]);
+  return !!until && new Date(until).getTime() > Date.now();
 }

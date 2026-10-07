@@ -121,6 +121,7 @@ export type Database = {
           provider: Database["public"]["Enums"]["ai_provider"];
           reclaim_on_resolve: boolean;
           reply_delay_seconds: number;
+          simulate_typing: boolean;
           updated_at: string;
         };
         ComputedFields: never;
@@ -138,6 +139,7 @@ export type Database = {
           provider?: Database["public"]["Enums"]["ai_provider"];
           reclaim_on_resolve?: boolean;
           reply_delay_seconds?: number;
+          simulate_typing?: boolean;
           updated_at?: string;
         };
         Update: {
@@ -154,6 +156,7 @@ export type Database = {
           provider?: Database["public"]["Enums"]["ai_provider"];
           reclaim_on_resolve?: boolean;
           reply_delay_seconds?: number;
+          simulate_typing?: boolean;
           updated_at?: string;
         };
         Relationships: [
@@ -576,6 +579,7 @@ export type Database = {
           rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
+          typing_until: string | null;
           unread_count: number;
           updated_at: string;
         };
@@ -607,6 +611,7 @@ export type Database = {
           rotation_deadline?: string | null;
           status?: Database["public"]["Enums"]["conversation_status"];
           team_id?: string | null;
+          typing_until?: string | null;
           unread_count?: number;
           updated_at?: string;
         };
@@ -637,6 +642,7 @@ export type Database = {
           rotation_deadline?: string | null;
           status?: Database["public"]["Enums"]["conversation_status"];
           team_id?: string | null;
+          typing_until?: string | null;
           unread_count?: number;
           updated_at?: string;
         };
@@ -1615,6 +1621,7 @@ export type Database = {
           rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
+          typing_until: string | null;
           unread_count: number;
           updated_at: string;
         };
@@ -1667,6 +1674,7 @@ export type Database = {
           rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
+          typing_until: string | null;
           unread_count: number;
           updated_at: string;
         };
@@ -1746,6 +1754,7 @@ export type Database = {
           rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
+          typing_until: string | null;
           unread_count: number;
           updated_at: string;
         };
@@ -1969,6 +1978,7 @@ export type Database = {
           rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
+          typing_until: string | null;
           unread_count: number;
           updated_at: string;
         };
@@ -2011,6 +2021,7 @@ export type Database = {
           rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
+          typing_until: string | null;
           unread_count: number;
           updated_at: string;
         };

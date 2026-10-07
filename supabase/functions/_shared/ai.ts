@@ -5,7 +5,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { HttpError } from "./http.ts";
 import { decryptSecret } from "./crypto.ts";
 import { type ChatMessage, complete, type LlmConfig, LlmError, type Provider } from "./llm.ts";
-import { sendToConversation } from "./send.ts";
+import { clearTyping, sendToConversation, showTyping, typingMs } from "./send.ts";
 
 export interface AiSettings {
   organization_id: string;
@@ -18,6 +18,7 @@ export interface AiSettings {
   handoff_message: string;
   reply_delay_seconds: number;
   max_auto_replies: number;
+  simulate_typing: boolean;
 }
 
 export interface Source {
@@ -328,20 +329,31 @@ async function runTurn(admin: SupabaseClient, conversationId: string) {
       }
     }
 
-    // An agent may have taken the chat while the model was thinking.
+    // On a hand-over the customer still gets an answer: a polite hand-over, plus the AI's partial reply if it had one.
+    const text = (
+      outcome === "replied" && result
+        ? result.reply
+        : [result?.reply, ai.settings.handoff_message].filter((t) => t && t.trim()).join("\n\n")
+    ).slice(0, 2000);
+
+    // "Sedang mengetik..." for as long as a person would take to type the answer.
+    if (text && ai.settings.simulate_typing !== false) await showTyping(admin, conversationId, typingMs(text));
+
+    // An agent may have taken the chat while the model was thinking or typing.
     const { data: fresh } = await admin.from("conversations").select("assignee_id, ai_active").eq("id", conversationId).single();
     if (fresh?.assignee_id || fresh?.ai_active === false) {
+      await clearTyping(admin, conversationId);
       await admin.rpc("finish_ai_turn", { p_conversation_id: conversationId, p_outcome: "skipped", p_reason: "" });
       return;
     }
 
     const meta = { ai: true, bot_name: ai.settings.bot_name };
-    if (outcome === "replied" && result) {
-      await sendToConversation(admin, conversationId, { type: "text", text: result.reply.slice(0, 2000) }, null, meta);
-    } else {
-      // The customer still gets an answer: a polite hand-over, plus the AI's partial reply if it had one.
-      const text = [result?.reply, ai.settings.handoff_message].filter((t) => t && t.trim()).join("\n\n");
-      if (text) await sendToConversation(admin, conversationId, { type: "text", text: text.slice(0, 2000) }, null, { ...meta, handoff: true });
+    try {
+      if (text) {
+        await sendToConversation(admin, conversationId, { type: "text", text }, null, outcome === "replied" ? meta : { ...meta, handoff: true });
+      }
+    } finally {
+      await clearTyping(admin, conversationId);
     }
     await logRun(admin, { organization_id: orgId, conversation_id: conversationId, kind: "auto", llm: ai.llm, status: outcome, answer: result ?? undefined });
     await admin.rpc("finish_ai_turn", { p_conversation_id: conversationId, p_outcome: outcome, p_reason: reason });
