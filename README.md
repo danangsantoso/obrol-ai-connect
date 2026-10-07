@@ -11,6 +11,7 @@ Satu nomor WhatsApp untuk seluruh tim CS. Pesan pelanggan masuk ke inbox bersama
 - **Rotasi chat otomatis** (bisa dinyalakan/dimatikan admin): chat baru dibagi bergiliran ke agen. Jika agen belum membalas dalam 3 menit (bisa diatur), chat muncul di antrean agen lain dan bisa diambil alih; setelah diambil, hanya agen pemegangnya yang melihat chat itu.
 - **Pengingat follow-up**: supervisor dan admin mendapat notifikasi untuk chat terbuka yang tidak ada aktivitas selama 7 hari (bisa diatur).
 - **Dashboard berwarna**: grafik aktivitas chat 14 hari, status chat, chat per kanal, dan beban kerja per agen.
+- **Integrasi**: REST API, webhook bertanda tangan, dan server MCP untuk asisten AI. Lihat [docs/API.md](docs/API.md).
 - **Catatan internal**, profil kontak, lampiran media, dan status terkirim/dibaca.
 - **Hak akses**: Admin, Supervisor, dan Agen per tim/divisi, ditegakkan dengan Row Level Security di database.
 - **Self-hosted** di VPS sendiri (lihat [deploy/README.md](deploy/README.md)).
@@ -30,6 +31,9 @@ supabase/functions/
   send-message/                 kirim teks/media/template atas nama agen
   invite-member/                admin menambah anggota tim (password bawaan 12345678)
   member-password/              ganti password wajib saat login pertama, reset oleh admin
+  api/                          REST API dengan API key
+  mcp/                          server MCP (Model Context Protocol)
+  webhook-dispatch/             mengirim event webhook (dibangunkan pg_net dan cron)
   sync-templates/               tarik template pesan dari Meta
   wa-qr/                        hubungkan nomor scan QR: QR/kode tautan, status, putuskan
   wa-qr-webhook/                terima pesan, status, dan koneksi dari gateway QR

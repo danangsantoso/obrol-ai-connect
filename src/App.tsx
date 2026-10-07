@@ -19,6 +19,7 @@ const Team = lazy(() => import("./pages/Team"));
 const Settings = lazy(() => import("./pages/Settings"));
 const AiAgent = lazy(() => import("./pages/AiAgent"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Integrations = lazy(() => import("./pages/Integrations"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 
 const queryClient = new QueryClient();
@@ -83,6 +84,14 @@ const App = () => (
                   element={
                     <ProtectedRoute roles={["admin", "supervisor"]}>
                       <Team />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="integrations"
+                  element={
+                    <ProtectedRoute roles={["admin"]}>
+                      <Integrations />
                     </ProtectedRoute>
                   }
                 />

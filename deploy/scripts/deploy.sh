@@ -8,7 +8,7 @@ APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$APP_DIR/deploy/scripts/lib.sh"
 WEB_ROOT="${WEB_ROOT:-/var/www/balas}"
-FUNCTIONS=(_shared whatsapp-webhook send-message invite-member sync-templates purge-retention wa-qr wa-qr-webhook ai-reply ai-admin social-oauth meta-webhook telegram-connect telegram-webhook webchat member-password)
+FUNCTIONS=(_shared whatsapp-webhook send-message invite-member sync-templates purge-retention wa-qr wa-qr-webhook ai-reply ai-admin social-oauth meta-webhook telegram-connect telegram-webhook webchat member-password api mcp webhook-dispatch)
 
 [[ -f "$SUPABASE_DIR/.env" ]] || die "Supabase belum terpasang di $SUPABASE_DIR (jalankan setup-vps.sh dulu)"
 cd "$APP_DIR"
@@ -43,6 +43,13 @@ for fn in "${FUNCTIONS[@]}"; do
   cp -r "supabase/functions/$fn" "$FUNCTIONS_DIR/$fn"
 done
 compose restart functions >/dev/null
+
+# Where the database reaches the functions (webhook delivery wake-up).
+gw="$(compose exec -T functions printenv SUPABASE_URL 2>/dev/null | tr -d '\r' || true)"
+if [[ -n "$gw" ]]; then
+  psql_db -q -c "insert into public.app_config (key, value) values ('functions_url', '${gw%/}/functions/v1')
+    on conflict (key) do update set value = excluded.value"
+fi
 
 log "Build web app"
 npm ci --no-audit --no-fund --loglevel=error
