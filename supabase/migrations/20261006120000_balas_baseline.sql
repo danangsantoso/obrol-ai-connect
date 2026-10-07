@@ -894,6 +894,14 @@ create policy "read assignment history of accessible conversations" on public.as
 -- ---------------------------------------------------------------------------
 -- Realtime: the inbox listens to these tables (RLS still applies)
 -- ---------------------------------------------------------------------------
+do $$
+begin
+  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    create publication supabase_realtime;
+  end if;
+end;
+$$;
+
 alter publication supabase_realtime add table public.conversations, public.messages, public.notes, public.assignment_logs;
 
 -- ---------------------------------------------------------------------------

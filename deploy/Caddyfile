@@ -1,10 +1,10 @@
 # Balas.id on a single VPS. Caddy gets and renews Let's Encrypt certificates
 # automatically; Meta only delivers webhooks to valid HTTPS endpoints.
 #
-# Replace the domains, then: sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+# setup-vps.sh fills in __APP_HOST__ / __API_HOST__ and installs this as /etc/caddy/Caddyfile.
 
 # Web app (static Vite build)
-app.balas.id {
+__APP_HOST__ {
 	root * /var/www/balas/dist
 	encode zstd gzip
 	try_files {path} /index.html
@@ -19,9 +19,17 @@ app.balas.id {
 	header @assets Cache-Control "public, max-age=31536000, immutable"
 }
 
-# Supabase API gateway (Kong) from the self-hosted docker stack.
-# Includes /functions/v1/whatsapp-webhook used by Meta.
-api.balas.id {
+# Supabase API gateway from the self-hosted docker stack, including
+# /functions/v1/whatsapp-webhook used by Meta. Only the API paths are public:
+# the Studio dashboard stays reachable through an SSH tunnel only.
+__API_HOST__ {
 	encode zstd gzip
-	reverse_proxy 127.0.0.1:8000
+
+	@api path /auth/v1/* /rest/v1/* /realtime/v1/* /storage/v1/* /functions/v1/* /graphql/v1/*
+	handle @api {
+		reverse_proxy 127.0.0.1:8000
+	}
+	handle {
+		respond "Not found" 404
+	}
 }

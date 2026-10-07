@@ -3,128 +3,100 @@
 Satu VPS menjalankan semuanya: Supabase self-hosted (Postgres, Auth, Realtime, Storage, Edge Functions) di Docker, web app statis, dan Caddy untuk HTTPS.
 
 ```
-Pelanggan ⇄ WhatsApp ⇄ Meta Cloud API ──webhook──▶ https://api.balas.id/functions/v1/whatsapp-webhook
+Pelanggan ⇄ WhatsApp ⇄ Meta Cloud API ──webhook──▶ https://api.domainanda.com/functions/v1/whatsapp-webhook
                                                      │
-Agen (browser) ──▶ https://app.balas.id (Caddy, file statis)
-               └─▶ https://api.balas.id (Caddy → Kong :8000 → Supabase)
+Agen (browser) ──▶ https://app.domainanda.com (Caddy, file statis)
+               └─▶ https://api.domainanda.com (Caddy → gateway 127.0.0.1:8000 → Supabase)
 ```
 
-## 1. Siapkan server
+## 1. Sebelum mulai
 
-- VPS: 4 vCPU, 8 GB RAM, 100 GB SSD, Ubuntu 24.04 LTS, data center Jakarta.
-- DNS: arahkan `app.balas.id` dan `api.balas.id` (A record) ke IP VPS.
-- Firewall: buka hanya 22, 80, 443.
+- VPS: minimal 4 vCPU, 8 GB RAM, 100 GB SSD, **Ubuntu 22.04/24.04**, akses root (atau sudo).
+- DNS: buat dua **A record** ke IP VPS: `app.domainanda.com` dan `api.domainanda.com`.
+  Di Cloudflare, matikan proxy (awan abu-abu) agar Caddy bisa membuat sertifikat HTTPS.
+
+## 2. Instalasi otomatis (satu perintah)
 
 ```bash
-sudo apt update && sudo apt install -y git curl ca-certificates
-curl -fsSL https://get.docker.com | sudo sh
-sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
-sudo apt update && sudo apt install -y caddy
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
+sudo mkdir -p /opt/balas && cd /opt/balas
+sudo git clone https://github.com/danangsantoso/obrol-ai-connect.git app
+sudo bash app/deploy/scripts/setup-vps.sh --domain domainanda.com
 ```
 
-## 2. Pasang Supabase self-hosted
+Repo private: saat `git clone` meminta *Username*, isi user GitHub; untuk *Password* isi **Personal Access Token**
+(GitHub → Settings → Developer settings → Fine-grained tokens, akses *Contents: Read* ke repo ini).
 
-```bash
-sudo mkdir -p /opt/balas && sudo chown $USER /opt/balas && cd /opt/balas
-git clone --depth 1 https://github.com/supabase/supabase supabase
-git clone <url-repo-ini> app
-cd supabase/docker
-cp .env.example .env
-cp /opt/balas/app/deploy/supabase/docker-compose.override.yml .
-```
+`setup-vps.sh` mengerjakan semuanya (± 10–15 menit) dan aman dijalankan ulang:
 
-Edit `/opt/balas/supabase/docker/.env`:
+1. Mengecek DNS `app.` dan `api.` sudah mengarah ke VPS.
+2. Memasang Docker, Node.js 22, Caddy; firewall hanya membuka SSH, 80, 443.
+3. Memasang Supabase self-hosted dengan installer resmi; semua kunci rahasia dibuat acak di `/opt/balas/supabase/.env`.
+4. Mengunci port Supabase (API, database) ke `127.0.0.1`; dashboard Studio tidak bisa diakses dari internet.
+5. Menjalankan migrasi database, memasang Edge Functions, build web app.
+6. HTTPS otomatis dengan Caddy, backup harian (02:15) dan penghapusan pesan lama (03:30) lewat cron.
 
-| Variabel | Isi |
-| --- | --- |
-| `POSTGRES_PASSWORD`, `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY`, `DASHBOARD_PASSWORD`, `SECRET_KEY_BASE`, `VAULT_ENC_KEY` | Ganti semua dengan nilai acak. `ANON_KEY` dan `SERVICE_ROLE_KEY` dibuat dari `JWT_SECRET` (lihat panduan self-hosting Supabase). |
-| `API_EXTERNAL_URL`, `SUPABASE_PUBLIC_URL` | `https://api.balas.id` |
-| `SITE_URL` | `https://app.balas.id` |
-| `ADDITIONAL_REDIRECT_URLS` | `https://app.balas.id` |
-| `DISABLE_SIGNUP` | `false` sampai admin pertama mendaftar, lalu `true` (agen ditambahkan admin dari menu Tim & Agen) |
-| `SMTP_ADMIN_EMAIL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SENDER_NAME` | Dibutuhkan untuk masuk dengan kode email (OTP) dan undangan via email. Bisa pakai Gmail SMTP, Brevo, Mailgun, dll. Tanpa SMTP, agen tetap bisa masuk dengan password. |
-| `ENABLE_EMAIL_AUTOCONFIRM` | `true` (akun dibuat oleh admin, tidak perlu konfirmasi email) |
-| `FUNCTIONS_VERIFY_JWT` | `false` (setiap fungsi Balas.id memeriksa login sendiri) |
+Di akhir, skrip menampilkan URL aplikasi, URL webhook dan *verify token* untuk Meta.
 
-Tambahkan di file yang sama:
+## 3. Setelah instalasi
 
-```bash
-APP_URL=https://app.balas.id
-WHATSAPP_VERIFY_TOKEN=<string acak buatan Anda>
-WHATSAPP_APP_SECRET=<Meta App → Settings → Basic → App secret>
-WHATSAPP_ACCESS_TOKEN=<token permanen System User dengan izin whatsapp_business_messaging & whatsapp_business_management>
-WHATSAPP_GRAPH_VERSION=v23.0
-```
+1. Buka `https://app.domainanda.com`, daftar sebagai admin pertama, buat organisasi.
+2. Tutup pendaftaran umum:
+   ```bash
+   sudo sed -i 's/^DISABLE_SIGNUP=.*/DISABLE_SIGNUP=true/' /opt/balas/supabase/.env
+   cd /opt/balas/supabase && sudo docker compose up -d
+   ```
+3. Tambahkan agen dari menu **Tim & Agen** (password sementara).
 
-Jalankan:
+### Email (opsional: masuk dengan kode OTP, undangan via email)
 
-```bash
-docker compose pull && docker compose up -d
-```
+Isi `SMTP_ADMIN_EMAIL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SENDER_NAME` di
+`/opt/balas/supabase/.env` (Gmail SMTP, Brevo, Mailgun, dll.), lalu `cd /opt/balas/supabase && sudo docker compose up -d`.
+Tanpa SMTP, agen tetap bisa masuk dengan password.
 
-Jangan buka port Postgres/pooler (5432, 6543) di firewall; akses database lewat SSH.
+## 4. Hubungkan WhatsApp
 
-## 3. Deploy aplikasi
-
-```bash
-cd /opt/balas/app
-chmod +x deploy/scripts/*.sh
-sudo mkdir -p /var/www/balas && sudo chown $USER /var/www/balas
-SUPABASE_DIR=/opt/balas/supabase/docker ./deploy/scripts/deploy.sh
-```
-
-Skrip ini menjalankan migrasi database yang belum pernah diterapkan (`supabase/migrations`, lewat `psql` di container `db`), menyalin Edge Functions ke `volumes/functions`, me-restart container functions, lalu build web app ke `/var/www/balas/dist`.
-
-Untuk update berikutnya: `git pull && ./deploy/scripts/deploy.sh`.
-
-## 4. HTTPS dengan Caddy
-
-```bash
-sudo cp deploy/Caddyfile /etc/caddy/Caddyfile   # ganti domain di dalamnya
-sudo systemctl reload caddy
-```
-
-Caddy mengambil sertifikat Let's Encrypt otomatis.
-
-## 5. Hubungkan WhatsApp
-
-1. Buka `https://app.balas.id`, daftar sebagai admin pertama, buat organisasi.
-2. **Pengaturan → Nomor WhatsApp**: isi Phone number ID dan WhatsApp Business Account ID (Meta Business Manager → WhatsApp → API Setup).
+1. **Pengaturan → Nomor WhatsApp**: isi Phone number ID dan WhatsApp Business Account ID (Meta Business Manager → WhatsApp → API Setup).
+2. Isi di `/opt/balas/supabase/.env`:
+   ```bash
+   WHATSAPP_APP_SECRET=<Meta App → Settings → Basic → App secret>
+   WHATSAPP_ACCESS_TOKEN=<token permanen System User: whatsapp_business_messaging + whatsapp_business_management>
+   ```
+   lalu `cd /opt/balas/supabase && sudo docker compose up -d functions`.
 3. Meta App → WhatsApp → Configuration → Webhook:
-   - Callback URL: `https://api.balas.id/functions/v1/whatsapp-webhook` (juga tampil di halaman Pengaturan)
-   - Verify token: nilai `WHATSAPP_VERIFY_TOKEN`
+   - Callback URL: `https://api.domainanda.com/functions/v1/whatsapp-webhook` (juga tampil di halaman Pengaturan)
+   - Verify token: nilai `WHATSAPP_VERIFY_TOKEN` di `.env` (ditampilkan di akhir instalasi)
    - Subscribe field: `messages`
 4. Klik **Sinkron** pada nomor untuk menarik template pesan yang sudah disetujui.
-5. Set `DISABLE_SIGNUP=true`, `docker compose up -d`, lalu tambahkan agen dari **Tim & Agen**.
+
+## 5. Update aplikasi
+
+```bash
+cd /opt/balas/app && sudo git pull && sudo ./deploy/scripts/deploy.sh
+```
+
+`deploy.sh` menjalankan migrasi database yang belum diterapkan, memasang ulang Edge Functions, dan build web app.
 
 ## 6. Backup & pemeliharaan
 
-```bash
-sudo crontab -e
-# Backup harian 02:15 (database + file media), simpan 30 hari
-15 2 * * * SUPABASE_DIR=/opt/balas/supabase/docker /opt/balas/app/deploy/scripts/backup.sh >> /var/log/balas-backup.log 2>&1
-# Hapus pesan + file media yang melewati masa retensi organisasi (default 180 hari)
-30 3 * * * . /opt/balas/supabase/docker/.env && curl -s -X POST -H "Authorization: Bearer $SERVICE_ROLE_KEY" -H "apikey: $SERVICE_ROLE_KEY" https://api.balas.id/functions/v1/purge-retention >> /var/log/balas-retention.log 2>&1
-```
-
-Isi `BACKUP_REMOTE` (remote [rclone](https://rclone.org)) agar backup juga tersalin ke luar VPS, dan uji restore sebulan sekali:
-
-```bash
-gunzip -c db-<tanggal>.dump.gz | docker compose exec -T db pg_restore -U postgres -d postgres --clean --if-exists
-```
-
-Pantau server dengan [Uptime Kuma](https://github.com/louislam/uptime-kuma) (cek `https://app.balas.id` dan `https://api.balas.id/functions/v1/whatsapp-webhook` → 403 berarti hidup).
+- Backup harian ada di `/var/backups/balas` (database + file media, disimpan 30 hari). Log: `/var/log/balas-backup.log`.
+- Salin backup ke luar VPS: pasang [rclone](https://rclone.org), lalu tambahkan `BACKUP_REMOTE=<remote:folder>` di baris
+  backup pada `/etc/cron.d/balas`.
+- Uji restore sebulan sekali:
+  ```bash
+  cd /opt/balas/supabase && sudo docker compose exec -T db pg_restore -U supabase_admin -d postgres --clean --if-exists < /var/backups/balas/db-<tanggal>.dump
+  ```
+- Dashboard Supabase Studio (lihat isi database): `ssh -L 8000:127.0.0.1:8000 root@<IP VPS>`, buka `http://localhost:8000`
+  (user/password: `DASHBOARD_USERNAME` / `DASHBOARD_PASSWORD` di `.env`).
+- Pantau dengan [Uptime Kuma](https://github.com/louislam/uptime-kuma): `https://app.domainanda.com` dan
+  `https://api.domainanda.com/functions/v1/whatsapp-webhook` (403 berarti hidup).
 
 ## 7. Uji beban (opsional)
 
 Setelah nomor uji terhubung, kirim 200 pesan tiruan ke webhook untuk memastikan server kuat:
 
 ```bash
-node scripts/loadtest-webhook.mjs --url https://api.balas.id/functions/v1/whatsapp-webhook \
-  --secret "$WHATSAPP_APP_SECRET" --phone-number-id <phone_number_id nomor uji> \
+node scripts/loadtest-webhook.mjs --url https://api.domainanda.com/functions/v1/whatsapp-webhook \
+  --secret "<WHATSAPP_APP_SECRET>" --phone-number-id <phone_number_id nomor uji> \
   --messages 200 --contacts 50 --concurrency 10
 ```
 
