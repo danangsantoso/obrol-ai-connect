@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { LogoMark } from '@/components/brand/Logo';
+import { Logo } from '@/components/brand/Logo';
 import { OtpLogin } from '@/components/auth/OtpLogin';
 import { GoogleButton } from '@/components/auth/GoogleButton';
 
@@ -97,9 +97,8 @@ export default function Auth() {
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center space-y-2">
-          <LogoMark className="mx-auto h-16 w-16" />
-          <h1 className="text-3xl font-bold text-primary">Balas.id</h1>
-          <p className="text-muted-foreground">Satu nomor WhatsApp untuk seluruh tim CS</p>
+          <Logo className="mx-auto h-16" />
+          <p className="text-muted-foreground">Satu inbox untuk semua chat pelanggan Anda</p>
         </div>
 
         <Card className="w-full shadow-lg border-border/50">

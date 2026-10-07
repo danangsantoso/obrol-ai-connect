@@ -28,12 +28,19 @@ const DEFAULTS = {
   reclaim_on_resolve: true,
   agent_wait_minutes: 3,
   simulate_typing: true,
+  handoff_rules: "",
 };
+
+// One phrase per line (commas also split), lower-cased, without duplicates.
+function parsePhrases(text: string): string[] {
+  return [...new Set(text.split(/[\n,]+/).map((p) => p.trim().toLowerCase()).filter(Boolean))].slice(0, 50);
+}
 
 export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: boolean }) {
   const queryClient = useQueryClient();
   const { data: settings, isLoading, isFetched } = useAiSettings(orgId);
   const [form, setForm] = useState(DEFAULTS);
+  const [phrases, setPhrases] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -66,7 +73,9 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
       reclaim_on_resolve: settings.reclaim_on_resolve,
       agent_wait_minutes: settings.agent_wait_minutes,
       simulate_typing: settings.simulate_typing,
+      handoff_rules: settings.handoff_rules,
     });
+    setPhrases(settings.handoff_keywords.join("\n"));
   }, [settings, isFetched]);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["ai-settings", orgId] });
@@ -90,6 +99,8 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
         model: form.model.trim(),
         base_url: form.base_url.trim() || null,
         bot_name: form.bot_name.trim() || "Asisten",
+        handoff_keywords: parsePhrases(phrases),
+        handoff_rules: form.handoff_rules.trim(),
       },
       { onConflict: "organization_id" },
     );
@@ -402,16 +413,54 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
                 Gaya bahasa, aturan toko, dan hal yang tidak boleh dijawab. Info produk diisi di tab Produk & Pengetahuan.
               </p>
             </div>
-            <div className="max-w-3xl space-y-1">
-              <Label htmlFor="ai-handoff">Pesan saat diserahkan ke agen</Label>
-              <Textarea
-                id="ai-handoff"
-                rows={2}
-                maxLength={500}
-                disabled={!isAdmin}
-                value={form.handoff_message}
-                onChange={(e) => setForm({ ...form, handoff_message: e.target.value })}
-              />
+            <div className="max-w-3xl space-y-4 rounded-lg border p-4">
+              <div>
+                <p className="font-medium">Serahkan ke tim</p>
+                <p className="text-sm text-muted-foreground">
+                  Kapan AI berhenti dan menyerahkan chat ke agen, dan apa yang dikatakan AI ke pelanggan saat itu.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ai-handoff">Pesan ke pelanggan saat diserahkan ke tim</Label>
+                <Textarea
+                  id="ai-handoff"
+                  rows={2}
+                  maxLength={500}
+                  disabled={!isAdmin}
+                  value={form.handoff_message}
+                  onChange={(e) => setForm({ ...form, handoff_message: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ai-phrases">Kalimat pemicu (satu per baris)</Label>
+                <Textarea
+                  id="ai-phrases"
+                  rows={4}
+                  disabled={!isAdmin}
+                  placeholder={"bicara dengan admin\nmau ke cs\nkomplain\nrefund"}
+                  value={phrases}
+                  onChange={(e) => setPhrases(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Jika pesan pelanggan mengandung salah satu kalimat ini, chat langsung diserahkan ke tim tanpa dijawab AI.
+                  Huruf besar/kecil tidak berpengaruh.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ai-rules">Aturan tambahan kapan AI menyerahkan ke tim</Label>
+                <Textarea
+                  id="ai-rules"
+                  rows={3}
+                  maxLength={2000}
+                  disabled={!isAdmin}
+                  placeholder={"Pesanan di atas 50 kg atau untuk reseller\nPelanggan menanyakan pengiriman ke luar negeri"}
+                  value={form.handoff_rules}
+                  onChange={(e) => setForm({ ...form, handoff_rules: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Selain aturan bawaan (info tidak ada, komplain, pembayaran, refund, pelanggan minta bicara dengan orang).
+                </p>
+              </div>
             </div>
 
             <div className="max-w-3xl space-y-2">

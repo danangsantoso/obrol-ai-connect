@@ -113,7 +113,9 @@ export type Database = {
           base_url: string | null;
           bot_name: string;
           enabled: boolean;
+          handoff_keywords: string[];
           handoff_message: string;
+          handoff_rules: string;
           instructions: string;
           max_auto_replies: number;
           model: string;
@@ -131,7 +133,9 @@ export type Database = {
           base_url?: string | null;
           bot_name?: string;
           enabled?: boolean;
+          handoff_keywords?: string[];
           handoff_message?: string;
+          handoff_rules?: string;
           instructions?: string;
           max_auto_replies?: number;
           model?: string;
@@ -148,7 +152,9 @@ export type Database = {
           base_url?: string | null;
           bot_name?: string;
           enabled?: boolean;
+          handoff_keywords?: string[];
           handoff_message?: string;
+          handoff_rules?: string;
           instructions?: string;
           max_auto_replies?: number;
           model?: string;
