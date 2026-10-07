@@ -466,3 +466,6 @@ verify_jwt = false
 [auth.email.template.magic_link]
 subject = "Kode masuk Balas.id"
 content_path = "./public/email/magic-link.html"
+
+[functions.member-password]
+verify_jwt = true

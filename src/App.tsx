@@ -19,6 +19,7 @@ const Team = lazy(() => import("./pages/Team"));
 const Settings = lazy(() => import("./pages/Settings"));
 const AiAgent = lazy(() => import("./pages/AiAgent"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 
 const queryClient = new QueryClient();
 
@@ -30,13 +31,15 @@ function FullPageSpinner() {
   );
 }
 
-// Signed in + member of an organization (otherwise: login or onboarding).
+// Signed in + member of an organization (otherwise: login or onboarding),
+// and no longer on the default password (otherwise: change it first).
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: AppRole[] }) {
   const { user, profile, loading } = useAuth();
 
   if (loading) return <FullPageSpinner />;
   if (!user) return <Navigate to="/auth" replace />;
   if (!profile?.organization_id) return <Navigate to="/onboarding" replace />;
+  if (profile.must_change_password) return <ChangePassword />;
   if (roles && !roles.includes(profile.role)) return <Navigate to="/" replace />;
 
   return <>{children}</>;

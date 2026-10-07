@@ -1013,6 +1013,7 @@ export type Database = {
           id: string;
           is_active: boolean;
           max_open_chats: number;
+          must_change_password: boolean;
           organization_id: string | null;
           role: Database["public"]["Enums"]["app_role"];
           status: Database["public"]["Enums"]["agent_status"];
@@ -1027,6 +1028,7 @@ export type Database = {
           id: string;
           is_active?: boolean;
           max_open_chats?: number;
+          must_change_password?: boolean;
           organization_id?: string | null;
           role?: Database["public"]["Enums"]["app_role"];
           status?: Database["public"]["Enums"]["agent_status"];
@@ -1040,6 +1042,7 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           max_open_chats?: number;
+          must_change_password?: boolean;
           organization_id?: string | null;
           role?: Database["public"]["Enums"]["app_role"];
           status?: Database["public"]["Enums"]["agent_status"];
