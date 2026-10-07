@@ -451,6 +451,17 @@ verify_jwt = false
 [functions.meta-webhook]
 verify_jwt = false
 
+[functions.telegram-connect]
+verify_jwt = true
+
+# Telegram authenticates with the X-Telegram-Bot-Api-Secret-Token header.
+[functions.telegram-webhook]
+verify_jwt = false
+
+# Website visitors have no Supabase session; they use their widget secret.
+[functions.webchat]
+verify_jwt = false
+
 # Passwordless sign-in email: carries the 6-digit code (served from public/ in production too).
 [auth.email.template.magic_link]
 subject = "Kode masuk Balas.id"

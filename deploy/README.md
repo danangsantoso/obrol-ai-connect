@@ -56,7 +56,7 @@ Isi `SMTP_ADMIN_EMAIL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMT
 `/opt/balas/supabase/.env` (Gmail SMTP, Brevo, Mailgun, dll.), lalu `cd /opt/balas/supabase && sudo docker compose up -d`.
 Tanpa SMTP, agen tetap bisa masuk dengan password.
 
-## 4. Hubungkan kanal chat (WhatsApp, Messenger, Instagram)
+## 4. Hubungkan kanal chat (WhatsApp, Messenger, Instagram, Telegram, live chat)
 
 Ada dua cara, dan keduanya bisa dipakai bersamaan (misalnya nomor utama lewat API resmi, nomor cadangan lewat QR):
 
@@ -125,6 +125,29 @@ Catatan:
 - Aturan balasan Meta: bebas dalam 24 jam sejak pesan terakhir pelanggan; sampai 7 hari dikirim dengan tag *Human Agent*
   (perlu izin Human Agent di App Review); lewat 7 hari tidak bisa dibalas.
 - Threads belum punya API pesan langsung. X/Twitter butuh paket API berbayar, jadi belum didukung.
+
+### 4d. Telegram
+
+1. Di Telegram, chat **@BotFather** → `/newbot` → beri nama dan username bot (harus berakhiran `bot`).
+2. Salin token yang diberikan, lalu di Balas.id: **Pengaturan → Kanal chat → Telegram → Hubungkan bot**.
+3. Pelanggan cukup membuka `t.me/<username_bot>` dan menekan **Start**. Pesan masuk ke Inbox.
+
+Webhook Telegram diatur otomatis; Telegram hanya mengirim ke alamat HTTPS, jadi pastikan instalasi HTTPS sudah jalan.
+Bot hanya bisa membalas orang yang pernah memulai chat dengannya.
+
+### 4e. Live chat di website
+
+1. **Pengaturan → Kanal chat → Live chat website → Buat widget**.
+2. Atur judul, sapaan, dan warna; salin **kode pasang**, lalu tempel sebelum `</body>` di website Anda (WordPress:
+   plugin *Insert Headers and Footers*; Shopify: `theme.liquid`). Contoh:
+   ```html
+   <script src="https://app.domainanda.com/widget.js" data-key="KODE_WIDGET"
+           data-api="https://api.domainanda.com" async></script>
+   ```
+3. Opsional: isi daftar website yang diizinkan, supaya widget tidak bisa dipasang di situs lain.
+
+Pengunjung bisa langsung chat (opsional isi nama dan No. WhatsApp/email). Riwayatnya tersimpan di browser mereka, jadi
+chat tetap ada setelah halaman dimuat ulang. AI Agent juga bisa menjawab chat website.
 
 ## 5. AI Agent (balas otomatis)
 

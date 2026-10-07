@@ -52,7 +52,8 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
   // QR-linked numbers have no 24-hour window and no templates. Messenger and
   // Instagram allow 24 hours, then 7 days with the HUMAN_AGENT tag.
   const provider = conversation.channel?.provider ?? 'cloud_api';
-  const viaQr = provider === 'qr';
+  // Telegram bots and the website widget have no reply window either.
+  const viaQr = provider === 'qr' || provider === 'telegram' || provider === 'webchat';
   const social = provider === 'messenger' || provider === 'instagram';
   const remaining = windowRemainingMs(conversation.last_customer_message_at, now);
   const socialRemaining = socialWindowRemainingMs(conversation.last_customer_message_at, now);
@@ -110,8 +111,8 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
           </p>
         </div>
         {viaQr ? (
-          <Badge variant="outline" className="gap-1" title="Nomor ini terhubung lewat scan QR">
-            <QrCode className="h-3 w-3" />
+          <Badge variant="outline" className="gap-1" title="Kanal tanpa batas waktu balasan">
+            {provider === 'qr' ? <QrCode className="h-3 w-3" /> : <ChannelIcon provider={provider} className="h-3 w-3" />}
             {conversation.channel?.name ?? 'Nomor QR'}
           </Badge>
         ) : social ? (

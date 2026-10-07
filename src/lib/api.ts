@@ -37,6 +37,8 @@ export const STATUS_LABELS = {
 export function formatWaId(waId: string, username?: string | null) {
   if (waId.startsWith('fb:')) return 'Facebook Messenger';
   if (waId.startsWith('ig:')) return username ? `Instagram @${username}` : 'Instagram';
+  if (waId.startsWith('tg:')) return username ? `Telegram @${username}` : 'Telegram';
+  if (waId.startsWith('web:')) return 'Live chat website';
   return waId.includes('@') ? 'Nomor disembunyikan' : `+${waId}`;
 }
 
