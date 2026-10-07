@@ -144,5 +144,6 @@ function describeLog(log: AssignmentLog, members: Map<string, Member>) {
   if (log.note === 'claimed') return `${actor} mengambil percakapan ini`;
   if (!log.to_assignee_id) return `${actor} mengembalikan percakapan ke antrean`;
   const target = memberName(members.get(log.to_assignee_id));
+  if (!log.actor_id) return `Sistem memberikan ke ${target}`;
   return log.actor_id === log.to_assignee_id ? `${actor} mengambil percakapan ini` : `${actor} memindahkan ke ${target}`;
 }

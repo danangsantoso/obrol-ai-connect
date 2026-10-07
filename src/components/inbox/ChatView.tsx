@@ -17,7 +17,7 @@ import { LabelPicker } from './LabelPicker';
 import { useTimeline } from './useInboxData';
 import { useAiSettings } from '@/components/ai/aiSettings';
 import type { ConversationRow, Label, Member, Team } from './types';
-import { memberName } from './types';
+import { isTakeable, memberName } from './types';
 
 function useNow(intervalMs: number) {
   const [now, setNow] = useState(Date.now());
@@ -63,6 +63,11 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
   const aiReady = Boolean(ai?.enabled && ai.api_key_hint);
   const aiOnNumber = aiReady && Boolean(conversation.channel?.ai_enabled);
   const name = displayName(conversation.contact);
+  const takeable = isTakeable(conversation, me.id);
+  const replyDeadline =
+    conversation.assignee_id === me.id && conversation.rotation_deadline && new Date(conversation.rotation_deadline).getTime() > Date.now()
+      ? new Date(conversation.rotation_deadline).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      : null;
 
   useEffect(() => {
     if (conversation.unread_count > 0) {
@@ -157,10 +162,10 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
             {conversation.ai_active ? 'AI aktif' : 'AI mati'}
           </Button>
         )}
-        {!conversation.assignee_id && (
+        {(!conversation.assignee_id || takeable) && (
           <Button size="sm" onClick={claim}>
             <Hand className="mr-1 h-4 w-4" />
-            Ambil chat
+            {takeable ? 'Ambil alih' : 'Ambil chat'}
           </Button>
         )}
         <Button size="sm" variant="outline" onClick={() => setTransferOpen(true)}>
@@ -179,6 +184,16 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
             ))}
           </SelectContent>
         </Select>
+        {takeable && (
+          <p className="basis-full rounded-md bg-warning/10 px-3 py-1.5 text-xs text-warning">
+            Chat rotasi ini belum dibalas {memberName(assignee)}. Agen lain boleh mengambil alih.
+          </p>
+        )}
+        {replyDeadline && (
+          <p className="basis-full rounded-md bg-primary/10 px-3 py-1.5 text-xs text-primary">
+            Chat dari rotasi otomatis. Balas sebelum pukul {replyDeadline}, setelah itu agen lain bisa mengambil alih.
+          </p>
+        )}
         {aiOnNumber && conversation.ai_handoff_at && !conversation.assignee_id && (
           <p className="basis-full rounded-md bg-warning/10 px-3 py-1.5 text-xs text-warning">
             AI menyerahkan chat ini ke agen{conversation.ai_handoff_reason ? `: ${conversation.ai_handoff_reason}` : '.'} Ambil chat

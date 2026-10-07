@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ROLE_LABELS, callFunction, errorMessage } from "@/lib/api";
 import { useMembers, useTeams } from "@/components/inbox/useInboxData";
 import { memberName } from "@/components/inbox/types";
+import { RotationSettings } from "@/components/team/RotationSettings";
 import { toast } from "sonner";
 
 const DEFAULT_PASSWORD = "12345678";
@@ -235,6 +236,8 @@ export default function Team() {
           </Button>
         )}
       </div>
+
+      <RotationSettings orgId={orgId} canEdit={isAdmin} />
 
       <Card>
         <CardHeader>

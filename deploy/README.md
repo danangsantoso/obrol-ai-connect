@@ -156,6 +156,12 @@ Bot hanya bisa membalas orang yang pernah memulai chat dengannya.
 Pengunjung bisa langsung chat (opsional isi nama dan No. WhatsApp/email). Riwayatnya tersimpan di browser mereka, jadi
 chat tetap ada setelah halaman dimuat ulang. AI Agent juga bisa menjawab chat website.
 
+### 4f. API, Webhook & MCP
+
+Menu **Integrasi** (admin): buat API key untuk REST API dan MCP, dan daftarkan URL webhook. Tidak perlu pengaturan
+server tambahan: `deploy.sh` memasang fungsi `api`, `mcp`, dan `webhook-dispatch`, dan cron per menit mengulang
+webhook yang gagal. Referensi lengkap: [docs/API.md](../docs/API.md).
+
 ## 5. AI Agent (balas otomatis)
 
 1. Buat API key di penyedia pilihan Anda; biaya pemakaian ditagih penyedia langsung ke akun Anda:

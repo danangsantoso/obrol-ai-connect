@@ -13,7 +13,15 @@ interface Channel {
   id: string;
   organization_id: string;
   name: string;
-  config: { title?: string; greeting?: string; color?: string; allowed_origins?: string[]; ask_name?: boolean };
+  config: {
+    title?: string;
+    greeting?: string;
+    color?: string;
+    allowed_origins?: string[];
+    ask_name?: boolean;
+    position?: "right" | "left";
+    button_label?: string;
+  };
 }
 
 interface Visitor {
@@ -77,6 +85,8 @@ Deno.serve(async (req) => {
           greeting: channel.config.greeting || "Halo! Ada yang bisa kami bantu?",
           color: channel.config.color || "#2563eb",
           ask_name: channel.config.ask_name !== false,
+          position: channel.config.position === "left" ? "left" : "right",
+          button_label: channel.config.button_label ?? "Chat dengan kami",
         });
       case "start":
         return reply(await start(admin, channel, input, req));

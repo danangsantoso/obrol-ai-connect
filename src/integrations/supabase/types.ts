@@ -160,6 +160,74 @@ export type Database = {
           },
         ];
       };
+      api_keys: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          key_hash: string;
+          key_prefix: string;
+          last_used_at: string | null;
+          name: string;
+          organization_id: string;
+          revoked_at: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          key_hash: string;
+          key_prefix: string;
+          last_used_at?: string | null;
+          name: string;
+          organization_id: string;
+          revoked_at?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          key_hash?: string;
+          key_prefix?: string;
+          last_used_at?: string | null;
+          name?: string;
+          organization_id?: string;
+          revoked_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "api_keys_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      app_config: {
+        Row: {
+          key: string;
+          value: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          key: string;
+          value: string;
+        };
+        Update: {
+          key?: string;
+          value?: string;
+        };
+        Relationships: [];
+      };
       assignment_logs: {
         Row: {
           actor_id: string | null;
@@ -496,6 +564,8 @@ export type Database = {
           opened_at: string;
           organization_id: string;
           resolved_at: string | null;
+          rotated_at: string | null;
+          rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           unread_count: number;
@@ -523,6 +593,8 @@ export type Database = {
           opened_at?: string;
           organization_id: string;
           resolved_at?: string | null;
+          rotated_at?: string | null;
+          rotation_deadline?: string | null;
           status?: Database["public"]["Enums"]["conversation_status"];
           team_id?: string | null;
           unread_count?: number;
@@ -549,6 +621,8 @@ export type Database = {
           opened_at?: string;
           organization_id?: string;
           resolved_at?: string | null;
+          rotated_at?: string | null;
+          rotation_deadline?: string | null;
           status?: Database["public"]["Enums"]["conversation_status"];
           team_id?: string | null;
           unread_count?: number;
@@ -927,27 +1001,36 @@ export type Database = {
       };
       organizations: {
         Row: {
+          auto_rotate: boolean;
           created_at: string;
+          followup_alert_days: number;
           id: string;
           name: string;
           retention_days: number;
+          rotate_timeout_minutes: number;
           timezone: string;
           updated_at: string;
         };
         ComputedFields: never;
         Insert: {
+          auto_rotate?: boolean;
           created_at?: string;
+          followup_alert_days?: number;
           id?: string;
           name: string;
           retention_days?: number;
+          rotate_timeout_minutes?: number;
           timezone?: string;
           updated_at?: string;
         };
         Update: {
+          auto_rotate?: boolean;
           created_at?: string;
+          followup_alert_days?: number;
           id?: string;
           name?: string;
           retention_days?: number;
+          rotate_timeout_minutes?: number;
           timezone?: string;
           updated_at?: string;
         };
@@ -1012,6 +1095,7 @@ export type Database = {
           full_name: string | null;
           id: string;
           is_active: boolean;
+          last_rotated_at: string | null;
           max_open_chats: number;
           must_change_password: boolean;
           organization_id: string | null;
@@ -1027,6 +1111,7 @@ export type Database = {
           full_name?: string | null;
           id: string;
           is_active?: boolean;
+          last_rotated_at?: string | null;
           max_open_chats?: number;
           must_change_password?: boolean;
           organization_id?: string | null;
@@ -1041,6 +1126,7 @@ export type Database = {
           full_name?: string | null;
           id?: string;
           is_active?: boolean;
+          last_rotated_at?: string | null;
           max_open_chats?: number;
           must_change_password?: boolean;
           organization_id?: string | null;
@@ -1272,6 +1358,118 @@ export type Database = {
           },
         ];
       };
+      webhook_deliveries: {
+        Row: {
+          attempts: number;
+          created_at: string;
+          delivered_at: string | null;
+          error: string | null;
+          event: string;
+          id: string;
+          next_attempt_at: string;
+          organization_id: string;
+          payload: NonNullable<Json>;
+          response_status: number | null;
+          status: string;
+          webhook_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          attempts?: number;
+          created_at?: string;
+          delivered_at?: string | null;
+          error?: string | null;
+          event: string;
+          id?: string;
+          next_attempt_at?: string;
+          organization_id: string;
+          payload: NonNullable<Json>;
+          response_status?: number | null;
+          status?: string;
+          webhook_id: string;
+        };
+        Update: {
+          attempts?: number;
+          created_at?: string;
+          delivered_at?: string | null;
+          error?: string | null;
+          event?: string;
+          id?: string;
+          next_attempt_at?: string;
+          organization_id?: string;
+          payload?: NonNullable<Json>;
+          response_status?: number | null;
+          status?: string;
+          webhook_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "webhook_deliveries_webhook_id_fkey";
+            columns: ["webhook_id"];
+            isOneToOne: false;
+            referencedRelation: "webhooks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      webhooks: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          events: string[];
+          id: string;
+          is_active: boolean;
+          last_delivery_at: string | null;
+          last_error: string | null;
+          last_status: number | null;
+          organization_id: string;
+          secret: string;
+          url: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          events?: string[];
+          id?: string;
+          is_active?: boolean;
+          last_delivery_at?: string | null;
+          last_error?: string | null;
+          last_status?: number | null;
+          organization_id: string;
+          secret?: string;
+          url: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          events?: string[];
+          id?: string;
+          is_active?: boolean;
+          last_delivery_at?: string | null;
+          last_error?: string | null;
+          last_status?: number | null;
+          organization_id?: string;
+          secret?: string;
+          url?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "webhooks_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -1313,6 +1511,8 @@ export type Database = {
           opened_at: string;
           organization_id: string;
           resolved_at: string | null;
+          rotated_at: string | null;
+          rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           unread_count: number;
@@ -1361,6 +1561,8 @@ export type Database = {
           opened_at: string;
           organization_id: string;
           resolved_at: string | null;
+          rotated_at: string | null;
+          rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           unread_count: number;
@@ -1373,6 +1575,19 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      claim_webhook_deliveries: {
+        Args: { p_limit?: number };
+        Returns: {
+          attempts: number;
+          event: string;
+          id: string;
+          payload: Json;
+          secret: string;
+          url: string;
+          webhook_id: string;
+        }[];
+      };
+      create_api_key: { Args: { key_name: string }; Returns: string };
       create_organization: { Args: { org_name: string }; Returns: string };
       current_org_id: { Args: Record<PropertyKey, never>; Returns: string };
       current_role_name: {
@@ -1380,6 +1595,18 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"];
       };
       current_team_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
+      dashboard_daily_messages: {
+        Args: { p_days?: number };
+        Returns: {
+          day: string;
+          inbound: number;
+          outbound: number;
+        }[];
+      };
+      enqueue_webhook_event: {
+        Args: { p_data: Json; p_event: string; p_org: string };
+        Returns: number;
+      };
       finish_ai_turn: {
         Args: {
           p_conversation_id: string;
@@ -1432,9 +1659,17 @@ export type Database = {
         Args: { conv_id: string; from_label: string; to_label: string };
         Returns: undefined;
       };
+      next_rotation_agent: {
+        Args: { p_org: string; p_team: string };
+        Returns: string;
+      };
       purge_expired_messages: {
         Args: Record<PropertyKey, never>;
         Returns: string[];
+      };
+      purge_webhook_deliveries: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
       };
       record_outbound_message: {
         Args: {
@@ -1474,6 +1709,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      revoke_api_key: { Args: { key_id: string }; Returns: undefined };
       search_knowledge: {
         Args: { p_limit?: number; p_org: string; p_query: string };
         Returns: {
@@ -1516,6 +1752,8 @@ export type Database = {
           opened_at: string;
           organization_id: string;
           resolved_at: string | null;
+          rotated_at: string | null;
+          rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           unread_count: number;
@@ -1554,6 +1792,8 @@ export type Database = {
           opened_at: string;
           organization_id: string;
           resolved_at: string | null;
+          rotated_at: string | null;
+          rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           unread_count: number;
@@ -1566,6 +1806,12 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      test_webhook: { Args: { webhook: string }; Returns: undefined };
+      wake_webhook_dispatch: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
+      webhook_conversation_json: { Args: { p_conv: string }; Returns: Json };
     };
     Enums: {
       agent_status: "online" | "away" | "offline";

@@ -8,12 +8,12 @@ import { ChatView } from '@/components/inbox/ChatView';
 import { ContactPanel } from '@/components/inbox/ContactPanel';
 import { ConversationList } from '@/components/inbox/ConversationList';
 import { useConversations, useLabels, useMembers, useMessageSearch, useTeams } from '@/components/inbox/useInboxData';
-import { ALL, type ConversationRow, type InboxTab } from '@/components/inbox/types';
+import { ALL, isTakeable, type ConversationRow, type InboxTab } from '@/components/inbox/types';
 
 function inTab(conv: ConversationRow, tab: InboxTab, meId: string) {
   switch (tab) {
     case 'unassigned':
-      return !conv.assignee_id && conv.status !== 'resolved';
+      return (!conv.assignee_id && conv.status !== 'resolved') || isTakeable(conv, meId);
     case 'mine':
       return conv.assignee_id === meId && conv.status !== 'resolved';
     case 'all':
@@ -101,6 +101,7 @@ export default function Inbox() {
         agentFilter={canFilterAgents ? agentFilter : null}
         onAgentFilterChange={canFilterAgents ? setAgentFilter : null}
         loading={isLoading}
+        meId={meId}
       />
       {selected ? (
         <>

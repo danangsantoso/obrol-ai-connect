@@ -93,12 +93,28 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
     refresh();
   };
 
+  // Provider, model and base URL are stored together with the key, so a key is
+  // never used with another provider's settings.
+  const saveModel = async () => {
+    if (form.provider === "custom" && !form.base_url.trim()) throw new Error("Base URL wajib untuk LLM lain");
+    if (!form.model.trim()) throw new Error("Isi nama model");
+    const { error } = await supabase.from("ai_settings").upsert(
+      { organization_id: orgId, provider: form.provider, model: form.model.trim(), base_url: form.base_url.trim() || null },
+      { onConflict: "organization_id" },
+    );
+    if (error) throw error;
+  };
+  const saved = { provider: settings?.provider ?? DEFAULTS.provider, model: settings?.model ?? DEFAULTS.model, base_url: settings?.base_url ?? "" };
+  const modelUnsaved =
+    isFetched && (saved.provider !== form.provider || saved.model !== form.model.trim() || saved.base_url !== form.base_url.trim());
+
   const saveKey = async () => {
     setBusy("key");
     try {
+      await saveModel();
       await callFunction("ai-admin", { action: "set_key", api_key: apiKey.trim() });
       setApiKey("");
-      toast.success("API key disimpan (terenkripsi)");
+      toast.success(`API key ${provider.label} disimpan (terenkripsi)`);
       refresh();
     } catch (err) {
       toast.error(errorMessage(err));
@@ -124,6 +140,8 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
   const check = async () => {
     setBusy("check");
     try {
+      await saveModel();
+      refresh();
       const r = await callFunction<{ model: string; latency_ms: number }>("ai-admin", { action: "check" });
       toast.success(`Terhubung ke ${r.model} (${(r.latency_ms / 1000).toFixed(1)} dtk)`);
     } catch (err) {
@@ -204,6 +222,12 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
               />
             </div>
           </div>
+
+          {isAdmin && modelUnsaved && (
+            <p className="max-w-3xl rounded-md bg-warning/10 px-3 py-2 text-sm text-warning">
+              Penyedia/model belum disimpan (tersimpan: {PROVIDERS[saved.provider as Provider]?.label ?? saved.provider} · {saved.model}). Klik <b>Simpan key</b>, <b>Cek koneksi</b>, atau <b>Simpan pengaturan</b>.
+            </p>
+          )}
 
           <div className="max-w-3xl space-y-1">
             <Label htmlFor="ai-key">API key</Label>

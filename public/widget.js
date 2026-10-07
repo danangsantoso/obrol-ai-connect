@@ -66,9 +66,13 @@
   var css =
     ":host{all:initial}" +
     "*{box-sizing:border-box;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}" +
-    ".btn{position:fixed;right:20px;bottom:20px;width:56px;height:56px;border-radius:50%;border:0;cursor:pointer;" +
-    "color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:2147483646}" +
-    ".btn svg{width:28px;height:28px}" +
+    ".btn{position:fixed;right:20px;bottom:20px;height:56px;min-width:56px;padding:0 18px;border-radius:28px;border:0;cursor:pointer;" +
+    "color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;gap:8px;z-index:2147483646;" +
+    "font-size:15px;font-weight:600;transition:transform .15s ease,box-shadow .15s ease}" +
+    ".btn:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.3)}" +
+    ".btn svg{width:26px;height:26px;flex-shrink:0}" +
+    ".btn .lbl:empty{display:none}.btn.open .lbl{display:none}.btn.open{padding:0;width:56px}" +
+    ".left .btn,.left.btn{right:auto;left:20px}.left.panel{right:auto;left:20px}" +
     ".badge{position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;border-radius:10px;background:#ef4444;color:#fff;" +
     "font-size:12px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px}" +
     ".panel{position:fixed;right:20px;bottom:88px;width:360px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100vh - 110px);" +
@@ -93,11 +97,12 @@
     ".form input{border:1px solid #d1d5db;border-radius:10px;padding:10px;font-size:14px;outline:none}" +
     ".err{color:#b91c1c;font-size:12px;padding:0 12px 8px}" +
     ".brand{text-align:center;font-size:11px;color:#9ca3af;padding:4px 0 8px;background:#fff}" +
-    "@media (max-width:480px){.panel{right:0;bottom:0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}}";
+    "@media (max-width:480px){.panel,.left.panel{right:0;left:0;bottom:0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}" +
+    ".btn{right:16px;bottom:16px}.left.btn{left:16px}}";
 
   root.innerHTML =
     "<style>" + css + "</style>" +
-    '<button class="btn" aria-label="Buka chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="badge"></span></button>' +
+    '<button class="btn" aria-label="Buka chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl"></span><span class="badge"></span></button>' +
     '<div class="panel" role="dialog" aria-label="Live chat">' +
     '<div class="head"><div><b class="title">Chat</b><small>Biasanya membalas dalam beberapa menit</small></div><button class="x" aria-label="Tutup">×</button></div>' +
     '<div class="body"></div>' +
@@ -228,6 +233,7 @@
   function toggle(open) {
     state.open = open;
     panel.classList.toggle("open", open);
+    btn.classList.toggle("open", open);
     btn.setAttribute("aria-label", open ? "Tutup chat" : "Buka chat");
     if (open) {
       setUnread(0);
@@ -268,6 +274,11 @@
       var saved = load();
       state.visitor = saved && saved.visitor;
       $(".title").textContent = config.title;
+      $(".btn .lbl").textContent = config.button_label || "";
+      if (config.position === "left") {
+        btn.classList.add("left");
+        panel.classList.add("left");
+      }
       [btn, $(".head"), $(".form .send"), sendBtn].forEach(function (el) {
         el.style.background = config.color;
       });

@@ -2,7 +2,9 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { startOfDay } from "date-fns";
-import { CheckCircle2, Clock, Inbox as InboxIcon, MessageSquare } from "lucide-react";
+import { CalendarClock, CheckCircle2, Clock, Inbox as InboxIcon, MessageSquare } from "lucide-react";
+import { DailyMessagesChart, DonutChart, HorizontalBars } from "@/components/dashboard/Charts";
+import { useFollowupChats } from "@/hooks/useFollowupAlerts";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,6 +22,16 @@ function formatMinutes(ms: number | null) {
   return `${(minutes / 60).toFixed(1)} jam`;
 }
 
+// Each channel keeps its palette slot, whatever is shown.
+const CHANNELS = [
+  { key: "cloud_api", label: "WhatsApp API", slot: 0 },
+  { key: "qr", label: "WhatsApp QR", slot: 2 },
+  { key: "messenger", label: "Messenger", slot: 1 },
+  { key: "instagram", label: "Instagram", slot: 4 },
+  { key: "telegram", label: "Telegram", slot: 3 },
+  { key: "webchat", label: "Live chat", slot: 5 },
+];
+
 const STATUS_DOT = { online: "bg-success", away: "bg-warning", offline: "bg-muted-foreground" } as const;
 
 export default function Dashboard() {
@@ -33,12 +45,24 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("conversations")
-        .select("id, status, assignee_id, opened_at, first_response_at, resolved_at, unread_count");
+        .select("id, status, assignee_id, opened_at, first_response_at, resolved_at, unread_count, channel:channels(provider)");
       if (error) throw error;
       return data;
     },
     refetchInterval: 30_000,
   });
+
+  const { data: daily = [] } = useQuery({
+    queryKey: ["dashboard-daily", orgId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("dashboard_daily_messages", { p_days: 14 });
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 60_000,
+  });
+  const isLead = profile?.role !== "agent";
+  const { data: followups = [], days: followupDays } = useFollowupChats(orgId, isLead);
 
   const stats = useMemo(() => {
     const today = startOfDay(new Date()).getTime();
@@ -56,7 +80,18 @@ export default function Dashboard() {
     for (const c of active) {
       if (c.assignee_id) perAgent.set(c.assignee_id, (perAgent.get(c.assignee_id) ?? 0) + 1);
     }
+    const byChannel = new Map<string, number>();
+    for (const c of conversations) {
+      const provider = (c.channel as { provider: string } | null)?.provider ?? "cloud_api";
+      byChannel.set(provider, (byChannel.get(provider) ?? 0) + 1);
+    }
     return {
+      byChannel,
+      byStatus: {
+        open: conversations.filter((c) => c.status === "open").length,
+        pending: conversations.filter((c) => c.status === "pending").length,
+        resolved: conversations.filter((c) => c.status === "resolved").length,
+      },
       queue: active.filter((c) => !c.assignee_id).length,
       open: active.length,
       resolvedToday: conversations.filter((c) => c.resolved_at && new Date(c.resolved_at).getTime() >= today).length,
@@ -69,16 +104,56 @@ export default function Dashboard() {
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold">Halo, {profile?.full_name || "tim CS"}</h1>
-        <p className="text-muted-foreground">Ringkasan layanan WhatsApp hari ini.</p>
+        <p className="text-muted-foreground">Ringkasan layanan chat semua kanal hari ini.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className={`grid gap-4 md:grid-cols-2 ${isLead ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
         <Link to="/inbox">
-          <StatsCard title="Antrean belum di-assign" value={stats.queue} icon={InboxIcon} />
+          <StatsCard title="Antrean belum di-assign" value={stats.queue} icon={InboxIcon} accent={1} />
         </Link>
-        <StatsCard title="Chat terbuka" value={stats.open} icon={MessageSquare} />
-        <StatsCard title="Selesai hari ini" value={stats.resolvedToday} icon={CheckCircle2} />
-        <StatsCard title="Rata-rata respons pertama (hari ini)" value={formatMinutes(stats.frt)} icon={Clock} />
+        <StatsCard title="Chat terbuka" value={stats.open} icon={MessageSquare} accent={2} />
+        <StatsCard title="Selesai hari ini" value={stats.resolvedToday} icon={CheckCircle2} accent={3} />
+        <StatsCard title="Rata-rata respons pertama (hari ini)" value={formatMinutes(stats.frt)} icon={Clock} accent={4} />
+        {isLead && (
+          <StatsCard title={`Belum di-follow up > ${followupDays} hari`} value={followups.length} icon={CalendarClock} accent={5} />
+        )}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <DailyMessagesChart data={daily} />
+        <DonutChart
+          title="Status chat"
+          description="Semua chat yang bisa Anda lihat."
+          data={[
+            { key: "open", label: "Terbuka", value: stats.byStatus.open },
+            { key: "pending", label: "Pending", value: stats.byStatus.pending },
+            { key: "resolved", label: "Selesai", value: stats.byStatus.resolved },
+          ]}
+        />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <HorizontalBars
+          title="Chat per kanal"
+          description="Jumlah percakapan dari setiap kanal."
+          unit="Chat"
+          data={CHANNELS.filter((ch) => stats.byChannel.get(ch.key)).map((ch) => ({
+            key: ch.key,
+            label: ch.label,
+            value: stats.byChannel.get(ch.key) ?? 0,
+            colorIndex: ch.slot,
+          }))}
+        />
+        {isLead && (
+          <HorizontalBars
+            title="Chat terbuka per agen"
+            description="Beban kerja saat ini, termasuk hasil rotasi otomatis."
+            unit="Chat terbuka"
+            data={members
+              .filter((m) => m.is_active && m.role !== "admin")
+              .map((m, i) => ({ key: m.id, label: memberName(m), value: stats.perAgent.get(m.id) ?? 0, colorIndex: i }))}
+          />
+        )}
       </div>
 
       {profile?.role !== "agent" && (

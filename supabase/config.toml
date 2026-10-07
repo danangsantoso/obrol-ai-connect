@@ -469,3 +469,12 @@ content_path = "./public/email/magic-link.html"
 
 [functions.member-password]
 verify_jwt = true
+
+[functions.api]
+verify_jwt = false
+
+[functions.mcp]
+verify_jwt = false
+
+[functions.webhook-dispatch]
+verify_jwt = false
