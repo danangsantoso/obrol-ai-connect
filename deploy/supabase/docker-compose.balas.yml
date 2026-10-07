@@ -21,6 +21,12 @@ services:
       # Sign-in code email (the file ships with the web app build).
       GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: ${APP_URL}/email/magic-link.html
       GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Kode masuk Balas.id"
+      # "Masuk dengan Google" (Google Cloud Console -> OAuth client ID, type Web application;
+      # authorized redirect URI: <API URL>/auth/v1/callback). Off until GOOGLE_ENABLED=true.
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${GOOGLE_ENABLED:-false}
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_SECRET:-}
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: ${API_EXTERNAL_URL}/callback
 
   functions:
     environment:

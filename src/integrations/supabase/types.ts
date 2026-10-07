@@ -1331,6 +1331,66 @@ export type Database = {
           },
         ];
       };
+      tenant_requests: {
+        Row: {
+          company_name: string;
+          created_at: string;
+          email: string;
+          full_name: string | null;
+          id: string;
+          note: string | null;
+          organization_id: string | null;
+          phone: string | null;
+          reject_reason: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: string;
+          updated_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_name: string;
+          created_at?: string;
+          email: string;
+          full_name?: string | null;
+          id?: string;
+          note?: string | null;
+          organization_id?: string | null;
+          phone?: string | null;
+          reject_reason?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          company_name?: string;
+          created_at?: string;
+          email?: string;
+          full_name?: string | null;
+          id?: string;
+          note?: string | null;
+          organization_id?: string | null;
+          phone?: string | null;
+          reject_reason?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tenant_requests_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       webchat_visitors: {
         Row: {
           channel_id: string;
@@ -1504,6 +1564,10 @@ export type Database = {
           p_wa_message_id: string;
         };
         Returns: undefined;
+      };
+      approve_tenant_request: {
+        Args: { request_id: string; tenant_name?: string };
+        Returns: string;
       };
       assign_conversation: {
         Args: {
@@ -1692,6 +1756,31 @@ export type Database = {
           suspended_at: string;
         }[];
       };
+      master_tenant_requests: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          company_name: string;
+          created_at: string;
+          email: string;
+          full_name: string | null;
+          id: string;
+          note: string | null;
+          organization_id: string | null;
+          phone: string | null;
+          reject_reason: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: string;
+          updated_at: string;
+          user_id: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "tenant_requests";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       move_conversation_label: {
         Args: { conv_id: string; from_label: string; to_label: string };
         Returns: undefined;
@@ -1742,6 +1831,36 @@ export type Database = {
         SetofOptions: {
           from: "*";
           to: "messages";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      registration_mode: { Args: Record<PropertyKey, never>; Returns: string };
+      reject_tenant_request: {
+        Args: { reason?: string; request_id: string };
+        Returns: undefined;
+      };
+      request_tenant: {
+        Args: { p_company: string; p_note?: string; p_phone?: string };
+        Returns: {
+          company_name: string;
+          created_at: string;
+          email: string;
+          full_name: string | null;
+          id: string;
+          note: string | null;
+          organization_id: string | null;
+          phone: string | null;
+          reject_reason: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: string;
+          updated_at: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "tenant_requests";
           isOneToOne: true;
           isSetofReturn: false;
         };

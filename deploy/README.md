@@ -48,11 +48,27 @@ Di akhir, skrip menampilkan URL aplikasi, URL webhook dan *verify token* untuk M
 cd /opt/balas/app && sudo ./deploy/scripts/create-master-admin.sh master@domainanda.com "Nama Anda"
 ```
 
-Login dengan email itu dan password `12345678` (wajib diganti), lalu klik **Tenant baru**. Setelah Master Admin
-ada, pengguna tidak bisa lagi membuat organisasi sendiri lewat pendaftaran. Menonaktifkan tenant langsung memblokir
-login semua anggotanya, menghentikan AI dan webhook-nya; datanya tetap tersimpan.
+Login dengan email itu dan password `12345678` (wajib diganti), lalu klik **Tenant baru**. Menonaktifkan tenant
+langsung memblokir login semua anggotanya, menghentikan AI dan webhook-nya; datanya tetap tersimpan.
 
-**Satu perusahaan saja:**
+Calon pelanggan juga bisa **mendaftar sendiri** (Google atau email): mereka mengisi nama usaha, lalu menunggu. Master
+Admin menyetujui atau menolak di halaman Master Admin; setelah disetujui, tenant dibuat dan pendaftar masuk sebagai
+Superadmin. Untuk ini pendaftaran harus tetap terbuka (`DISABLE_SIGNUP=false`, bawaan): akun yang belum disetujui
+tidak bisa melihat data apa pun.
+
+**Login dengan Google** (opsional):
+1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → **Create credentials → OAuth client
+   ID** → *Web application*. Jika diminta, isi dulu *OAuth consent screen* (External, nama aplikasi Balas.id).
+2. **Authorized redirect URIs**: `https://api.domainanda.com/auth/v1/callback`
+3. Isi di `/opt/balas/supabase/.env`, lalu jalankan `cd /opt/balas/supabase && sudo docker compose up -d auth`:
+   ```bash
+   GOOGLE_ENABLED=true
+   GOOGLE_CLIENT_ID=<Client ID>.apps.googleusercontent.com
+   GOOGLE_SECRET=<Client secret>
+   ```
+Tombol **Masuk/Daftar dengan Google** muncul otomatis. Anggota yang diundang dengan alamat Gmail juga bisa memakainya.
+
+**Satu perusahaan saja** (tanpa Master Admin):
 
 1. Buka `https://app.domainanda.com`, daftar sebagai admin pertama, buat organisasi.
    Atau buat akun awal per role sekaligus (password bawaan `12345678`, wajib diganti saat login pertama):

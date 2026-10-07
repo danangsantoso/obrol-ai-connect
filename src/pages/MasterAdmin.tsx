@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Building2, KeyRound, Loader2, LogOut, Plus, Power, ShieldCheck, UserPlus, Users } from "lucide-react";
+import { Building2, Check, Clock, KeyRound, Loader2, LogOut, Plus, Power, ShieldCheck, UserPlus, Users, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -112,6 +112,96 @@ function TenantDialog({
   );
 }
 
+// People who signed up (Google or email) and asked for a tenant.
+function RegistrationRequests({ onApproved }: { onApproved: () => void }) {
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState<string | null>(null);
+  const { data: requests = [] } = useQuery({
+    queryKey: ["master-requests"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("master_tenant_requests");
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 30_000,
+  });
+  const pending = requests.filter((r) => r.status === "pending");
+  const decided = requests.filter((r) => r.status !== "pending").slice(0, 5);
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["master-requests"] });
+
+  const approve = async (id: string, company: string) => {
+    const name = window.prompt(`Setujui dan buat tenant. Nama tenant:`, company);
+    if (name === null) return;
+    setBusy(id);
+    const { error } = await supabase.rpc("approve_tenant_request", { request_id: id, tenant_name: name });
+    setBusy(null);
+    if (error) toast.error(errorMessage(error));
+    else toast.success(`Tenant ${name} dibuat. Pendaftar sekarang bisa masuk sebagai Superadmin.`);
+    refresh();
+    onApproved();
+  };
+  const reject = async (id: string) => {
+    const reason = window.prompt("Alasan penolakan (ditampilkan ke pendaftar, opsional):", "");
+    if (reason === null) return;
+    setBusy(id);
+    const { error } = await supabase.rpc("reject_tenant_request", { request_id: id, reason });
+    setBusy(null);
+    if (error) toast.error(errorMessage(error));
+    else toast.success("Pendaftaran ditolak");
+    refresh();
+  };
+
+  return (
+    <Card className={pending.length ? "border-warning/50" : undefined}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="h-5 w-5 text-warning" /> Pendaftaran menunggu persetujuan
+          {pending.length > 0 && <Badge className="bg-warning text-white">{pending.length}</Badge>}
+        </CardTitle>
+        <CardDescription>
+          Orang yang mendaftar sendiri (Google atau email). Setelah disetujui, tenant dibuat dan pendaftar langsung bisa
+          masuk sebagai Superadmin.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {pending.length === 0 && <p className="text-sm text-muted-foreground">Tidak ada pendaftaran baru.</p>}
+        {pending.map((r) => (
+          <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+            <div className="min-w-0 space-y-0.5">
+              <p className="font-medium">{r.company_name}</p>
+              <p className="text-sm">
+                {r.full_name || "–"} · <span className="text-muted-foreground">{r.email}</span>
+                {r.phone ? <span className="text-muted-foreground"> · {r.phone}</span> : null}
+              </p>
+              {r.note && <p className="text-xs text-muted-foreground">{r.note}</p>}
+              <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), "dd/MM/yy HH:mm")}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => approve(r.id, r.company_name)} disabled={busy === r.id}>
+                <Check className="mr-1 h-4 w-4" /> Setujui
+              </Button>
+              <Button size="sm" variant="outline" className="text-danger" onClick={() => reject(r.id)} disabled={busy === r.id}>
+                <X className="mr-1 h-4 w-4" /> Tolak
+              </Button>
+            </div>
+          </div>
+        ))}
+        {decided.length > 0 && (
+          <div className="space-y-1 pt-2 text-xs text-muted-foreground">
+            <p className="font-medium">Keputusan terakhir</p>
+            {decided.map((r) => (
+              <p key={r.id}>
+                {r.status === "approved" ? "✓ Disetujui" : "✗ Ditolak"}: {r.company_name} ({r.email})
+                {r.reject_reason ? ` — ${r.reject_reason}` : ""}
+              </p>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function MasterAdmin() {
   const { profile, signOut } = useAuth();
   const queryClient = useQueryClient();
@@ -190,6 +280,8 @@ export default function MasterAdmin() {
           <StatsCard title="Tenant aktif" value={`${active} / ${tenants.length}`} icon={Power} accent={3} />
           <StatsCard title="Total anggota" value={members} icon={Users} accent={2} />
         </div>
+
+        <RegistrationRequests onApproved={refresh} />
 
         <Card>
           <CardHeader>
