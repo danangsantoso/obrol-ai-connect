@@ -3,10 +3,12 @@ import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInboxNotifications } from "@/hooks/useInboxNotifications";
+import { useFollowupAlerts } from "@/hooks/useFollowupAlerts";
 
 export function AppLayout() {
   const { profile } = useAuth();
   useInboxNotifications(profile!.organization_id!, profile!.id);
+  useFollowupAlerts(profile!.organization_id!, profile!.role !== "agent");
 
   return (
     <div className="flex h-screen bg-background">

@@ -8,6 +8,8 @@ interface StatsCardProps {
   changeType?: "positive" | "negative" | "neutral";
   icon: LucideIcon;
   className?: string;
+  /** 1-6: data-viz palette slot for the icon tile */
+  accent?: number;
 }
 
 export function StatsCard({ 
@@ -16,7 +18,8 @@ export function StatsCard({
   change, 
   changeType = "neutral", 
   icon: Icon,
-  className 
+  className,
+  accent,
 }: StatsCardProps) {
   return (
     <div className={cn(
@@ -42,10 +45,13 @@ export function StatsCard({
             </p>
           )}
         </div>
-        <div className={cn(
-          "w-12 h-12 rounded-lg flex items-center justify-center",
-          "bg-primary/10 text-primary"
-        )}>
+        <div
+          className={cn(
+            "w-12 h-12 rounded-lg flex items-center justify-center",
+            !accent && "bg-primary/10 text-primary"
+          )}
+          style={accent ? { color: `var(--viz-${accent})`, background: `color-mix(in srgb, var(--viz-${accent}) 14%, transparent)` } : undefined}
+        >
           <Icon className="w-6 h-6" />
         </div>
       </div>

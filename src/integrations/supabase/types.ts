@@ -496,6 +496,8 @@ export type Database = {
           opened_at: string;
           organization_id: string;
           resolved_at: string | null;
+          rotated_at: string | null;
+          rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           unread_count: number;
@@ -523,6 +525,8 @@ export type Database = {
           opened_at?: string;
           organization_id: string;
           resolved_at?: string | null;
+          rotated_at?: string | null;
+          rotation_deadline?: string | null;
           status?: Database["public"]["Enums"]["conversation_status"];
           team_id?: string | null;
           unread_count?: number;
@@ -549,6 +553,8 @@ export type Database = {
           opened_at?: string;
           organization_id?: string;
           resolved_at?: string | null;
+          rotated_at?: string | null;
+          rotation_deadline?: string | null;
           status?: Database["public"]["Enums"]["conversation_status"];
           team_id?: string | null;
           unread_count?: number;
@@ -927,27 +933,36 @@ export type Database = {
       };
       organizations: {
         Row: {
+          auto_rotate: boolean;
           created_at: string;
+          followup_alert_days: number;
           id: string;
           name: string;
           retention_days: number;
+          rotate_timeout_minutes: number;
           timezone: string;
           updated_at: string;
         };
         ComputedFields: never;
         Insert: {
+          auto_rotate?: boolean;
           created_at?: string;
+          followup_alert_days?: number;
           id?: string;
           name: string;
           retention_days?: number;
+          rotate_timeout_minutes?: number;
           timezone?: string;
           updated_at?: string;
         };
         Update: {
+          auto_rotate?: boolean;
           created_at?: string;
+          followup_alert_days?: number;
           id?: string;
           name?: string;
           retention_days?: number;
+          rotate_timeout_minutes?: number;
           timezone?: string;
           updated_at?: string;
         };
@@ -1012,6 +1027,7 @@ export type Database = {
           full_name: string | null;
           id: string;
           is_active: boolean;
+          last_rotated_at: string | null;
           max_open_chats: number;
           must_change_password: boolean;
           organization_id: string | null;
@@ -1027,6 +1043,7 @@ export type Database = {
           full_name?: string | null;
           id: string;
           is_active?: boolean;
+          last_rotated_at?: string | null;
           max_open_chats?: number;
           must_change_password?: boolean;
           organization_id?: string | null;
@@ -1041,6 +1058,7 @@ export type Database = {
           full_name?: string | null;
           id?: string;
           is_active?: boolean;
+          last_rotated_at?: string | null;
           max_open_chats?: number;
           must_change_password?: boolean;
           organization_id?: string | null;
@@ -1313,6 +1331,8 @@ export type Database = {
           opened_at: string;
           organization_id: string;
           resolved_at: string | null;
+          rotated_at: string | null;
+          rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           unread_count: number;
@@ -1361,6 +1381,8 @@ export type Database = {
           opened_at: string;
           organization_id: string;
           resolved_at: string | null;
+          rotated_at: string | null;
+          rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           unread_count: number;
@@ -1380,6 +1402,14 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"];
       };
       current_team_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
+      dashboard_daily_messages: {
+        Args: { p_days?: number };
+        Returns: {
+          day: string;
+          inbound: number;
+          outbound: number;
+        }[];
+      };
       finish_ai_turn: {
         Args: {
           p_conversation_id: string;
@@ -1431,6 +1461,10 @@ export type Database = {
       move_conversation_label: {
         Args: { conv_id: string; from_label: string; to_label: string };
         Returns: undefined;
+      };
+      next_rotation_agent: {
+        Args: { p_org: string; p_team: string };
+        Returns: string;
       };
       purge_expired_messages: {
         Args: Record<PropertyKey, never>;
@@ -1516,6 +1550,8 @@ export type Database = {
           opened_at: string;
           organization_id: string;
           resolved_at: string | null;
+          rotated_at: string | null;
+          rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           unread_count: number;
@@ -1554,6 +1590,8 @@ export type Database = {
           opened_at: string;
           organization_id: string;
           resolved_at: string | null;
+          rotated_at: string | null;
+          rotation_deadline: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           unread_count: number;

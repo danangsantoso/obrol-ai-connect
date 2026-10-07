@@ -8,6 +8,9 @@ Satu nomor WhatsApp untuk seluruh tim CS. Pesan pelanggan masuk ke inbox bersama
 - **Dua cara menghubungkan nomor WhatsApp**: scan QR (nomor WhatsApp biasa, lewat gateway Evolution API) atau WhatsApp API resmi (Meta Cloud API). Keduanya bisa dipakai bersamaan.
 - **Aturan WhatsApp 24 jam** (nomor API resmi): sisa waktu jendela layanan ditampilkan. Di luar jendela itu, balasan hanya bisa lewat template yang disetujui Meta.
 - **AI Agent**: AI membalas chat otomatis (atau membuat draf untuk agen) berdasarkan katalog produk dan dokumen pengetahuan yang diunggah (PDF, Word, TXT, CSV). Pilih model sendiri: Claude, ChatGPT, DeepSeek, Gemini, atau LLM lain yang kompatibel OpenAI. Chat yang tidak bisa dijawab diserahkan ke agen.
+- **Rotasi chat otomatis** (bisa dinyalakan/dimatikan admin): chat baru dibagi bergiliran ke agen. Jika agen belum membalas dalam 3 menit (bisa diatur), chat muncul di antrean agen lain dan bisa diambil alih; setelah diambil, hanya agen pemegangnya yang melihat chat itu.
+- **Pengingat follow-up**: supervisor dan admin mendapat notifikasi untuk chat terbuka yang tidak ada aktivitas selama 7 hari (bisa diatur).
+- **Dashboard berwarna**: grafik aktivitas chat 14 hari, status chat, chat per kanal, dan beban kerja per agen.
 - **Catatan internal**, profil kontak, lampiran media, dan status terkirim/dibaca.
 - **Hak akses**: Admin, Supervisor, dan Agen per tim/divisi, ditegakkan dengan Row Level Security di database.
 - **Self-hosted** di VPS sendiri (lihat [deploy/README.md](deploy/README.md)).

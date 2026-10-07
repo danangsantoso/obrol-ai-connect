@@ -20,8 +20,9 @@ export function useConversations(orgId: string) {
       return data as unknown as ConversationRow[];
     },
     // Realtime only reports rows the user can still see; a periodic refresh
-    // drops chats that were transferred away.
-    refetchInterval: 60_000,
+    // drops chats that were transferred away and shows rotated chats whose
+    // agent missed the reply deadline.
+    refetchInterval: 30_000,
   });
 
   // Any change in the organization's conversations refreshes the list.

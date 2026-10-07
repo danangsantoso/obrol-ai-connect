@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { displayName, initials } from '@/lib/api';
 import type { ConversationRow, InboxTab, Label, Member } from './types';
-import { ALL, memberName } from './types';
+import { ALL, memberName, isTakeable } from './types';
 import { LabelChip } from './LabelChip';
 import { ChannelIcon } from './ChannelIcon';
 
@@ -43,6 +43,7 @@ interface Props {
   agentFilter: string | null;
   onAgentFilterChange: ((value: string) => void) | null;
   loading: boolean;
+  meId: string;
 }
 
 export function ConversationList({
@@ -61,6 +62,7 @@ export function ConversationList({
   agentFilter,
   onAgentFilterChange,
   loading,
+  meId,
 }: Props) {
   const labelMap = new Map(labels.map((l) => [l.id, l]));
   const activeMembers = [...members.values()].filter((m) => m.is_active);
@@ -172,7 +174,9 @@ export function ConversationList({
                   )}
                 </div>
                 <p className="mt-1 truncate text-[11px] text-muted-foreground">
-                  {assignee
+                  {isTakeable(conv, meId)
+                    ? <span className="font-medium text-warning">Belum dibalas {memberName(assignee)} · bisa diambil</span>
+                    : assignee
                     ? `Ditangani ${memberName(assignee)}`
                     : conv.ai_handoff_at
                       ? <span className="font-medium text-warning">Perlu agen (dari AI)</span>

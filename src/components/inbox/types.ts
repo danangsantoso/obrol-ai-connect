@@ -27,6 +27,17 @@ export function memberName(member: Pick<Member, 'full_name' | 'email'> | undefin
   return member.full_name || member.email;
 }
 
+// A rotated chat whose agent missed the reply deadline: other agents may take it.
+export function isTakeable(conv: Pick<ConversationRow, 'assignee_id' | 'rotation_deadline' | 'status'>, meId: string) {
+  return (
+    !!conv.assignee_id &&
+    conv.assignee_id !== meId &&
+    conv.status !== 'resolved' &&
+    !!conv.rotation_deadline &&
+    new Date(conv.rotation_deadline).getTime() < Date.now()
+  );
+}
+
 // Value of the "no filter" option in the inbox filter dropdowns.
 export const ALL = '__all__';
 
