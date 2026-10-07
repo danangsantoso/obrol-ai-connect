@@ -30,6 +30,58 @@ services:
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
       WHATSAPP_GRAPH_VERSION: ${WHATSAPP_GRAPH_VERSION:-v23.0}
       WHATSAPP_GRAPH_BASE_URL: ${WHATSAPP_GRAPH_BASE_URL:-https://graph.facebook.com}
+      # Evolution API gateway for numbers linked by QR code (service below)
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-http://evolution:8080}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      EVOLUTION_WEBHOOK_URL: http://functions:9000/wa-qr-webhook
+      EVOLUTION_WEBHOOK_TOKEN: ${EVOLUTION_WEBHOOK_TOKEN}
       # Public URL of the web app: CORS origin and invitation redirect
       APP_ORIGIN: ${APP_URL}
       APP_URL: ${APP_URL}
+
+  # Evolution API: links regular WhatsApp numbers by QR code (WhatsApp Web
+  # protocol) for QR channels. Internal only: Edge Functions call it at
+  # http://evolution:8080 and it posts events to the wa-qr-webhook function.
+  # Data (sessions) lives in its own "evolution" database on the Supabase
+  # Postgres server; Prisma creates it on first start.
+  evolution:
+    container_name: balas-evolution
+    image: ${EVOLUTION_IMAGE:-evoapicloud/evolution-api:v2.3.7}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SERVER_TYPE: http
+      SERVER_PORT: 8080
+      SERVER_URL: http://evolution:8080
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "false"
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://postgres:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/evolution?schema=public
+      DATABASE_CONNECTION_CLIENT_NAME: balas
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      # Needed for media download and message retries; Balas.id keeps the chat history itself.
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "false"
+      DATABASE_SAVE_DATA_CHATS: "false"
+      DATABASE_SAVE_DATA_LABELS: "false"
+      DATABASE_SAVE_DATA_HISTORIC: "false"
+      CACHE_REDIS_ENABLED: "false"
+      CACHE_LOCAL_ENABLED: "true"
+      DEL_INSTANCE: "false"
+      QRCODE_LIMIT: 30
+      QRCODE_COLOR: "#1d4ed8"
+      CONFIG_SESSION_PHONE_CLIENT: Balas.id
+      CONFIG_SESSION_PHONE_NAME: Chrome
+      WEBHOOK_GLOBAL_ENABLED: "false"
+      WEBHOOK_REQUEST_TIMEOUT_MS: 60000
+      TELEMETRY_ENABLED: "false"
+      LANGUAGE: en
+      LOG_LEVEL: ERROR,WARN,INFO
+      LOG_BAILEYS: error
+      LOG_COLOR: "false"
+    volumes:
+      - ./volumes/evolution:/evolution/instances

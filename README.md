@@ -4,7 +4,8 @@ Satu nomor WhatsApp untuk seluruh tim CS. Pesan pelanggan masuk ke inbox bersama
 
 - **Inbox bersama realtime**: tab Antrean, Saya, Semua, dan Selesai, ditambah pencarian nama, nomor, dan isi pesan.
 - **Satu chat, satu pemilik**: agen mengambil chat (klaim atomik), memindahkan ke agen atau tim lain dengan catatan, dan mengubah status Open/Pending/Resolved.
-- **Aturan WhatsApp 24 jam**: sisa waktu jendela layanan ditampilkan. Di luar jendela itu, balasan hanya bisa lewat template yang disetujui Meta.
+- **Dua cara menghubungkan nomor**: scan QR (nomor WhatsApp biasa, lewat gateway Evolution API) atau WhatsApp API resmi (Meta Cloud API). Keduanya bisa dipakai bersamaan.
+- **Aturan WhatsApp 24 jam** (nomor API resmi): sisa waktu jendela layanan ditampilkan. Di luar jendela itu, balasan hanya bisa lewat template yang disetujui Meta.
 - **Catatan internal**, profil kontak, lampiran media, dan status terkirim/dibaca.
 - **Hak akses**: Admin, Supervisor, dan Agen per tim/divisi, ditegakkan dengan Row Level Security di database.
 - **Self-hosted** di VPS sendiri (lihat [deploy/README.md](deploy/README.md)).
@@ -15,7 +16,7 @@ Satu nomor WhatsApp untuk seluruh tim CS. Pesan pelanggan masuk ke inbox bersama
 | --- | --- |
 | Web app | React 18, Vite, TypeScript, Tailwind, shadcn/ui (warna utama biru `#2563EB`) |
 | Backend | Supabase self-hosted: Postgres + RLS, Auth, Realtime, Storage |
-| Integrasi WhatsApp | Edge Functions (Deno) ke WhatsApp Cloud API resmi |
+| Integrasi WhatsApp | Edge Functions (Deno) ke WhatsApp Cloud API resmi, atau ke Evolution API (scan QR) di VPS yang sama |
 
 ```
 supabase/migrations/            skema database, RLS, fungsi RPC
@@ -24,6 +25,8 @@ supabase/functions/
   send-message/                 kirim teks/media/template atas nama agen
   invite-member/                admin menambah anggota tim
   sync-templates/               tarik template pesan dari Meta
+  wa-qr/                        hubungkan nomor scan QR: QR/kode tautan, status, putuskan
+  wa-qr-webhook/                terima pesan, status, dan koneksi dari gateway QR
   _shared/                      helper bersama
 src/pages/                      Dashboard, Inbox, Kontak, Tim & Agen, Pengaturan
 deploy/                         Caddyfile, override docker-compose, skrip deploy & backup

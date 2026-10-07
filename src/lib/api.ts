@@ -32,8 +32,13 @@ export const STATUS_LABELS = {
   resolved: 'Resolved',
 } as const;
 
+// Customers on QR numbers can appear under a WhatsApp linked id (…@lid) instead of a phone number.
+export function formatWaId(waId: string) {
+  return waId.includes('@') ? 'Nomor disembunyikan' : `+${waId}`;
+}
+
 export function displayName(contact: { name: string | null; profile_name: string | null; wa_id: string }) {
-  return contact.name || contact.profile_name || `+${contact.wa_id}`;
+  return contact.name || contact.profile_name || formatWaId(contact.wa_id);
 }
 
 export function initials(name: string) {

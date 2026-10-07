@@ -1,9 +1,11 @@
 # Deploy Balas.id ke VPS sendiri
 
-Satu VPS menjalankan semuanya: Supabase self-hosted (Postgres, Auth, Realtime, Storage, Edge Functions) di Docker, web app statis, dan Caddy untuk HTTPS.
+Satu VPS menjalankan semuanya: Supabase self-hosted (Postgres, Auth, Realtime, Storage, Edge Functions) di Docker,
+gateway Evolution API untuk nomor scan QR, web app statis, dan Caddy untuk HTTPS.
 
 ```
-Pelanggan ⇄ WhatsApp ⇄ Meta Cloud API ──webhook──▶ https://api.domainanda.com/functions/v1/whatsapp-webhook
+Nomor API resmi:  Pelanggan ⇄ WhatsApp ⇄ Meta Cloud API ──webhook──▶ https://api.domainanda.com/functions/v1/whatsapp-webhook
+Nomor scan QR:    Pelanggan ⇄ WhatsApp ⇄ Evolution API (container internal) ──▶ Edge Function wa-qr-webhook
                                                      │
 Agen (browser) ──▶ https://app.domainanda.com (Caddy, file statis)
                └─▶ https://api.domainanda.com (Caddy → gateway 127.0.0.1:8000 → Supabase)
@@ -32,6 +34,7 @@ Repo private: saat `git clone` meminta *Username*, isi user GitHub; untuk *Passw
 2. Memasang Docker, Node.js 22, Caddy; firewall hanya membuka SSH, 80, 443.
 3. Memasang Supabase self-hosted dengan installer resmi; semua kunci rahasia dibuat acak di `/opt/balas/supabase/.env`.
 4. Mengunci port Supabase (API, database) ke `127.0.0.1`; dashboard Studio tidak bisa diakses dari internet.
+   Gateway QR (Evolution API) hanya bisa dihubungi dari dalam jaringan Docker.
 5. Menjalankan migrasi database, memasang Edge Functions, build web app.
 6. HTTPS otomatis dengan Caddy, backup harian (02:15) dan penghapusan pesan lama (03:30) lewat cron.
 
@@ -55,7 +58,30 @@ Tanpa SMTP, agen tetap bisa masuk dengan password.
 
 ## 4. Hubungkan WhatsApp
 
-1. **Pengaturan → Nomor WhatsApp**: isi Phone number ID dan WhatsApp Business Account ID (Meta Business Manager → WhatsApp → API Setup).
+Ada dua cara, dan keduanya bisa dipakai bersamaan (misalnya nomor utama lewat API resmi, nomor cadangan lewat QR):
+
+| | Scan QR | WhatsApp API resmi |
+|---|---|---|
+| Daftar ke Meta | Tidak perlu | Perlu Meta Business |
+| Aturan 24 jam & template | Tidak ada | Ada |
+| Pesan yang diketik di HP | Ikut tercatat di Balas.id | Tidak berlaku |
+| Risiko diblokir WhatsApp | **Ada** (tidak resmi), hindari kirim massal | Tidak ada |
+
+### 4a. Scan QR (nomor WhatsApp / WhatsApp Business biasa)
+
+1. **Pengaturan → Nomor WhatsApp → Tambah nomor**, pilih **Scan QR**, isi nama, klik **Tambah & tampilkan QR**.
+2. Di HP: WhatsApp → **Perangkat tertaut** → **Tautkan perangkat**, lalu scan QR di layar.
+   Atau pakai tab **Kode tautan**: masukkan nomor HP, lalu ketik kodenya di HP
+   (*Tautkan dengan nomor telepon saja*).
+3. Status berubah menjadi **Terhubung**. HP boleh tetap dipakai, tapi harus online minimal sekali tiap 14 hari
+   agar tautan tidak terputus.
+
+Kalau status menjadi **Terputus** (misalnya perangkat dihapus dari HP), klik **Hubungkan** dan scan ulang.
+Log gateway: `cd /opt/balas/supabase && sudo docker compose logs --tail 100 evolution`.
+
+### 4b. WhatsApp API resmi (Meta Cloud API)
+
+1. **Pengaturan → Nomor WhatsApp → Tambah nomor**, pilih **WhatsApp API resmi**, isi Phone number ID dan WhatsApp Business Account ID (Meta Business Manager → WhatsApp → API Setup).
 2. Isi di `/opt/balas/supabase/.env`:
    ```bash
    WHATSAPP_APP_SECRET=<Meta App → Settings → Basic → App secret>
@@ -78,7 +104,9 @@ cd /opt/balas/app && sudo git pull && sudo ./deploy/scripts/deploy.sh
 
 ## 6. Backup & pemeliharaan
 
-- Backup harian ada di `/var/backups/balas` (database + file media, disimpan 30 hari). Log: `/var/log/balas-backup.log`.
+- Backup harian ada di `/var/backups/balas` (database, sesi nomor QR, file media; disimpan 30 hari).
+- Setiap malam (03:30) pesan yang lewat masa simpan organisasi dihapus. Gateway QR hanya menyimpan salinan pesan
+  30 hari terakhir (`GATEWAY_KEEP_DAYS` di baris purge pada `/etc/cron.d/balas`). Log: `/var/log/balas-backup.log`.
 - Salin backup ke luar VPS: pasang [rclone](https://rclone.org), lalu tambahkan `BACKUP_REMOTE=<remote:folder>` di baris
   backup pada `/etc/cron.d/balas`.
 - Uji restore sebulan sekali:

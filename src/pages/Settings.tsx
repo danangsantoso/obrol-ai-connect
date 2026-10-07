@@ -1,15 +1,18 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Copy, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, BadgeCheck, Copy, Loader2, QrCode, RefreshCw, Trash2, Unplug } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+import { QrConnectDialog } from "@/components/settings/QrConnectDialog";
 import { callFunction, errorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { LabelChip } from "@/components/inbox/LabelChip";
@@ -59,12 +62,23 @@ function OrganizationCard({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
+type Channel = Tables<"channels">;
+
+const CONNECTION_LABELS: Record<string, { label: string; className: string }> = {
+  connected: { label: "Terhubung", className: "border-success/40 text-success" },
+  connecting: { label: "Menunggu scan", className: "border-warning/50 text-warning" },
+  disconnected: { label: "Terputus", className: "border-destructive/40 text-destructive" },
+};
+
 function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
   const { profile } = useAuth();
   const orgId = profile!.organization_id!;
   const queryClient = useQueryClient();
+  const [provider, setProvider] = useState<"cloud_api" | "qr">("qr");
   const [form, setForm] = useState({ name: "", display_phone: "", phone_number_id: "", waba_id: "" });
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [qrChannel, setQrChannel] = useState<{ id: string; name: string } | null>(null);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
 
   const { data: channels = [] } = useQuery({
     queryKey: ["channels", orgId],
@@ -84,21 +98,55 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
     },
   });
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["channels", orgId] });
     queryClient.invalidateQueries({ queryKey: ["templates-all", orgId] });
     queryClient.invalidateQueries({ queryKey: ["templates", orgId] });
-  };
+  }, [queryClient, orgId]);
+
+  // Connection state of QR numbers changes on the server (scan, logout on the phone).
+  useEffect(() => {
+    const sub = supabase
+      .channel(`channels:${orgId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "channels" }, () =>
+        queryClient.invalidateQueries({ queryKey: ["channels", orgId] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(sub);
+    };
+  }, [orgId, queryClient]);
+
+  const hasQr = channels.some((ch) => ch.provider === "qr");
+  useEffect(() => {
+    // Refresh the stored state once when the page opens (e.g. after a gateway restart).
+    for (const ch of channels) {
+      if (ch.provider === "qr" && ch.is_active) {
+        callFunction("wa-qr", { action: "status", channel_id: ch.id }).catch(() => undefined);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasQr]);
 
   const addChannel = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from("channels").insert({
-      organization_id: orgId,
-      name: form.name.trim(),
-      display_phone: form.display_phone.trim() || null,
-      phone_number_id: form.phone_number_id.trim(),
-      waba_id: form.waba_id.trim() || null,
-    });
+    const name = form.name.trim();
+    const { data, error } = await supabase
+      .from("channels")
+      .insert(
+        provider === "qr"
+          ? { organization_id: orgId, name, provider }
+          : {
+              organization_id: orgId,
+              name,
+              provider,
+              display_phone: form.display_phone.trim() || null,
+              phone_number_id: form.phone_number_id.trim(),
+              waba_id: form.waba_id.trim() || null,
+            },
+      )
+      .select("id, name")
+      .single();
     if (error) {
       toast.error(errorMessage(error));
       return;
@@ -106,6 +154,7 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
     toast.success("Nomor WhatsApp ditambahkan");
     setForm({ name: "", display_phone: "", phone_number_id: "", waba_id: "" });
     refresh();
+    if (provider === "qr") setQrChannel(data);
   };
 
   const toggle = async (id: string, isActive: boolean) => {
@@ -127,41 +176,42 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
     }
   };
 
+  const disconnect = async (ch: Channel) => {
+    if (!window.confirm(`Putuskan ${ch.name} dari WhatsApp? Untuk memakai lagi, scan QR ulang.`)) return;
+    setDisconnecting(ch.id);
+    try {
+      await callFunction("wa-qr", { action: "logout", channel_id: ch.id });
+      toast.success("Nomor diputuskan");
+      refresh();
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setDisconnecting(null);
+    }
+  };
+
+  const closeQr = useCallback((open: boolean) => {
+    if (!open) setQrChannel(null);
+  }, []);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Nomor WhatsApp</CardTitle>
         <CardDescription>
-          Hubungkan nomor dari WhatsApp Cloud API. ID diambil dari Meta Business Manager → WhatsApp → API Setup.
+          Dua cara menghubungkan nomor: <b>Scan QR</b> (nomor WhatsApp/WhatsApp Business biasa, seperti WhatsApp Web)
+          atau <b>WhatsApp API resmi</b> (Meta Cloud API). Keduanya bisa dipakai bersamaan.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label>URL webhook (isi di Meta → WhatsApp → Configuration)</Label>
-          <div className="flex max-w-2xl gap-2">
-            <Input readOnly value={WEBHOOK_URL} />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigator.clipboard.writeText(WEBHOOK_URL).then(() => toast.success("URL disalin"))}
-              aria-label="Salin URL webhook"
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Verify token = nilai WHATSAPP_VERIFY_TOKEN di server. Langganan field: <code>messages</code>.
-          </p>
-        </div>
-
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nama</TableHead>
+              <TableHead>Jenis</TableHead>
               <TableHead>Nomor</TableHead>
-              <TableHead>Phone number ID</TableHead>
-              <TableHead>WABA ID</TableHead>
-              <TableHead>Template</TableHead>
+              <TableHead>Status / ID</TableHead>
+              <TableHead>Aksi</TableHead>
               <TableHead className="text-right">Aktif</TableHead>
             </TableRow>
           </TableHeader>
@@ -173,48 +223,138 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
                 </TableCell>
               </TableRow>
             )}
-            {channels.map((ch) => (
-              <TableRow key={ch.id}>
-                <TableCell className="font-medium">{ch.name}</TableCell>
-                <TableCell>{ch.display_phone ?? "–"}</TableCell>
-                <TableCell className="font-mono text-xs">{ch.phone_number_id}</TableCell>
-                <TableCell className="font-mono text-xs">{ch.waba_id ?? "–"}</TableCell>
-                <TableCell>
-                  <Button size="sm" variant="outline" onClick={() => sync(ch.id)} disabled={syncing === ch.id || !ch.waba_id}>
-                    {syncing === ch.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
-                    Sinkron ({templates.filter((t) => t.channel_id === ch.id).length})
-                  </Button>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Switch checked={ch.is_active} disabled={!isAdmin} onCheckedChange={(v) => toggle(ch.id, v)} />
-                </TableCell>
-              </TableRow>
-            ))}
+            {channels.map((ch) => {
+              const connection = CONNECTION_LABELS[ch.connection_status] ?? CONNECTION_LABELS.disconnected;
+              return (
+                <TableRow key={ch.id}>
+                  <TableCell className="font-medium">{ch.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="gap-1 whitespace-nowrap">
+                      {ch.provider === "qr" ? <QrCode className="h-3 w-3" /> : <BadgeCheck className="h-3 w-3" />}
+                      {ch.provider === "qr" ? "Scan QR" : "API resmi"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{ch.display_phone ?? "–"}</TableCell>
+                  <TableCell>
+                    {ch.provider === "qr" ? (
+                      <Badge variant="outline" className={connection.className}>
+                        {connection.label}
+                      </Badge>
+                    ) : (
+                      <span className="font-mono text-xs">
+                        {ch.phone_number_id}
+                        {ch.waba_id ? ` · WABA ${ch.waba_id}` : ""}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {ch.provider === "qr" ? (
+                      isAdmin && (
+                        <div className="flex flex-wrap gap-2">
+                          {ch.connection_status !== "connected" && (
+                            <Button size="sm" onClick={() => setQrChannel({ id: ch.id, name: ch.name })} disabled={!ch.is_active}>
+                              <QrCode className="mr-1 h-3 w-3" />
+                              Hubungkan
+                            </Button>
+                          )}
+                          {ch.connection_status !== "disconnected" && (
+                            <Button size="sm" variant="outline" onClick={() => disconnect(ch)} disabled={disconnecting === ch.id}>
+                              {disconnecting === ch.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Unplug className="mr-1 h-3 w-3" />}
+                              Putuskan
+                            </Button>
+                          )}
+                        </div>
+                      )
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => sync(ch.id)} disabled={syncing === ch.id || !ch.waba_id}>
+                        {syncing === ch.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
+                        Sinkron template ({templates.filter((t) => t.channel_id === ch.id).length})
+                      </Button>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Switch checked={ch.is_active} disabled={!isAdmin} onCheckedChange={(v) => toggle(ch.id, v)} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
 
         {isAdmin && (
-          <form onSubmit={addChannel} className="grid max-w-3xl gap-3 md:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="ch-name">Nama</Label>
-              <Input id="ch-name" placeholder="CS Utama" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          <form onSubmit={addChannel} className="max-w-3xl space-y-3 rounded-lg border p-4">
+            <p className="font-medium">Tambah nomor</p>
+            <RadioGroup
+              value={provider}
+              onValueChange={(v) => setProvider(v as "cloud_api" | "qr")}
+              className="grid gap-2 md:grid-cols-2"
+            >
+              <Label htmlFor="prov-qr" className="flex cursor-pointer gap-3 rounded-md border p-3 font-normal [&:has(:checked)]:border-primary">
+                <RadioGroupItem id="prov-qr" value="qr" className="mt-0.5" />
+                <span>
+                  <span className="block font-medium">Scan QR</span>
+                  <span className="text-xs text-muted-foreground">
+                    Pakai nomor WhatsApp yang sudah ada, tanpa daftar ke Meta. Tidak resmi: ada risiko nomor diblokir
+                    WhatsApp, hindari kirim massal.
+                  </span>
+                </span>
+              </Label>
+              <Label htmlFor="prov-cloud" className="flex cursor-pointer gap-3 rounded-md border p-3 font-normal [&:has(:checked)]:border-primary">
+                <RadioGroupItem id="prov-cloud" value="cloud_api" className="mt-0.5" />
+                <span>
+                  <span className="block font-medium">WhatsApp API resmi</span>
+                  <span className="text-xs text-muted-foreground">
+                    Meta Cloud API: stabil dan aman dari blokir. Perlu akun Meta Business; berlaku aturan 24 jam dan
+                    template.
+                  </span>
+                </span>
+              </Label>
+            </RadioGroup>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="ch-name">Nama</Label>
+                <Input id="ch-name" placeholder="CS Utama" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              </div>
+              {provider === "cloud_api" && (
+                <>
+                  <div className="space-y-1">
+                    <Label htmlFor="ch-phone">Nomor tampil</Label>
+                    <Input id="ch-phone" placeholder="+62 812 0000 0000" value={form.display_phone} onChange={(e) => setForm({ ...form, display_phone: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="ch-pnid">Phone number ID</Label>
+                    <Input id="ch-pnid" value={form.phone_number_id} onChange={(e) => setForm({ ...form, phone_number_id: e.target.value })} required />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="ch-waba">WhatsApp Business Account ID</Label>
+                    <Input id="ch-waba" value={form.waba_id} onChange={(e) => setForm({ ...form, waba_id: e.target.value })} />
+                  </div>
+                </>
+              )}
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="ch-phone">Nomor tampil</Label>
-              <Input id="ch-phone" placeholder="+62 812 0000 0000" value={form.display_phone} onChange={(e) => setForm({ ...form, display_phone: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="ch-pnid">Phone number ID</Label>
-              <Input id="ch-pnid" value={form.phone_number_id} onChange={(e) => setForm({ ...form, phone_number_id: e.target.value })} required />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="ch-waba">WhatsApp Business Account ID</Label>
-              <Input id="ch-waba" value={form.waba_id} onChange={(e) => setForm({ ...form, waba_id: e.target.value })} />
-            </div>
-            <div className="md:col-span-2">
-              <Button type="submit">Tambah nomor</Button>
-            </div>
+            <Button type="submit">{provider === "qr" ? "Tambah & tampilkan QR" : "Tambah nomor"}</Button>
           </form>
+        )}
+
+        {channels.some((ch) => ch.provider === "cloud_api") && (
+          <div className="space-y-2">
+            <Label>URL webhook API resmi (isi di Meta → WhatsApp → Configuration)</Label>
+            <div className="flex max-w-2xl gap-2">
+              <Input readOnly value={WEBHOOK_URL} />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigator.clipboard.writeText(WEBHOOK_URL).then(() => toast.success("URL disalin"))}
+                aria-label="Salin URL webhook"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Verify token = nilai WHATSAPP_VERIFY_TOKEN di server. Langganan field: <code>messages</code>.
+            </p>
+          </div>
         )}
 
         {templates.length > 0 && (
@@ -230,6 +370,7 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
           </div>
         )}
       </CardContent>
+      <QrConnectDialog channel={qrChannel} onOpenChange={closeQr} onConnected={refresh} />
     </Card>
   );
 }

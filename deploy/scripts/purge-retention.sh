@@ -14,3 +14,13 @@ curl -fsS -X POST \
   -H "Authorization: Bearer $key" -H "apikey: $key" -H "Content-Type: application/json" \
   -d '{}' "http://127.0.0.1:${port:-8000}/functions/v1/purge-retention"
 echo
+
+# The QR gateway keeps its own copy of recent messages (media download, retries).
+# Balas.id holds the chat history, so the gateway only needs a short window.
+GATEWAY_KEEP_DAYS="${GATEWAY_KEEP_DAYS:-30}"
+if [[ -n "$(psql_db -tAc "select 1 from pg_database where datname = 'evolution'")" ]]; then
+  printf '[%s] QR gateway: ' "$(date -Is)"
+  compose exec -T db psql -U postgres -d evolution -v ON_ERROR_STOP=1 -tAc \
+    "with gone as (delete from \"Message\" where \"messageTimestamp\" < extract(epoch from now() - interval '$GATEWAY_KEEP_DAYS days') returning 1)
+     select count(*) || ' pesan lama dihapus' from gone"
+fi
