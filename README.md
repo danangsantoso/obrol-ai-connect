@@ -13,7 +13,8 @@ Satu nomor WhatsApp untuk seluruh tim CS. Pesan pelanggan masuk ke inbox bersama
 - **Dashboard berwarna**: grafik aktivitas chat 14 hari, status chat, chat per kanal, dan beban kerja per agen.
 - **Integrasi**: REST API, webhook bertanda tangan, dan server MCP untuk asisten AI. Lihat [docs/API.md](docs/API.md).
 - **Catatan internal**, profil kontak, lampiran media, dan status terkirim/dibaca.
-- **Hak akses**: Admin, Supervisor, dan Agen per tim/divisi, ditegakkan dengan Row Level Security di database.
+- **Multi-tenant**: satu instalasi untuk banyak perusahaan. **Master Admin** (pengelola platform) membuat tenant beserta Superadmin-nya, menonaktifkan atau mengaktifkan tenant, dan mereset password Superadmin. Data antar tenant terpisah penuh di database; Master Admin hanya melihat ringkasan jumlah, bukan isi chat.
+- **Hak akses**: Master Admin → Superadmin/Admin tenant → Supervisor → Agen per tim/divisi, ditegakkan dengan Row Level Security di database.
 - **Self-hosted** di VPS sendiri (lihat [deploy/README.md](deploy/README.md)).
 
 ## Stack
@@ -31,6 +32,7 @@ supabase/functions/
   send-message/                 kirim teks/media/template atas nama agen
   invite-member/                admin menambah anggota tim (password bawaan 12345678)
   member-password/              ganti password wajib saat login pertama, reset oleh admin
+  master-admin/                 konsol Master Admin: tenant dan Superadmin
   api/                          REST API dengan API key
   mcp/                          server MCP (Model Context Protocol)
   webhook-dispatch/             mengirim event webhook (dibangunkan pg_net dan cron)

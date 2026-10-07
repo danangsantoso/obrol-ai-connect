@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { LogoMark } from '@/components/brand/Logo';
 import { OtpLogin } from '@/components/auth/OtpLogin';
+import { GoogleButton } from '@/components/auth/GoogleButton';
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -120,7 +121,8 @@ export default function Auth() {
                   Masukkan email dan password untuk membuka inbox
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                <GoogleButton label="Masuk dengan Google" />
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
@@ -156,10 +158,12 @@ export default function Auth() {
               <CardHeader>
                 <CardTitle>Buat Akun Baru</CardTitle>
                 <CardDescription>
-                  Untuk admin yang membuat organisasi baru. Agen cukup menunggu undangan dari admin.
+                  Untuk pemilik usaha yang ingin memakai Balas.id. Pendaftaran disetujui oleh pengelola platform.
+                  Agen cukup menunggu undangan dari admin.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                <GoogleButton label="Daftar dengan Google" />
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Nama Lengkap</Label>

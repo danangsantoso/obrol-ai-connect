@@ -20,6 +20,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const AiAgent = lazy(() => import("./pages/AiAgent"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Integrations = lazy(() => import("./pages/Integrations"));
+const MasterAdmin = lazy(() => import("./pages/MasterAdmin"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 
 const queryClient = new QueryClient();
@@ -32,17 +33,42 @@ function FullPageSpinner() {
   );
 }
 
-// Signed in + member of an organization (otherwise: login or onboarding),
-// and no longer on the default password (otherwise: change it first).
+function SuspendedTenant() {
+  const { signOut } = useAuth();
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <h1 className="text-xl font-bold">Akun organisasi Anda sedang dinonaktifkan</h1>
+      <p className="max-w-md text-muted-foreground">Hubungi pengelola Balas.id untuk mengaktifkannya kembali.</p>
+      <button className="text-primary underline" onClick={() => signOut()}>
+        Keluar
+      </button>
+    </div>
+  );
+}
+
+// Signed in + member of an active organization (otherwise: login, onboarding,
+// or the Master Admin console), and no longer on the default password.
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: AppRole[] }) {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, isMaster, tenantSuspended } = useAuth();
 
   if (loading) return <FullPageSpinner />;
   if (!user) return <Navigate to="/auth" replace />;
-  if (!profile?.organization_id) return <Navigate to="/onboarding" replace />;
-  if (profile.must_change_password) return <ChangePassword />;
+  if (profile?.must_change_password) return <ChangePassword />;
+  if (!profile?.organization_id) return <Navigate to={isMaster ? "/master" : "/onboarding"} replace />;
+  if (tenantSuspended) return <SuspendedTenant />;
   if (roles && !roles.includes(profile.role)) return <Navigate to="/" replace />;
 
+  return <>{children}</>;
+}
+
+// Platform owner only; belongs to no tenant.
+function MasterRoute({ children }: { children: React.ReactNode }) {
+  const { user, profile, loading, isMaster } = useAuth();
+
+  if (loading) return <FullPageSpinner />;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (profile?.must_change_password) return <ChangePassword />;
+  if (!isMaster) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -57,6 +83,14 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding" element={<Onboarding />} />
+              <Route
+                path="/master"
+                element={
+                  <MasterRoute>
+                    <MasterAdmin />
+                  </MasterRoute>
+                }
+              />
               <Route
                 path="/"
                 element={

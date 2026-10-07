@@ -45,15 +45,27 @@ export async function requireMember(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, organization_id, role, full_name, is_active")
+    .select("id, organization_id, role, full_name, is_active, organizations(is_active)")
     .eq("id", data.user.id)
     .maybeSingle();
 
-  if (!profile?.organization_id || !profile.is_active) {
+  const tenant = (profile as { organizations?: { is_active: boolean } | null } | null)?.organizations;
+  if (!profile?.organization_id || !profile.is_active || tenant?.is_active === false) {
     throw new HttpError(403, "Your account is not active in an organization", "forbidden");
   }
   if (roles && !roles.includes(profile.role)) {
     throw new HttpError(403, "You do not have permission for this action", "forbidden");
   }
   return profile as Member;
+}
+
+// Resolves the signed-in caller to a platform Master Admin (outside all tenants).
+export async function requireMasterAdmin(req: Request, admin: SupabaseClient): Promise<{ id: string; email: string }> {
+  const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+  if (!token) throw new HttpError(401, "Missing access token", "unauthorized");
+  const { data, error } = await admin.auth.getUser(token);
+  if (error || !data.user) throw new HttpError(401, "Invalid or expired session", "unauthorized");
+  const { data: row } = await admin.from("platform_admins").select("user_id").eq("user_id", data.user.id).maybeSingle();
+  if (!row) throw new HttpError(403, "Hanya Master Admin yang boleh melakukan ini", "forbidden");
+  return { id: data.user.id, email: data.user.email ?? "" };
 }

@@ -478,3 +478,6 @@ verify_jwt = false
 
 [functions.webhook-dispatch]
 verify_jwt = false
+
+[functions.master-admin]
+verify_jwt = true

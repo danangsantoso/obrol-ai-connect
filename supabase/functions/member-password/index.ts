@@ -13,7 +13,11 @@ serveJson(async (req) => {
   const input = await readJson<{ action: "change" | "reset"; password?: string; user_id?: string }>(req);
 
   if (input.action === "change") {
-    const member = await requireMember(req, admin);
+    // Any signed-in user, including a Master Admin who belongs to no tenant.
+    const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+    const { data: auth, error: authError } = await admin.auth.getUser(token);
+    if (authError || !auth.user) throw new HttpError(401, "Invalid or expired session", "unauthorized");
+    const member = { id: auth.user.id };
     const password = input.password ?? "";
     if (password.length < 8) throw new HttpError(400, "Password minimal 8 karakter", "invalid_request");
     if (password === DEFAULT_PASSWORD) {
