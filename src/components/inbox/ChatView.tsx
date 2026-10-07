@@ -14,6 +14,7 @@ import { TemplateSender } from './TemplateSender';
 import { Timeline } from './Timeline';
 import { TransferDialog } from './TransferDialog';
 import { LabelPicker } from './LabelPicker';
+import { ChatFollowup } from '@/components/followup/ChatFollowup';
 import { useTimeline } from './useInboxData';
 import { useAiSettings } from '@/components/ai/aiSettings';
 import type { ConversationRow, Label, Member, Team } from './types';
@@ -191,6 +192,7 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
           <UserRoundCog className="mr-1 h-4 w-4" />
           Pindahkan
         </Button>
+        <ChatFollowup conversationId={conversation.id} orgId={me.organization_id!} />
         <Select value={conversation.status} onValueChange={setStatus}>
           <SelectTrigger className="h-9 w-32">
             <SelectValue />

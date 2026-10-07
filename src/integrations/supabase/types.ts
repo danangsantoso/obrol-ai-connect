@@ -699,6 +699,282 @@ export type Database = {
           },
         ];
       };
+      followup_enrollments: {
+        Row: {
+          agent_id: string | null;
+          attempts: number;
+          conversation_id: string;
+          current_step: number;
+          ended_at: string | null;
+          enrolled_by: string | null;
+          id: string;
+          last_error: string | null;
+          next_send_at: string | null;
+          organization_id: string;
+          replied_after_step: number | null;
+          replied_at: string | null;
+          sequence_id: string;
+          started_at: string;
+          status: string;
+          steps_total: number;
+          stop_reason: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          agent_id?: string | null;
+          attempts?: number;
+          conversation_id: string;
+          current_step?: number;
+          ended_at?: string | null;
+          enrolled_by?: string | null;
+          id?: string;
+          last_error?: string | null;
+          next_send_at?: string | null;
+          organization_id: string;
+          replied_after_step?: number | null;
+          replied_at?: string | null;
+          sequence_id: string;
+          started_at?: string;
+          status?: string;
+          steps_total: number;
+          stop_reason?: string | null;
+        };
+        Update: {
+          agent_id?: string | null;
+          attempts?: number;
+          conversation_id?: string;
+          current_step?: number;
+          ended_at?: string | null;
+          enrolled_by?: string | null;
+          id?: string;
+          last_error?: string | null;
+          next_send_at?: string | null;
+          organization_id?: string;
+          replied_after_step?: number | null;
+          replied_at?: string | null;
+          sequence_id?: string;
+          started_at?: string;
+          status?: string;
+          steps_total?: number;
+          stop_reason?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "followup_enrollments_agent_id_fkey";
+            columns: ["agent_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "followup_enrollments_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "followup_enrollments_enrolled_by_fkey";
+            columns: ["enrolled_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "followup_enrollments_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "followup_enrollments_sequence_id_fkey";
+            columns: ["sequence_id"];
+            isOneToOne: false;
+            referencedRelation: "followup_sequences";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      followup_sends: {
+        Row: {
+          created_at: string;
+          enrollment_id: string;
+          error: string | null;
+          id: string;
+          message_id: string | null;
+          organization_id: string;
+          position: number;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          enrollment_id: string;
+          error?: string | null;
+          id?: string;
+          message_id?: string | null;
+          organization_id: string;
+          position: number;
+          status: string;
+        };
+        Update: {
+          created_at?: string;
+          enrollment_id?: string;
+          error?: string | null;
+          id?: string;
+          message_id?: string | null;
+          organization_id?: string;
+          position?: number;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "followup_sends_enrollment_id_fkey";
+            columns: ["enrollment_id"];
+            isOneToOne: false;
+            referencedRelation: "followup_enrollments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "followup_sends_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "followup_sends_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      followup_sequences: {
+        Row: {
+          ai_personalize: boolean;
+          created_at: string;
+          created_by: string | null;
+          description: string;
+          id: string;
+          is_active: boolean;
+          label_id: string | null;
+          name: string;
+          organization_id: string;
+          send_hour: number | null;
+          trigger: string;
+          trigger_after_hours: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          ai_personalize?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          id?: string;
+          is_active?: boolean;
+          label_id?: string | null;
+          name: string;
+          organization_id: string;
+          send_hour?: number | null;
+          trigger?: string;
+          trigger_after_hours?: number;
+          updated_at?: string;
+        };
+        Update: {
+          ai_personalize?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          id?: string;
+          is_active?: boolean;
+          label_id?: string | null;
+          name?: string;
+          organization_id?: string;
+          send_hour?: number | null;
+          trigger?: string;
+          trigger_after_hours?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "followup_sequences_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "followup_sequences_label_id_fkey";
+            columns: ["label_id"];
+            isOneToOne: false;
+            referencedRelation: "labels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "followup_sequences_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      followup_steps: {
+        Row: {
+          delay_days: number;
+          delay_hours: number;
+          id: string;
+          message: string;
+          organization_id: string;
+          position: number;
+          sequence_id: string;
+          template_language: string | null;
+          template_name: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          delay_days?: number;
+          delay_hours?: number;
+          id?: string;
+          message: string;
+          organization_id: string;
+          position: number;
+          sequence_id: string;
+          template_language?: string | null;
+          template_name?: string | null;
+        };
+        Update: {
+          delay_days?: number;
+          delay_hours?: number;
+          id?: string;
+          message?: string;
+          organization_id?: string;
+          position?: number;
+          sequence_id?: string;
+          template_language?: string | null;
+          template_name?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "followup_steps_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "followup_steps_sequence_id_fkey";
+            columns: ["sequence_id"];
+            isOneToOne: false;
+            referencedRelation: "followup_sequences";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       knowledge_chunks: {
         Row: {
           content: string;
@@ -1739,6 +2015,157 @@ export type Database = {
           p_reason: string;
         };
         Returns: undefined;
+      };
+      followup_auto_enroll: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
+      followup_claim_due: {
+        Args: { p_limit?: number };
+        Returns: {
+          agent_id: string | null;
+          attempts: number;
+          conversation_id: string;
+          current_step: number;
+          ended_at: string | null;
+          enrolled_by: string | null;
+          id: string;
+          last_error: string | null;
+          next_send_at: string | null;
+          organization_id: string;
+          replied_after_step: number | null;
+          replied_at: string | null;
+          sequence_id: string;
+          started_at: string;
+          status: string;
+          steps_total: number;
+          stop_reason: string | null;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "followup_enrollments";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      followup_due_at: {
+        Args: {
+          p_days: number;
+          p_from: string;
+          p_hours: number;
+          p_send_hour: number;
+          p_tz: string;
+        };
+        Returns: string;
+      };
+      followup_enroll: {
+        Args: { p_conversation_id: string; p_sequence_id: string };
+        Returns: {
+          agent_id: string | null;
+          attempts: number;
+          conversation_id: string;
+          current_step: number;
+          ended_at: string | null;
+          enrolled_by: string | null;
+          id: string;
+          last_error: string | null;
+          next_send_at: string | null;
+          organization_id: string;
+          replied_after_step: number | null;
+          replied_at: string | null;
+          sequence_id: string;
+          started_at: string;
+          status: string;
+          steps_total: number;
+          stop_reason: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "followup_enrollments";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      followup_record_send: {
+        Args: {
+          p_enrollment_id: string;
+          p_error: string;
+          p_message_id: string;
+          p_outcome: string;
+          p_position: number;
+        };
+        Returns: {
+          agent_id: string | null;
+          attempts: number;
+          conversation_id: string;
+          current_step: number;
+          ended_at: string | null;
+          enrolled_by: string | null;
+          id: string;
+          last_error: string | null;
+          next_send_at: string | null;
+          organization_id: string;
+          replied_after_step: number | null;
+          replied_at: string | null;
+          sequence_id: string;
+          started_at: string;
+          status: string;
+          steps_total: number;
+          stop_reason: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "followup_enrollments";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      followup_stats: {
+        Args: { p_days?: number };
+        Returns: {
+          active: number;
+          agent_id: string;
+          completed: number;
+          enrolled: number;
+          failed: number;
+          messages_sent: number;
+          replied: number;
+          replied_by_step: Json;
+          sequence_id: string;
+          stopped: number;
+        }[];
+      };
+      followup_step_due: {
+        Args: { p_from: string; p_position: number; p_sequence_id: string };
+        Returns: string;
+      };
+      followup_stop: {
+        Args: { p_enrollment_id: string };
+        Returns: {
+          agent_id: string | null;
+          attempts: number;
+          conversation_id: string;
+          current_step: number;
+          ended_at: string | null;
+          enrolled_by: string | null;
+          id: string;
+          last_error: string | null;
+          next_send_at: string | null;
+          organization_id: string;
+          replied_after_step: number | null;
+          replied_at: string | null;
+          sequence_id: string;
+          started_at: string;
+          status: string;
+          steps_total: number;
+          stop_reason: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "followup_enrollments";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       hand_to_ai: {
         Args: { conv_id: string };

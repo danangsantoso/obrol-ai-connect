@@ -4,7 +4,7 @@
 //  suggest  - draft a reply for the agent handling a chat (members)
 //  test     - try a question against the current settings and knowledge (admins, supervisors)
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
-import { adminClient, callerClient, requireMember } from "../_shared/supabase.ts";
+import { adminClient, callerClient, isServiceRole, requireMember } from "../_shared/supabase.ts";
 import { answer, autoReply, cleanName, loadAi, logRun, suggest, toChat } from "../_shared/ai.ts";
 import { LlmError } from "../_shared/llm.ts";
 
@@ -22,15 +22,6 @@ declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | unde
 function inBackground(work: Promise<unknown>) {
   const guarded = work.catch((err) => console.error("ai background task failed", err));
   if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(guarded);
-}
-
-function isServiceRole(req: Request): boolean {
-  const given = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  const expected = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!expected || given.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ given.charCodeAt(i);
-  return diff === 0;
 }
 
 serveJson(async (req) => {

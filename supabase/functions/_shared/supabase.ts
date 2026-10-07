@@ -69,3 +69,13 @@ export async function requireMasterAdmin(req: Request, admin: SupabaseClient): P
   if (!row) throw new HttpError(403, "Hanya Master Admin yang boleh melakukan ini", "forbidden");
   return { id: data.user.id, email: data.user.email ?? "" };
 }
+
+// True when the request carries the service role key (cron jobs, database triggers).
+export function isServiceRole(req: Request): boolean {
+  const given = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  const expected = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!expected || given.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ given.charCodeAt(i);
+  return diff === 0;
+}

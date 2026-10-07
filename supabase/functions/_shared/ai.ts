@@ -379,6 +379,46 @@ export async function logRun(
   });
 }
 
+// Rewords a prepared follow-up message so it fits the chat so far. Returns
+// null when the AI is not set up or fails; the prepared text is sent instead.
+export async function personalizeFollowup(
+  admin: SupabaseClient,
+  orgId: string,
+  conversationId: string,
+  draft: string,
+  step: { position: number; total: number },
+): Promise<string | null> {
+  try {
+    const ai = await loadAi(admin, orgId);
+    const [{ data: org }, rows, contact] = await Promise.all([
+      admin.from("organizations").select("name").eq("id", orgId).single(),
+      history(admin, conversationId),
+      customerOf(admin, conversationId),
+    ]);
+    const chat = toChat(rows);
+    const transcript = chat.map((m) => `${m.role === "user" ? "Pelanggan" : "Kami"}: ${m.content}`).join("\n").slice(-6000);
+    const system = `Kamu ${ai.settings.bot_name}, CS ${org?.name ?? "kami"}. Pelanggan belum membalas. Tulis pesan follow-up ke-${step.position} dari ${step.total}.
+Pakai DRAF dari pemilik bisnis sebagai dasar: pertahankan maksud, penawaran, dan ajakannya, tetapi sesuaikan dengan isi percakapan (produk yang ditanyakan, kebutuhan pelanggan). Jangan menambah fakta, harga, atau promo yang tidak ada di draf atau percakapan.
+${nameRules(ai.settings, contact.customer)}
+${emojiRule(ai.settings)}
+- Ringkas (1-3 kalimat), hangat, tidak memaksa.
+Balas HANYA dengan JSON: {"reply": "<pesan>", "handoff": false, "reason": "", "customer_name": ""}
+
+DRAF:
+${draft}
+
+PERCAKAPAN TERAKHIR:
+${transcript || "(belum ada)"}`;
+    const result = await complete(ai.llm, system, [{ role: "user", content: "Tulis pesan follow-up sekarang." }]);
+    if (result.refused) return null;
+    const reply = parseAnswer(result.text).reply.trim();
+    return reply ? reply.slice(0, 2000) : null;
+  } catch (err) {
+    console.error("follow-up personalization failed", err);
+    return null;
+  }
+}
+
 // Draft reply for an agent (not sent).
 export async function suggest(admin: SupabaseClient, orgId: string, conversationId: string) {
   const ai = await loadAi(admin, orgId);

@@ -40,7 +40,13 @@ function MediaContent({ message }: { message: Message }) {
 
 // Outbound messages come from an agent, the AI agent, or the linked phone (QR numbers).
 function senderLabel(message: Message, sender?: Member) {
-  const meta = (message.metadata ?? {}) as { ai?: boolean; bot_name?: string; sent_from_phone?: boolean };
+  const meta = (message.metadata ?? {}) as {
+    ai?: boolean;
+    bot_name?: string;
+    sent_from_phone?: boolean;
+    followup?: { step: number; of: number };
+  };
+  if (meta.followup) return `⏰ Follow-up otomatis · lapis ${meta.followup.step}/${meta.followup.of}`;
   if (meta.ai) return `🤖 ${meta.bot_name || 'AI'}`;
   if (meta.sent_from_phone) return 'Dari HP';
   return memberName(sender);
