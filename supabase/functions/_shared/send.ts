@@ -5,6 +5,8 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { HttpError } from "./http.ts";
 import { sendMessage, uploadMedia } from "./whatsapp.ts";
 import * as evolution from "./evolution.ts";
+import { decryptSecret } from "./crypto.ts";
+import { sendSocial, type SocialAttachment, userIdFromKey } from "./meta.ts";
 
 export type MediaType = "image" | "video" | "audio" | "document";
 
@@ -18,6 +20,9 @@ export interface SendInput {
 }
 
 const WINDOW_MS = 24 * 60 * 60 * 1000;
+// Messenger / Instagram: replies up to 7 days after the customer's last message
+// with the HUMAN_AGENT tag.
+const HUMAN_AGENT_WINDOW_MS = 7 * WINDOW_MS;
 const MEDIA_TYPES: MediaType[] = ["image", "video", "audio", "document"];
 
 export async function sendToConversation(
@@ -29,17 +34,27 @@ export async function sendToConversation(
 ) {
   const { data: conv, error } = await admin
     .from("conversations")
-    .select("id, organization_id, last_customer_message_at, contacts(wa_id), channels(provider, phone_number_id, instance_name, is_active)")
+    .select("id, organization_id, last_customer_message_at, contacts(wa_id), channels(id, provider, phone_number_id, instance_name, page_id, is_active)")
     .eq("id", conversationId)
     .single<{
       id: string;
       organization_id: string;
       last_customer_message_at: string | null;
       contacts: { wa_id: string };
-      channels: { provider: "cloud_api" | "qr"; phone_number_id: string | null; instance_name: string | null; is_active: boolean };
+      channels: {
+        id: string;
+        provider: "cloud_api" | "qr" | "messenger" | "instagram";
+        phone_number_id: string | null;
+        instance_name: string | null;
+        page_id: string | null;
+        is_active: boolean;
+      };
     }>();
   if (error) throw error;
   if (!conv.channels.is_active) throw new HttpError(409, "This WhatsApp number is disabled", "channel_inactive");
+  if (conv.channels.provider === "messenger" || conv.channels.provider === "instagram") {
+    return await sendSocialMessage(admin, conv, input, senderId, extraMetadata);
+  }
 
   // The 24-hour customer service window and templates only exist on the Cloud API.
   const viaQr = conv.channels.provider === "qr";
@@ -145,6 +160,107 @@ export async function sendToConversation(
   });
 
   return message;
+}
+
+interface SocialConversation {
+  id: string;
+  organization_id: string;
+  last_customer_message_at: string | null;
+  contacts: { wa_id: string };
+  channels: { id: string; provider: string };
+}
+
+const SOCIAL_ATTACHMENT: Record<MediaType, SocialAttachment> = {
+  image: "image",
+  video: "video",
+  audio: "audio",
+  document: "file",
+};
+
+async function record(
+  admin: SupabaseClient,
+  conversationId: string,
+  senderId: string | null,
+  mid: string,
+  type: string,
+  body: string | null,
+  media: { path: string; mime: string; filename: string } | null,
+  metadata: Record<string, unknown>,
+) {
+  const { data, error } = await admin.rpc("record_outbound_message", {
+    p_conversation_id: conversationId,
+    p_sender_id: senderId,
+    p_wa_message_id: mid,
+    p_type: type,
+    p_body: body,
+    p_media_path: media?.path ?? null,
+    p_media_mime: media?.mime ?? null,
+    p_media_filename: media?.filename ?? null,
+    p_reply_to_wa_id: null,
+    p_metadata: metadata,
+  });
+  if (error) throw error;
+  return data;
+}
+
+// Messenger and Instagram: plain text or one attachment per message; a caption
+// goes out as its own text message first.
+async function sendSocialMessage(
+  admin: SupabaseClient,
+  conv: SocialConversation,
+  input: SendInput,
+  senderId: string | null,
+  extraMetadata: Record<string, unknown>,
+) {
+  if (input.type === "template") throw new HttpError(400, "Template hanya untuk WhatsApp API resmi", "invalid_request");
+  const since = conv.last_customer_message_at ? Date.now() - new Date(conv.last_customer_message_at).getTime() : Infinity;
+  if (since >= HUMAN_AGENT_WINDOW_MS) {
+    throw new HttpError(422, "Lebih dari 7 hari sejak pesan terakhir pelanggan. Meta tidak mengizinkan membalas lagi.", "window_closed");
+  }
+  const tag = since >= WINDOW_MS ? "HUMAN_AGENT" as const : undefined;
+  const metadata = { ...extraMetadata, ...(tag ? { tag } : {}) };
+
+  const { data: secret } = await admin
+    .from("channel_secrets")
+    .select("access_token_encrypted")
+    .eq("channel_id", conv.channels.id)
+    .maybeSingle();
+  if (!secret) throw new HttpError(409, "Akun belum terhubung. Hubungkan ulang Facebook/Instagram di Pengaturan.", "channel_inactive");
+  const token = await decryptSecret(secret.access_token_encrypted);
+  const recipient = userIdFromKey(conv.contacts.wa_id);
+
+  if (input.type === "text") {
+    const text = input.text?.trim() ?? "";
+    if (!text) throw new HttpError(400, "Message text is empty", "invalid_request");
+    if (text.length > 2000) throw new HttpError(400, "Pesan Messenger/Instagram maksimal 2000 karakter", "invalid_request");
+    const mid = await sendSocial(token, recipient, { text }, tag);
+    return await record(admin, conv.id, senderId, mid, "text", text, null, metadata);
+  }
+
+  if (!MEDIA_TYPES.includes(input.type as MediaType)) throw new HttpError(400, "Unsupported message type", "invalid_request");
+  const path = input.media_path ?? "";
+  if (!path.startsWith(`${conv.organization_id}/outbound/`)) {
+    throw new HttpError(400, "media_path must be an uploaded outbound file", "invalid_request");
+  }
+  const file = await admin.storage.from("media").download(path);
+  if (file.error) throw new HttpError(400, "Uploaded file not found", "invalid_request");
+  // Meta fetches the file itself: a short-lived signed link on the public API address.
+  const signed = await admin.storage.from("media").createSignedUrl(path, 3600);
+  if (signed.error) throw signed.error;
+  const publicBase = (Deno.env.get("PUBLIC_API_URL") ?? "").replace(/\/$/, "");
+  const internalBase = (Deno.env.get("SUPABASE_URL") ?? "").replace(/\/$/, "");
+  const url = publicBase && signed.data.signedUrl.startsWith(internalBase)
+    ? publicBase + signed.data.signedUrl.slice(internalBase.length)
+    : signed.data.signedUrl;
+
+  const caption = input.text?.trim();
+  if (caption) {
+    const textMid = await sendSocial(token, recipient, { text: caption.slice(0, 2000) }, tag);
+    await record(admin, conv.id, senderId, textMid, "text", caption, null, metadata);
+  }
+  const media = { path, mime: file.data.type || "application/octet-stream", filename: input.filename || path.split("/").pop()! };
+  const mid = await sendSocial(token, recipient, { attachment: { type: SOCIAL_ATTACHMENT[input.type as MediaType], url } }, tag);
+  return await record(admin, conv.id, senderId, mid, input.type, null, media, metadata);
 }
 
 // Fills {{1}}, {{2}}, ... in the template's BODY text so the inbox shows what was sent.

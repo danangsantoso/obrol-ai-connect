@@ -444,6 +444,13 @@ verify_jwt = true
 [functions.ai-admin]
 verify_jwt = true
 
+# Facebook redirects the browser here after login (no Supabase session on that request).
+[functions.social-oauth]
+verify_jwt = false
+
+[functions.meta-webhook]
+verify_jwt = false
+
 # Passwordless sign-in email: carries the 6-digit code (served from public/ in production too).
 [auth.email.template.magic_link]
 subject = "Kode masuk Balas.id"

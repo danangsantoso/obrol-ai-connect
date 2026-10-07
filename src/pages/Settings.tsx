@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, BadgeCheck, Copy, Loader2, QrCode, RefreshCw, Trash2, Unplug } from "lucide-react";
+import { ArrowDown, ArrowUp, BadgeCheck, Copy, Facebook, Loader2, QrCode, RefreshCw, Trash2, Unplug } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { QrConnectDialog } from "@/components/settings/QrConnectDialog";
+import { SocialConnect } from "@/components/settings/SocialConnect";
+import { ChannelIcon } from "@/components/inbox/ChannelIcon";
 import { callFunction, errorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { LabelChip } from "@/components/inbox/LabelChip";
@@ -21,6 +23,29 @@ import { useLabels } from "@/components/inbox/useInboxData";
 import { cn } from "@/lib/utils";
 
 const WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`;
+const META_WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-webhook`;
+const KIND_LABELS: Record<string, string> = { qr: "Scan QR", cloud_api: "API resmi", messenger: "Messenger", instagram: "Instagram" };
+const isSocial = (provider: string) => provider === "messenger" || provider === "instagram";
+
+function CopyField({ label, value, hint }: { label: string; value: string; hint: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex max-w-2xl gap-2">
+        <Input readOnly value={value} />
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigator.clipboard.writeText(value).then(() => toast.success("URL disalin"))}
+          aria-label={`Salin ${label}`}
+        >
+          <Copy className="h-4 w-4" />
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">{hint}</p>
+    </div>
+  );
+}
 
 function OrganizationCard({ isAdmin }: { isAdmin: boolean }) {
   const { profile } = useAuth();
@@ -177,16 +202,30 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
   };
 
   const disconnect = async (ch: Channel) => {
-    if (!window.confirm(`Putuskan ${ch.name} dari WhatsApp? Untuk memakai lagi, scan QR ulang.`)) return;
+    const social = isSocial(ch.provider);
+    const question = social
+      ? `Putuskan ${ch.name}? Pesan baru tidak akan masuk lagi sampai dihubungkan ulang lewat Facebook.`
+      : `Putuskan ${ch.name} dari WhatsApp? Untuk memakai lagi, scan QR ulang.`;
+    if (!window.confirm(question)) return;
     setDisconnecting(ch.id);
     try {
-      await callFunction("wa-qr", { action: "logout", channel_id: ch.id });
+      if (social) await callFunction("social-oauth", { action: "disconnect", channel_id: ch.id });
+      else await callFunction("wa-qr", { action: "logout", channel_id: ch.id });
       toast.success("Nomor diputuskan");
       refresh();
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
       setDisconnecting(null);
+    }
+  };
+
+  const relogin = async () => {
+    try {
+      const { url } = await callFunction<{ url: string }>("social-oauth", { action: "start" });
+      window.location.assign(url);
+    } catch (err) {
+      toast.error(errorMessage(err));
     }
   };
 
@@ -197,10 +236,10 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Nomor WhatsApp</CardTitle>
+        <CardTitle>Kanal chat</CardTitle>
         <CardDescription>
-          Dua cara menghubungkan nomor: <b>Scan QR</b> (nomor WhatsApp/WhatsApp Business biasa, seperti WhatsApp Web)
-          atau <b>WhatsApp API resmi</b> (Meta Cloud API). Keduanya bisa dipakai bersamaan.
+          WhatsApp lewat <b>Scan QR</b> (nomor biasa, seperti WhatsApp Web) atau <b>WhatsApp API resmi</b>, serta{" "}
+          <b>Facebook Messenger</b> dan <b>Instagram</b> lewat login Facebook. Semua masuk ke Inbox yang sama.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -230,13 +269,13 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
                   <TableCell className="font-medium">{ch.name}</TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="gap-1 whitespace-nowrap">
-                      {ch.provider === "qr" ? <QrCode className="h-3 w-3" /> : <BadgeCheck className="h-3 w-3" />}
-                      {ch.provider === "qr" ? "Scan QR" : "API resmi"}
+                      {ch.provider === "cloud_api" ? <BadgeCheck className="h-3 w-3" /> : <ChannelIcon provider={ch.provider} className="h-3 w-3" />}
+                      {KIND_LABELS[ch.provider] ?? ch.provider}
                     </Badge>
                   </TableCell>
-                  <TableCell>{ch.display_phone ?? "–"}</TableCell>
+                  <TableCell>{ch.display_phone ?? (ch.provider === "instagram" && ch.external_username ? `@${ch.external_username}` : ch.provider === "messenger" ? ch.external_username : null) ?? "–"}</TableCell>
                   <TableCell>
-                    {ch.provider === "qr" ? (
+                    {ch.provider === "qr" || isSocial(ch.provider) ? (
                       <Badge variant="outline" className={connection.className}>
                         {connection.label}
                       </Badge>
@@ -248,7 +287,23 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
                     )}
                   </TableCell>
                   <TableCell>
-                    {ch.provider === "qr" ? (
+                    {isSocial(ch.provider) ? (
+                      isAdmin && (
+                        <div className="flex flex-wrap gap-2">
+                          {ch.is_active && ch.connection_status === "connected" ? (
+                            <Button size="sm" variant="outline" onClick={() => disconnect(ch)} disabled={disconnecting === ch.id}>
+                              {disconnecting === ch.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Unplug className="mr-1 h-3 w-3" />}
+                              Putuskan
+                            </Button>
+                          ) : (
+                            <Button size="sm" onClick={relogin}>
+                              <Facebook className="mr-1 h-3 w-3" />
+                              Hubungkan ulang
+                            </Button>
+                          )}
+                        </div>
+                      )
+                    ) : ch.provider === "qr" ? (
                       isAdmin && (
                         <div className="flex flex-wrap gap-2">
                           {ch.connection_status !== "connected" && (
@@ -283,7 +338,7 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
 
         {isAdmin && (
           <form onSubmit={addChannel} className="max-w-3xl space-y-3 rounded-lg border p-4">
-            <p className="font-medium">Tambah nomor</p>
+            <p className="font-medium">Tambah nomor WhatsApp</p>
             <RadioGroup
               value={provider}
               onValueChange={(v) => setProvider(v as "cloud_api" | "qr")}
@@ -337,24 +392,27 @@ function ChannelsCard({ isAdmin }: { isAdmin: boolean }) {
           </form>
         )}
 
+        {isAdmin && <SocialConnect onConnected={refresh} />}
+
         {channels.some((ch) => ch.provider === "cloud_api") && (
-          <div className="space-y-2">
-            <Label>URL webhook API resmi (isi di Meta → WhatsApp → Configuration)</Label>
-            <div className="flex max-w-2xl gap-2">
-              <Input readOnly value={WEBHOOK_URL} />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => navigator.clipboard.writeText(WEBHOOK_URL).then(() => toast.success("URL disalin"))}
-                aria-label="Salin URL webhook"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Verify token = nilai WHATSAPP_VERIFY_TOKEN di server. Langganan field: <code>messages</code>.
-            </p>
-          </div>
+          <CopyField
+            label="URL webhook API resmi (isi di Meta → WhatsApp → Configuration)"
+            value={WEBHOOK_URL}
+            hint={<>Verify token = nilai WHATSAPP_VERIFY_TOKEN di server. Langganan field: <code>messages</code>.</>}
+          />
+        )}
+        {isAdmin && (
+          <CopyField
+            label="URL webhook Messenger & Instagram (Meta App → Webhooks: Page dan Instagram)"
+            value={META_WEBHOOK_URL}
+            hint={
+              <>
+                Verify token sama dengan WhatsApp. Field Page: <code>messages</code>, <code>message_echoes</code>,{" "}
+                <code>message_deliveries</code>, <code>message_reads</code>, <code>messaging_postbacks</code>; Instagram:{" "}
+                <code>messages</code>.
+              </>
+            }
+          />
         )}
 
         {templates.length > 0 && (
@@ -527,7 +585,7 @@ export default function Settings() {
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold">Pengaturan</h1>
-        <p className="text-muted-foreground">Organisasi, nomor WhatsApp, dan template pesan.</p>
+        <p className="text-muted-foreground">Organisasi, kanal chat (WhatsApp, Messenger, Instagram), dan label.</p>
       </div>
       <OrganizationCard isAdmin={isAdmin} />
       <ChannelsCard isAdmin={isAdmin} />

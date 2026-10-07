@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import type { Profile } from '@/contexts/AuthContext';
-import { STATUS_LABELS, displayName, errorMessage, formatWaId, windowRemainingMs } from '@/lib/api';
+import { STATUS_LABELS, displayName, errorMessage, formatWaId, socialWindowRemainingMs, windowRemainingMs } from '@/lib/api';
+import { ChannelIcon } from './ChannelIcon';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Composer } from './Composer';
@@ -48,10 +49,14 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
   const [transferOpen, setTransferOpen] = useState(false);
   const now = useNow(30_000);
 
-  // QR-linked numbers have no 24-hour window and no templates.
-  const viaQr = conversation.channel?.provider === 'qr';
+  // QR-linked numbers have no 24-hour window and no templates. Messenger and
+  // Instagram allow 24 hours, then 7 days with the HUMAN_AGENT tag.
+  const provider = conversation.channel?.provider ?? 'cloud_api';
+  const viaQr = provider === 'qr';
+  const social = provider === 'messenger' || provider === 'instagram';
   const remaining = windowRemainingMs(conversation.last_customer_message_at, now);
-  const windowOpen = viaQr || remaining > 0;
+  const socialRemaining = socialWindowRemainingMs(conversation.last_customer_message_at, now);
+  const windowOpen = viaQr || (social ? socialRemaining > 0 : remaining > 0);
   const assignee = conversation.assignee_id ? memberMap.get(conversation.assignee_id) : undefined;
   const { data: ai } = useAiSettings(me.organization_id!);
   const aiReady = Boolean(ai?.enabled && ai.api_key_hint);
@@ -101,13 +106,27 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
         <div className="min-w-[14rem] flex-1">
           <p className="truncate font-semibold">{name}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {formatWaId(conversation.contact.wa_id)} · {assignee ? `Ditangani ${memberName(assignee)}` : 'Belum di-assign'}
+            {formatWaId(conversation.contact.wa_id, conversation.contact.username)} · {assignee ? `Ditangani ${memberName(assignee)}` : 'Belum di-assign'}
           </p>
         </div>
         {viaQr ? (
           <Badge variant="outline" className="gap-1" title="Nomor ini terhubung lewat scan QR">
             <QrCode className="h-3 w-3" />
             {conversation.channel?.name ?? 'Nomor QR'}
+          </Badge>
+        ) : social ? (
+          <Badge
+            variant="outline"
+            className={cn('gap-1', remaining > 0 ? 'border-success/40 text-success' : socialRemaining > 0 ? 'border-warning/50 text-warning' : 'border-destructive/40 text-destructive')}
+            title="Meta: balasan bebas 24 jam sejak pesan terakhir pelanggan, lalu sampai 7 hari dengan tag Human Agent"
+          >
+            <ChannelIcon provider={provider} className="h-3 w-3" />
+            {conversation.channel?.name} ·{' '}
+            {remaining > 0
+              ? `sisa ${formatRemaining(remaining)}`
+              : socialRemaining > 0
+                ? `Human Agent: sisa ${formatRemaining(socialRemaining)}`
+                : 'tertutup'}
           </Badge>
         ) : (
           <Badge
@@ -179,7 +198,7 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
         <Timeline items={items} members={memberMap} loading={loading} />
       </div>
 
-      {!windowOpen && <TemplateSender conversationId={conversation.id} orgId={me.organization_id!} onSent={addMessage} />}
+      {!windowOpen && provider === 'cloud_api' && <TemplateSender conversationId={conversation.id} orgId={me.organization_id!} onSent={addMessage} />}
       <Composer
         key={conversation.id}
         conversationId={conversation.id}

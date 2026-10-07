@@ -10,6 +10,7 @@ import { displayName, initials } from '@/lib/api';
 import type { ConversationRow, InboxTab, Label, Member } from './types';
 import { ALL, memberName } from './types';
 import { LabelChip } from './LabelChip';
+import { ChannelIcon } from './ChannelIcon';
 
 const TABS: { value: InboxTab; label: string }[] = [
   { value: 'unassigned', label: 'Antrean' },
@@ -154,8 +155,9 @@ export function ConversationList({
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <p className={cn('truncate text-sm', conv.unread_count > 0 ? 'font-semibold' : 'font-medium')}>
-                    {name}
+                  <p className={cn('flex min-w-0 items-center gap-1 text-sm', conv.unread_count > 0 ? 'font-semibold' : 'font-medium')}>
+                    <ChannelIcon provider={conv.channel?.provider} />
+                    <span className="truncate">{name}</span>
                   </p>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {formatListTime(conv.last_message_at)}

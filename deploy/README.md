@@ -56,7 +56,7 @@ Isi `SMTP_ADMIN_EMAIL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMT
 `/opt/balas/supabase/.env` (Gmail SMTP, Brevo, Mailgun, dll.), lalu `cd /opt/balas/supabase && sudo docker compose up -d`.
 Tanpa SMTP, agen tetap bisa masuk dengan password.
 
-## 4. Hubungkan WhatsApp
+## 4. Hubungkan kanal chat (WhatsApp, Messenger, Instagram)
 
 Ada dua cara, dan keduanya bisa dipakai bersamaan (misalnya nomor utama lewat API resmi, nomor cadangan lewat QR):
 
@@ -93,6 +93,38 @@ Log gateway: `cd /opt/balas/supabase && sudo docker compose logs --tail 100 evol
    - Verify token: nilai `WHATSAPP_VERIFY_TOKEN` di `.env` (ditampilkan di akhir instalasi)
    - Subscribe field: `messages`
 4. Klik **Sinkron** pada nomor untuk menarik template pesan yang sudah disetujui.
+
+### 4c. Facebook Messenger & Instagram Direct
+
+Sekali siapkan aplikasi Meta (boleh aplikasi yang sama dengan WhatsApp), lalu admin cukup klik **Hubungkan dengan
+Facebook**:
+
+1. developers.facebook.com → aplikasi Anda (tipe *Business*) → tambahkan produk **Facebook Login for Business**,
+   **Messenger**, dan **Instagram** (*API setup with Facebook login*).
+2. Facebook Login → Settings → **Valid OAuth Redirect URIs**: `https://api.domainanda.com/functions/v1/social-oauth`
+3. Webhooks:
+   - Callback URL: `https://api.domainanda.com/functions/v1/meta-webhook`; verify token: sama dengan WhatsApp
+     (`WHATSAPP_VERIFY_TOKEN`).
+   - Objek **Page**: field `messages`, `message_echoes`, `message_deliveries`, `message_reads`, `messaging_postbacks`.
+   - Objek **Instagram**: field `messages`.
+4. Isi di `/opt/balas/supabase/.env`, lalu jalankan `cd /opt/balas/supabase && sudo docker compose up -d functions`:
+   ```bash
+   META_APP_ID=<App ID>
+   META_APP_SECRET=<App secret>   # kosongkan bila sama dengan WHATSAPP_APP_SECRET
+   ```
+5. Di Balas.id: **Pengaturan → Kanal chat → Hubungkan dengan Facebook**. Login dengan akun yang menjadi admin Halaman,
+   centang Halaman (Messenger) dan akun Instagram Bisnis yang tertaut, lalu klik **Hubungkan**.
+
+Catatan:
+- Selama aplikasi Meta masih *Development*, hanya akun yang terdaftar sebagai admin/tester aplikasi yang bisa login dan
+  mengirim pesan uji. Untuk pelanggan umum, ajukan **App Review** untuk izin `pages_messaging`,
+  `instagram_manage_messages`, `pages_manage_metadata`, `pages_show_list`, `instagram_basic`,
+  `business_management`, dan lakukan **Business Verification**.
+- Akun Instagram harus akun **Bisnis/Kreator** yang tertaut ke Halaman Facebook, dan pengaturan Instagram
+  *Izinkan akses ke pesan* harus aktif.
+- Aturan balasan Meta: bebas dalam 24 jam sejak pesan terakhir pelanggan; sampai 7 hari dikirim dengan tag *Human Agent*
+  (perlu izin Human Agent di App Review); lewat 7 hari tidak bisa dibalas.
+- Threads belum punya API pesan langsung. X/Twitter butuh paket API berbayar, jadi belum didukung.
 
 ## 5. AI Agent (balas otomatis)
 

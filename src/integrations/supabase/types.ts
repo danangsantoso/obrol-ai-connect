@@ -250,6 +250,33 @@ export type Database = {
           },
         ];
       };
+      channel_secrets: {
+        Row: {
+          access_token_encrypted: string;
+          channel_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          access_token_encrypted: string;
+          channel_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          access_token_encrypted?: string;
+          channel_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "channel_secrets_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: true;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       channels: {
         Row: {
           ai_enabled: boolean;
@@ -257,11 +284,14 @@ export type Database = {
           connection_updated_at: string | null;
           created_at: string;
           display_phone: string | null;
+          external_id: string | null;
+          external_username: string | null;
           id: string;
           instance_name: string | null;
           is_active: boolean;
           name: string;
           organization_id: string;
+          page_id: string | null;
           phone_number_id: string | null;
           provider: Database["public"]["Enums"]["channel_provider"];
           updated_at: string;
@@ -274,11 +304,14 @@ export type Database = {
           connection_updated_at?: string | null;
           created_at?: string;
           display_phone?: string | null;
+          external_id?: string | null;
+          external_username?: string | null;
           id?: string;
           instance_name?: string | null;
           is_active?: boolean;
           name: string;
           organization_id: string;
+          page_id?: string | null;
           phone_number_id?: string | null;
           provider?: Database["public"]["Enums"]["channel_provider"];
           updated_at?: string;
@@ -290,11 +323,14 @@ export type Database = {
           connection_updated_at?: string | null;
           created_at?: string;
           display_phone?: string | null;
+          external_id?: string | null;
+          external_username?: string | null;
           id?: string;
           instance_name?: string | null;
           is_active?: boolean;
           name?: string;
           organization_id?: string;
+          page_id?: string | null;
           phone_number_id?: string | null;
           provider?: Database["public"]["Enums"]["channel_provider"];
           updated_at?: string;
@@ -343,6 +379,7 @@ export type Database = {
       };
       contacts: {
         Row: {
+          avatar_url: string | null;
           company: string | null;
           created_at: string;
           custom_fields: NonNullable<Json>;
@@ -354,10 +391,12 @@ export type Database = {
           organization_id: string;
           profile_name: string | null;
           updated_at: string;
+          username: string | null;
           wa_id: string;
         };
         ComputedFields: never;
         Insert: {
+          avatar_url?: string | null;
           company?: string | null;
           created_at?: string;
           custom_fields?: NonNullable<Json>;
@@ -369,9 +408,11 @@ export type Database = {
           organization_id: string;
           profile_name?: string | null;
           updated_at?: string;
+          username?: string | null;
           wa_id: string;
         };
         Update: {
+          avatar_url?: string | null;
           company?: string | null;
           created_at?: string;
           custom_fields?: NonNullable<Json>;
@@ -383,6 +424,7 @@ export type Database = {
           organization_id?: string;
           profile_name?: string | null;
           updated_at?: string;
+          username?: string | null;
           wa_id?: string;
         };
         Relationships: [
@@ -830,6 +872,49 @@ export type Database = {
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      oauth_states: {
+        Row: {
+          created_at: string;
+          error: string | null;
+          organization_id: string;
+          result: Json | null;
+          state: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          error?: string | null;
+          organization_id: string;
+          result?: Json | null;
+          state: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          error?: string | null;
+          organization_id?: string;
+          result?: Json | null;
+          state?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "oauth_states_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "oauth_states_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -1428,7 +1513,7 @@ export type Database = {
       agent_status: "online" | "away" | "offline";
       ai_provider: "openai" | "anthropic" | "deepseek" | "gemini" | "custom";
       app_role: "admin" | "supervisor" | "agent";
-      channel_provider: "cloud_api" | "qr";
+      channel_provider: "cloud_api" | "qr" | "messenger" | "instagram";
       conversation_status: "open" | "pending" | "resolved";
       message_direction: "inbound" | "outbound";
       message_status: "received" | "sent" | "delivered" | "read" | "failed";
@@ -1565,7 +1650,7 @@ export const Constants = {
       agent_status: ["online", "away", "offline"],
       ai_provider: ["openai", "anthropic", "deepseek", "gemini", "custom"],
       app_role: ["admin", "supervisor", "agent"],
-      channel_provider: ["cloud_api", "qr"],
+      channel_provider: ["cloud_api", "qr", "messenger", "instagram"],
       conversation_status: ["open", "pending", "resolved"],
       message_direction: ["inbound", "outbound"],
       message_status: ["received", "sent", "delivered", "read", "failed"],

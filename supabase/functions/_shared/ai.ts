@@ -330,11 +330,11 @@ async function runTurn(admin: SupabaseClient, conversationId: string) {
 
     const meta = { ai: true, bot_name: ai.settings.bot_name };
     if (outcome === "replied" && result) {
-      await sendToConversation(admin, conversationId, { type: "text", text: result.reply.slice(0, 4096) }, null, meta);
+      await sendToConversation(admin, conversationId, { type: "text", text: result.reply.slice(0, 2000) }, null, meta);
     } else {
       // The customer still gets an answer: a polite hand-over, plus the AI's partial reply if it had one.
       const text = [result?.reply, ai.settings.handoff_message].filter((t) => t && t.trim()).join("\n\n");
-      if (text) await sendToConversation(admin, conversationId, { type: "text", text: text.slice(0, 4096) }, null, { ...meta, handoff: true });
+      if (text) await sendToConversation(admin, conversationId, { type: "text", text: text.slice(0, 2000) }, null, { ...meta, handoff: true });
     }
     await logRun(admin, { organization_id: orgId, conversation_id: conversationId, kind: "auto", llm: ai.llm, status: outcome, answer: result ?? undefined });
     await admin.rpc("finish_ai_turn", { p_conversation_id: conversationId, p_outcome: outcome, p_reason: reason });

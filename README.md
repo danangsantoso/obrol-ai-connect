@@ -4,7 +4,8 @@ Satu nomor WhatsApp untuk seluruh tim CS. Pesan pelanggan masuk ke inbox bersama
 
 - **Inbox bersama realtime**: tab Antrean, Saya, Semua, dan Selesai, ditambah pencarian nama, nomor, dan isi pesan.
 - **Satu chat, satu pemilik**: agen mengambil chat (klaim atomik), memindahkan ke agen atau tim lain dengan catatan, dan mengubah status Open/Pending/Resolved.
-- **Dua cara menghubungkan nomor**: scan QR (nomor WhatsApp biasa, lewat gateway Evolution API) atau WhatsApp API resmi (Meta Cloud API). Keduanya bisa dipakai bersamaan.
+- **Banyak kanal, satu inbox**: WhatsApp, Facebook Messenger, dan Instagram Direct. Messenger dan Instagram dihubungkan lewat login Facebook.
+- **Dua cara menghubungkan nomor WhatsApp**: scan QR (nomor WhatsApp biasa, lewat gateway Evolution API) atau WhatsApp API resmi (Meta Cloud API). Keduanya bisa dipakai bersamaan.
 - **Aturan WhatsApp 24 jam** (nomor API resmi): sisa waktu jendela layanan ditampilkan. Di luar jendela itu, balasan hanya bisa lewat template yang disetujui Meta.
 - **AI Agent**: AI membalas chat otomatis (atau membuat draf untuk agen) berdasarkan katalog produk dan dokumen pengetahuan yang diunggah (PDF, Word, TXT, CSV). Pilih model sendiri: Claude, ChatGPT, DeepSeek, Gemini, atau LLM lain yang kompatibel OpenAI. Chat yang tidak bisa dijawab diserahkan ke agen.
 - **Catatan internal**, profil kontak, lampiran media, dan status terkirim/dibaca.
@@ -30,6 +31,8 @@ supabase/functions/
   wa-qr-webhook/                terima pesan, status, dan koneksi dari gateway QR
   ai-reply/                     AI: balas otomatis, draf untuk agen, uji coba
   ai-admin/                     AI: simpan API key (terenkripsi), cek koneksi
+  social-oauth/                 login Facebook: pilih Halaman Messenger & akun Instagram
+  meta-webhook/                 terima pesan Messenger & Instagram
   _shared/                      helper bersama
 src/pages/                      Dashboard, Inbox, Kontak, Tim & Agen, Pengaturan
 deploy/                         Caddyfile, override docker-compose, skrip deploy & backup

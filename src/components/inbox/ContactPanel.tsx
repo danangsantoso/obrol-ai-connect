@@ -62,9 +62,11 @@ export function ContactPanel({ contactId }: { contactId: string }) {
     <aside className="hidden w-72 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-card p-4 xl:flex">
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Kontak</p>
-        <p className="mt-1 text-sm">{formatWaId(contact.wa_id)}</p>
+        <p className="mt-1 text-sm">{formatWaId(contact.wa_id, contact.username)}</p>
         {contact.profile_name && (
-          <p className="text-xs text-muted-foreground">Nama di WhatsApp: {contact.profile_name}</p>
+          <p className="text-xs text-muted-foreground">
+            Nama di {contact.wa_id.startsWith('ig:') ? 'Instagram' : contact.wa_id.startsWith('fb:') ? 'Facebook' : 'WhatsApp'}: {contact.profile_name}
+          </p>
         )}
       </div>
       <div className="space-y-2">

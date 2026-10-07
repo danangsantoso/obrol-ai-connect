@@ -24,7 +24,7 @@ export default function Contacts() {
     queryFn: async () => {
       let query = supabase
         .from("contacts")
-        .select("id, wa_id, name, profile_name, email, company, created_at, conversations(id)")
+        .select("id, wa_id, name, profile_name, username, email, company, created_at, conversations(id)")
         .order("created_at", { ascending: false })
         .limit(200);
       if (term) {
@@ -99,7 +99,7 @@ export default function Contacts() {
                     onClick={() => conversationId && navigate(`/inbox/${conversationId}`)}
                   >
                     <TableCell className="font-medium">{displayName(c)}</TableCell>
-                    <TableCell>{formatWaId(c.wa_id)}</TableCell>
+                    <TableCell>{formatWaId(c.wa_id, c.username)}</TableCell>
                     <TableCell>{c.email ?? "–"}</TableCell>
                     <TableCell>{c.company ?? "–"}</TableCell>
                     <TableCell>{format(new Date(c.created_at), "d MMM yyyy", { locale: localeId })}</TableCell>

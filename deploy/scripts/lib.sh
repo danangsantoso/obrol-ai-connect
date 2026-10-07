@@ -51,7 +51,7 @@ install_balas_overlay() {
 
   [[ -n "$(env_get WHATSAPP_VERIFY_TOKEN)" ]] || env_set WHATSAPP_VERIFY_TOKEN "balas-$(openssl rand -hex 16)"
   local key
-  for key in WHATSAPP_APP_SECRET WHATSAPP_ACCESS_TOKEN; do
+  for key in WHATSAPP_APP_SECRET WHATSAPP_ACCESS_TOKEN META_APP_ID META_APP_SECRET; do
     grep -qE "^$key=" "$SUPABASE_DIR/.env" || env_set "$key" ""
   done
   [[ -n "$(env_get WHATSAPP_GRAPH_VERSION)" ]] || env_set WHATSAPP_GRAPH_VERSION v23.0

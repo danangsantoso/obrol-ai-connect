@@ -10,7 +10,7 @@ export type Label = Tables<'labels'>;
 export type QuickReply = Tables<'quick_replies'>;
 
 export type ConversationRow = Tables<'conversations'> & {
-  contact: Pick<Contact, 'id' | 'wa_id' | 'name' | 'profile_name'>;
+  contact: Pick<Contact, 'id' | 'wa_id' | 'name' | 'profile_name' | 'username'>;
   channel: Pick<Tables<'channels'>, 'provider' | 'name' | 'ai_enabled'> | null;
   conversation_labels: { label_id: string }[];
 };
