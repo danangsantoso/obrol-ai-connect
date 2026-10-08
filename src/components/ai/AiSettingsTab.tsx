@@ -16,6 +16,7 @@ import { callFunction, errorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { DEFAULT_SOUL } from "./soul";
 import { VoiceVisionCard } from "./VoiceVisionCard";
+import { KeepServingCard } from "./KeepServingCard";
 import { ChatText } from "@/components/chat/ChatText";
 
 const DEFAULTS = {
@@ -384,6 +385,7 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
                   disabled={!isAdmin}
                   onChange={(e) => setForm({ ...form, max_auto_replies: Number(e.target.value) })}
                 />
+                <p className="text-xs text-muted-foreground">Hanya berlaku bila "AI tetap melayani" dimatikan.</p>
               </div>
             </div>
             <label className="flex max-w-3xl items-start gap-3 rounded-lg border p-3 text-sm">
@@ -615,6 +617,7 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
           </CardContent>
         </Card>
       </form>
+      <KeepServingCard orgId={orgId} isAdmin={isAdmin} />
       <VoiceVisionCard orgId={orgId} isAdmin={isAdmin} />
     </div>
   );

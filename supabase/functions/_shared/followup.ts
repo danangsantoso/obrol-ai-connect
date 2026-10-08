@@ -160,3 +160,47 @@ export async function sweepFollowups(admin: SupabaseClient, deadlineMs = Date.no
   }
   return { enrolled: enrolled ?? 0, processed: sent };
 }
+
+// The AI's own follow-ups for chats it is serving whose customer went quiet
+// (ai_followup_claim decides which are due). The text is written by the AI
+// from the chat so far; the prepared lines are the fallback.
+const AI_FOLLOWUP_DRAFTS = [
+  "Halo *{sapaan}* 😊 Masih ada yang bisa {bot} bantu terkait pertanyaan sebelumnya? Kalau berkenan, saya bantu prosesnya sekarang ya.",
+  "*{sapaan}*, sekadar mengingatkan ya 🙏 Kalau masih tertarik, {bot} siap bantu pilihkan dan siapkan pesanannya.",
+  "Terima kasih sudah menghubungi {toko}, *{sapaan}* 🙏 Kapan pun butuh, tinggal balas chat ini ya, {bot} siap membantu.",
+];
+
+export async function sweepAiFollowups(admin: SupabaseClient) {
+  const { data: due, error } = await admin.rpc("ai_followup_claim", { p_limit: 20 });
+  if (error) {
+    console.error("ai follow-up claim failed", error);
+    return 0;
+  }
+  let sent = 0;
+  for (const row of (due ?? []) as { conversation_id: string; organization_id: string; followup_number: number; followup_max: number }[]) {
+    try {
+      const { data: granted } = await admin.rpc("use_quota", { p_org: row.organization_id, p_kind: "ai_replies", p_amount: 1 });
+      if ((granted ?? 1) < 1) continue;
+      const ctx = await context(admin, row.conversation_id, row.organization_id);
+      const isLast = row.followup_number >= row.followup_max;
+      const draft = AI_FOLLOWUP_DRAFTS[isLast ? 2 : Math.min(row.followup_number - 1, 1)];
+      const fallback = renderFollowup(draft, { ...ctx, agent: null });
+      const text = (await personalizeFollowup(admin, row.organization_id, row.conversation_id, fallback, {
+        position: row.followup_number,
+        total: row.followup_max,
+      })) ?? fallback;
+      // The customer may have written meanwhile, or an agent taken the chat.
+      const { data: fresh } = await admin.from("conversations").select("assignee_id, ai_engaged, ai_followups_sent").eq("id", row.conversation_id).single();
+      if (!fresh || fresh.assignee_id || !fresh.ai_engaged || fresh.ai_followups_sent === 0) continue;
+      await sendToConversation(admin, row.conversation_id, { type: "text", text }, null, {
+        ai: true,
+        bot_name: ctx.bot,
+        ai_followup: row.followup_number,
+      });
+      sent++;
+    } catch (err) {
+      console.error(`ai follow-up for ${row.conversation_id} failed`, err);
+    }
+  }
+  return sent;
+}
