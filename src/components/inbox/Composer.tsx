@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Loader2, Paperclip, Send, Sparkles, StickyNote, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { EmojiPicker } from '@/components/chat/EmojiPicker';
 import { supabase } from '@/integrations/supabase/client';
 import { callFunction, errorMessage } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -92,6 +93,20 @@ export function Composer({ conversationId, orgId, userId, contactName, members, 
     setCaret(position);
     setHighlight(0);
     setDismissed(false);
+  };
+
+  // Puts the emoji where the caret is (or replaces the selection) and keeps typing there.
+  const insertEmoji = (emoji: string) => {
+    const el = textarea.current;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? start;
+    const next = text.slice(0, start) + emoji + text.slice(end);
+    const pos = start + emoji.length;
+    updateText(next, pos);
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(pos, pos);
+    });
   };
 
   const choose = (s: Suggestion) => {
@@ -290,6 +305,7 @@ export function Composer({ conversationId, orgId, userId, contactName, members, 
             </Button>
           </>
         )}
+        <EmojiPicker onPick={insertEmoji} disabled={replyDisabled} />
         <Textarea
           ref={textarea}
           value={text}

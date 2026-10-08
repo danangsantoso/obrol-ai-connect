@@ -127,3 +127,13 @@ const EXTENSIONS: Record<string, string> = {
 export function extensionFor(mimeType: string): string {
   return EXTENSIONS[mimeType.split(";")[0].trim()] ?? "bin";
 }
+
+// Marks the customer's message as read and shows "typing..." until the reply
+// is sent (WhatsApp hides it after 25 seconds at most).
+export async function typingIndicator(phoneNumberId: string, messageId: string): Promise<void> {
+  await graph(`${phoneNumberId}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messaging_product: "whatsapp", status: "read", message_id: messageId, typing_indicator: { type: "text" } }),
+  });
+}

@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNowStrict } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { BellRing, CalendarClock, LogOut, User } from "lucide-react";
+import { CalendarClock, LogOut, User } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useFollowupChats } from "@/hooks/useFollowupAlerts";
+import { PushControl } from "./PushControl";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -47,7 +47,7 @@ export function Header() {
 
   return (
     <header className="flex h-14 items-center justify-end gap-3 border-b border-border bg-card px-6">
-      <NotificationPermission />
+      <PushControl />
       {profile.role !== "agent" && <FollowupBell orgId={profile.organization_id!} />}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -95,22 +95,6 @@ export function Header() {
 }
 
 // Browsers only allow notification prompts from a user gesture.
-function NotificationPermission() {
-  const supported = typeof window !== "undefined" && "Notification" in window;
-  const [permission, setPermission] = useState(supported ? Notification.permission : "denied");
-  if (!supported || permission !== "default") return null;
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => Notification.requestPermission().then(setPermission)}
-    >
-      <BellRing className="mr-2 h-4 w-4" />
-      Aktifkan notifikasi
-    </Button>
-  );
-}
-
 // Supervisors and admins: open chats nobody has followed up for the set number of days.
 function FollowupBell({ orgId }: { orgId: string }) {
   const { data = [], days } = useFollowupChats(orgId, true);

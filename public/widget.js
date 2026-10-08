@@ -15,9 +15,10 @@
   var API = (script.getAttribute("data-api") || "").replace(/\/$/, "") + "/functions/v1/webchat";
   var STORE = "balas_chat_" + KEY;
   var OPEN_POLL_MS = 3000;
+  var TYPING_POLL_MS = 1000;
   var CLOSED_POLL_MS = 15000;
 
-  var state = { config: null, visitor: null, last: null, open: false, unread: 0, seen: {}, timer: null, sending: false };
+  var state = { config: null, visitor: null, last: null, open: false, unread: 0, seen: {}, timer: null, sending: false, typing: false, loaded: false };
 
   function load() {
     try {
@@ -90,6 +91,10 @@
     ".msg a{color:inherit;text-decoration:underline}" +
     ".foot{display:flex;gap:8px;padding:10px;border-top:1px solid #e5e7eb;background:#fff}" +
     ".foot textarea{flex:1;resize:none;border:1px solid #d1d5db;border-radius:10px;padding:8px 10px;font-size:14px;height:42px;outline:none}" +
+    ".emo-btn{border:0;background:transparent;font-size:22px;cursor:pointer;padding:0 2px;line-height:1}" +
+    ".emo{display:none;grid-template-columns:repeat(8,1fr);gap:2px;padding:8px;border-top:1px solid #e5e7eb;background:#fff;max-height:150px;overflow-y:auto}" +
+    ".emo.open{display:grid}.emo button{border:0;background:transparent;font-size:22px;cursor:pointer;border-radius:8px;padding:4px 0}" +
+    ".emo button:hover{background:#f3f4f6}" +
     ".send{border:0;border-radius:10px;color:#fff;padding:0 14px;font-weight:600;cursor:pointer}" +
     ".send:disabled{opacity:.5;cursor:default}" +
     ".form{padding:16px;display:flex;flex-direction:column;gap:10px;background:#fff}" +
@@ -97,6 +102,10 @@
     ".form input{border:1px solid #d1d5db;border-radius:10px;padding:10px;font-size:14px;outline:none}" +
     ".err{color:#b91c1c;font-size:12px;padding:0 12px 8px}" +
     ".brand{text-align:center;font-size:11px;color:#9ca3af;padding:4px 0 8px;background:#fff}" +
+    ".typing{align-self:flex-start;background:#fff;border-radius:14px;border-bottom-left-radius:4px;padding:10px 14px;display:none;gap:4px}" +
+    ".typing.on{display:flex}.typing i{width:7px;height:7px;border-radius:50%;background:#9ca3af;animation:bl 1.2s infinite}" +
+    ".typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}" +
+    "@keyframes bl{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}" +
     "@media (max-width:480px){.panel,.left.panel{right:0;left:0;bottom:0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}" +
     ".btn{right:16px;bottom:16px}.left.btn{left:16px}}";
 
@@ -110,27 +119,88 @@
     '<input name="name" placeholder="Nama" maxlength="80" required><input name="contact" placeholder="No. WhatsApp atau email (opsional)" maxlength="120">' +
     '<button class="send" type="submit" style="height:42px">Mulai chat</button></form>' +
     '<div class="err"></div>' +
-    '<div class="foot"><textarea placeholder="Tulis pesan…" maxlength="2000" aria-label="Pesan"></textarea><button class="send" aria-label="Kirim">Kirim</button></div>' +
+    '<div class="emo" role="listbox" aria-label="Pilih emoji"></div>' +
+    '<div class="foot"><button class="emo-btn" type="button" aria-label="Emoji" title="Emoji">😊</button><textarea placeholder="Tulis pesan…" maxlength="2000" aria-label="Pesan"></textarea><button class="send" aria-label="Kirim">Kirim</button></div>' +
     '<div class="brand">Didukung Balas.id</div></div>';
 
   var $ = function (sel) {
     return root.querySelector(sel);
   };
   var btn = $(".btn"), badge = $(".badge"), panel = $(".panel"), body = $(".body"), form = $(".form");
+  var typingEl = document.createElement("div");
+  typingEl.className = "typing";
+  typingEl.setAttribute("aria-label", "sedang mengetik");
+  typingEl.innerHTML = "<i></i><i></i><i></i>";
   var foot = $(".foot"), input = $(".foot textarea"), sendBtn = $(".foot .send"), errBox = $(".err");
+  var emoPanel = $(".emo"), emoBtn = $(".emo-btn");
+  var EMOJI = ("😊 😀 😁 😂 🤣 😍 🥰 😘 😉 😎 🤩 🥳 🙂 😅 😇 🤔 😢 😭 😮 😴 😡 🙏 👍 👎 👌 👏 🙌 💪 🤝 👋 ✌️ " +
+    "❤️ 🧡 💛 💚 💙 💜 💯 ✨ 🔥 🎉 🎁 ⭐ ✅ ❌ ⏰ 📦 🚚 💰 🛒 📞 📍").split(" ");
+  EMOJI.forEach(function (e) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = e;
+    b.setAttribute("aria-label", e);
+    b.addEventListener("click", function () {
+      insertAtCursor(e);
+    });
+    emoPanel.appendChild(b);
+  });
+  function insertAtCursor(text) {
+    var start = input.selectionStart == null ? input.value.length : input.selectionStart;
+    var end = input.selectionEnd == null ? start : input.selectionEnd;
+    input.value = (input.value.slice(0, start) + text + input.value.slice(end)).slice(0, 2000);
+    var pos = Math.min(start + text.length, input.value.length);
+    input.focus();
+    input.setSelectionRange(pos, pos);
+  }
+  function toggleEmoji(open) {
+    emoPanel.classList.toggle("open", open);
+    emoBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
-  function linkify(s) {
-    return escapeHtml(s).replace(/https?:\/\/[^\s<]+/g, function (url) {
-      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + "</a>";
+  // *bold*, _italic_, ~strike~ (WhatsApp style); a marker must hug a word.
+  var FORMAT = /(^|[^0-9A-Za-z\u00C0-\u024F])([*_~])(?=\S)([^*_~\n]*?\S)\2(?![0-9A-Za-z\u00C0-\u024F])/g;
+  var TAGS = { "*": "strong", _: "em", "~": "s" };
+  function format(html) {
+    return html.replace(FORMAT, function (all, before, marker, inner) {
+      return before + "<" + TAGS[marker] + ">" + inner + "</" + TAGS[marker] + ">";
     });
   }
+  // Escaped text with links and formatting; URLs are left unformatted.
+  function linkify(s) {
+    return escapeHtml(s)
+      .split(/(https?:\/\/[^\s<]+)/g)
+      .map(function (part, i) {
+        return i % 2 ? '<a href="' + part + '" target="_blank" rel="noopener noreferrer">' + part + "</a>" : format(part);
+      })
+      .join("");
+  }
 
-  function addBubble(m) {
+  // Reveals a reply letter by letter, as if typed (about 2 seconds at most).
+  function typeOut(el, prefix, text) {
+    var final = linkify(text);
+    // Typed without the *markers*; the formatting appears when it is done.
+    text = text.replace(FORMAT, "$1$3");
+    var i = 0;
+    var step = Math.max(1, Math.ceil(text.length / 80));
+    el.innerHTML = prefix;
+    var span = document.createElement("span");
+    el.appendChild(span);
+    (function tick() {
+      i = Math.min(text.length, i + step);
+      span.textContent = text.slice(0, i);
+      body.scrollTop = body.scrollHeight;
+      if (i < text.length) setTimeout(tick, 25);
+      else el.innerHTML = prefix + final;
+    })();
+  }
+
+  function addBubble(m, animate) {
     if (m.id && state.seen[m.id]) return;
     if (m.id) state.seen[m.id] = true;
     var el = document.createElement("div");
@@ -142,9 +212,13 @@
     } else if (m.file_url) {
       html += '<a href="' + escapeHtml(m.file_url) + '" target="_blank" rel="noopener noreferrer">📎 ' + escapeHtml(m.file_name || "Lampiran") + "</a>";
     }
-    if (m.text) html += (m.file_url ? "<br>" : "") + linkify(m.text);
-    el.innerHTML = html || "…";
-    body.appendChild(el);
+    body.insertBefore(el, typingEl.parentNode === body ? typingEl : null);
+    if (animate && m.text && !m.file_url && m.from !== "visitor") {
+      typeOut(el, html, m.text);
+    } else {
+      if (m.text) html += (m.file_url ? "<br>" : "") + linkify(m.text);
+      el.innerHTML = html || "…";
+    }
     body.scrollTop = body.scrollHeight;
   }
 
@@ -163,6 +237,7 @@
   }
 
   function render() {
+    if (needsForm()) toggleEmoji(false);
     form.style.display = needsForm() ? "flex" : "none";
     foot.style.display = needsForm() ? "none" : "flex";
   }
@@ -175,9 +250,14 @@
         var fresh = 0;
         data.messages.forEach(function (m) {
           if (!state.seen[m.id] && m.from === "agent") fresh++;
-          addBubble(m);
+          // Replies that arrive while the visitor watches are typed out.
+          addBubble(m, state.loaded && state.open);
           state.last = m.created_at;
         });
+        state.loaded = true;
+        state.typing = !!data.typing;
+        typingEl.classList.toggle("on", state.typing);
+        if (state.typing) body.scrollTop = body.scrollHeight;
         if (!state.open && fresh) setUnread(state.unread + fresh);
       })
       .catch(function (err) {
@@ -194,7 +274,7 @@
     clearTimeout(state.timer);
     state.timer = setTimeout(function () {
       poll().then(schedule);
-    }, state.open ? OPEN_POLL_MS : CLOSED_POLL_MS);
+    }, state.open ? (state.typing ? TYPING_POLL_MS : OPEN_POLL_MS) : CLOSED_POLL_MS);
   }
 
   function startVisitor(name, contact) {
@@ -218,6 +298,7 @@
       })
       .then(function () {
         input.value = "";
+        toggleEmoji(false);
         return poll();
       })
       .catch(function (err) {
@@ -252,6 +333,9 @@
     toggle(false);
   });
   sendBtn.addEventListener("click", send);
+  emoBtn.addEventListener("click", function () {
+    toggleEmoji(!emoPanel.classList.contains("open"));
+  });
   input.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -283,6 +367,7 @@
         el.style.background = config.color;
       });
       addBubble({ id: "greeting", from: "agent", text: config.greeting });
+      body.appendChild(typingEl);
       render();
       host.style.display = "";
       poll().then(schedule);

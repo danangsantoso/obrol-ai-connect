@@ -9,6 +9,8 @@ import { complete, LlmError } from "../_shared/llm.ts";
 interface AdminRequest {
   action: "set_key" | "clear_key" | "check";
   api_key?: string;
+  // "stt" = the speech-to-text key (voice notes); default the chat model's key.
+  kind?: "chat" | "stt";
 }
 
 serveJson(async (req) => {
@@ -17,26 +19,32 @@ serveJson(async (req) => {
   const input = await readJson<AdminRequest>(req);
   const orgId = member.organization_id;
 
+  const stt = input.kind === "stt";
+  const secretColumn = stt ? "stt_api_key_encrypted" : "api_key_encrypted";
+  const hintColumn = stt ? "stt_key_hint" : "api_key_hint";
+
   if (input.action === "set_key") {
     const key = input.api_key?.trim() ?? "";
     if (key.length < 8 || key.length > 500) throw new HttpError(400, "API key tidak valid", "invalid_request");
     const { error } = await admin.from("ai_secrets").upsert({
       organization_id: orgId,
-      api_key_encrypted: await encryptSecret(key),
+      [secretColumn]: await encryptSecret(key),
       updated_at: new Date().toISOString(),
     });
     if (error) throw error;
     const { error: hintError } = await admin
       .from("ai_settings")
-      .upsert({ organization_id: orgId, api_key_hint: `…${key.slice(-4)}` }, { onConflict: "organization_id" });
+      .upsert({ organization_id: orgId, [hintColumn]: `…${key.slice(-4)}` }, { onConflict: "organization_id" });
     if (hintError) throw hintError;
-    return json({ api_key_hint: `…${key.slice(-4)}` });
+    return json({ [hintColumn]: `…${key.slice(-4)}`, api_key_hint: stt ? undefined : `…${key.slice(-4)}` });
   }
 
   if (input.action === "clear_key") {
-    await admin.from("ai_secrets").delete().eq("organization_id", orgId);
-    await admin.from("ai_settings").update({ api_key_hint: null, enabled: false }).eq("organization_id", orgId);
-    return json({ api_key_hint: null });
+    await admin.from("ai_secrets").update({ [secretColumn]: null }).eq("organization_id", orgId);
+    await admin.from("ai_settings")
+      .update(stt ? { stt_key_hint: null } : { api_key_hint: null, enabled: false })
+      .eq("organization_id", orgId);
+    return json({ [hintColumn]: null });
   }
 
   if (input.action === "check") {

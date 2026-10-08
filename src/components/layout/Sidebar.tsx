@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, MessageSquare, Contact, Users, Settings, PanelLeftClose, PanelLeftOpen, Zap, SquareKanban, Bot, Plug } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Contact, Users, Settings, PanelLeftClose, PanelLeftOpen, Zap, SquareKanban, Bot, Plug, CalendarClock, ShoppingBag, Megaphone, BarChart3 } from "lucide-react";
 import { useAuth, type AppRole } from "@/contexts/AuthContext";
 import { Logo, LogoMark } from "@/components/brand/Logo";
 import { useUnreadTotal } from "@/hooks/useInboxNotifications";
@@ -10,9 +10,13 @@ import { useUnreadTotal } from "@/hooks/useInboxNotifications";
 const navigation: { name: string; href: string; icon: typeof LayoutDashboard; roles?: AppRole[] }[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Inbox", href: "/inbox", icon: MessageSquare },
+  { name: "Laporan", href: "/reports", icon: BarChart3, roles: ["admin", "supervisor"] },
   { name: "Pipeline", href: "/pipeline", icon: SquareKanban },
+  { name: "Pesanan", href: "/orders", icon: ShoppingBag },
   { name: "Kontak", href: "/contacts", icon: Contact },
   { name: "Balasan Cepat", href: "/quick-replies", icon: Zap },
+  { name: "Follow-up", href: "/followup", icon: CalendarClock },
+  { name: "Broadcast", href: "/broadcast", icon: Megaphone, roles: ["admin", "supervisor"] },
   { name: "AI Agent", href: "/ai", icon: Bot, roles: ["admin", "supervisor"] },
   { name: "Tim & Agen", href: "/team", icon: Users, roles: ["admin", "supervisor"] },
   { name: "Integrasi", href: "/integrations", icon: Plug, roles: ["admin"] },

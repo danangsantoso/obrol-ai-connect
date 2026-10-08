@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { format, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { AlertCircle, Check, CheckCheck, FileText, StickyNote } from 'lucide-react';
@@ -6,6 +6,9 @@ import { cn } from '@/lib/utils';
 import { useSignedUrl } from './useInboxData';
 import type { AssignmentLog, Member, Message, TimelineItem } from './types';
 import { memberName } from './types';
+import { ChatText } from '@/components/chat/ChatText';
+import { callFunction, errorMessage } from '@/lib/api';
+import { toast } from 'sonner';
 
 function StatusIcon({ message }: { message: Message }) {
   if (message.status === 'failed') return <AlertCircle className="h-3.5 w-3.5 text-red-200" />;
@@ -28,7 +31,14 @@ function MediaContent({ message }: { message: Message }) {
     );
   }
   if (message.type === 'video') return <video src={url} controls className="max-h-72 max-w-full rounded-md" />;
-  if (message.type === 'audio') return <audio src={url} controls className="max-w-full" />;
+  if (message.type === 'audio') {
+    return (
+      <div className="space-y-1">
+        <audio src={url} controls className="max-w-full" />
+        {message.direction === 'inbound' && <Transcript message={message} />}
+      </div>
+    );
+  }
   return (
     <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 underline underline-offset-2">
       <FileText className="h-4 w-4" />
@@ -37,9 +47,45 @@ function MediaContent({ message }: { message: Message }) {
   );
 }
 
+// What a voice note says: saved by the AI, or on request.
+function Transcript({ message }: { message: Message }) {
+  const saved = (message.metadata as { transcript?: string } | null)?.transcript;
+  const [text, setText] = useState<string | null>(saved ?? null);
+  const [busy, setBusy] = useState(false);
+  if (text !== null) return <p className="text-xs italic opacity-90" data-testid="transcript">“{text || '(tidak ada ucapan)'}”</p>;
+  const run = async () => {
+    setBusy(true);
+    try {
+      const r = await callFunction<{ transcript: string }>('ai-reply', { action: 'transcribe', message_id: message.id });
+      setText(r.transcript);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button onClick={run} disabled={busy} className="text-xs underline underline-offset-2 opacity-80 hover:opacity-100">
+      {busy ? 'Mentranskrip…' : 'Ubah jadi teks'}
+    </button>
+  );
+}
+
 // Outbound messages come from an agent, the AI agent, or the linked phone (QR numbers).
 function senderLabel(message: Message, sender?: Member) {
-  const meta = (message.metadata ?? {}) as { ai?: boolean; bot_name?: string; sent_from_phone?: boolean };
+  const meta = (message.metadata ?? {}) as {
+    ai?: boolean;
+    bot_name?: string;
+    sent_from_phone?: boolean;
+    followup?: { step: number; of: number };
+    broadcast?: { name: string };
+    csat?: boolean;
+    away?: boolean;
+  };
+  if (meta.csat) return '⭐ Survei kepuasan';
+  if (meta.away) return '🌙 Di luar jam operasional';
+  if (meta.broadcast) return `📣 Broadcast · ${meta.broadcast.name}`;
+  if (meta.followup) return `⏰ Follow-up otomatis · lapis ${meta.followup.step}/${meta.followup.of}`;
   if (meta.ai) return `🤖 ${meta.bot_name || 'AI'}`;
   if (meta.sent_from_phone) return 'Dari HP';
   return memberName(sender);
@@ -65,7 +111,7 @@ function MessageBubble({ message, sender }: { message: Message; sender?: Member 
           </p>
         )}
         {hasMedia && <MediaContent message={message} />}
-        {message.body && <p className="whitespace-pre-wrap break-words">{message.body}</p>}
+        {message.body && <p className="whitespace-pre-wrap break-words"><ChatText text={message.body} /></p>}
         {!message.body && !hasMedia && <p className="italic opacity-70">[{message.type}]</p>}
         <div className={cn('flex items-center justify-end gap-1 text-[10px]', outbound ? 'opacity-80' : 'text-muted-foreground')}>
           {format(new Date(message.created_at), 'HH:mm')}

@@ -1,0 +1,16 @@
+{
+  "name": "Balas.id",
+  "short_name": "Balas.id",
+  "description": "Inbox CS untuk WhatsApp, Instagram, Messenger, Telegram, dan live chat",
+  "lang": "id",
+  "start_url": "/inbox",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#2563EB",
+  "icons": [
+    { "src": "/brand/balas-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/balas-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/balas-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

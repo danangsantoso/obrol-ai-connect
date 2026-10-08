@@ -44,3 +44,19 @@ export function normalizePhone(raw: string): string | null {
   else if (digits.startsWith("8")) digits = `62${digits}`;
   return digits.length >= 9 && digits.length <= 15 ? digits : null;
 }
+
+// Downloads rows as CSV that Excel opens directly: UTF-8 with BOM and ";"
+// between fields (what Excel expects with Indonesian regional settings).
+export function downloadCsv(filename: string, rows: unknown[][]) {
+  const cell = (v: unknown) => {
+    const s = v === null || v === undefined ? "" : String(v);
+    return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = rows.map((r) => r.map(cell).join(";")).join("\r\n");
+  const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

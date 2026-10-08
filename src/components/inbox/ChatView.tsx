@@ -14,6 +14,8 @@ import { TemplateSender } from './TemplateSender';
 import { Timeline } from './Timeline';
 import { TransferDialog } from './TransferDialog';
 import { LabelPicker } from './LabelPicker';
+import { ChatFollowup } from '@/components/followup/ChatFollowup';
+import { ChatOrders } from '@/components/orders/ChatOrders';
 import { useTimeline } from './useInboxData';
 import { useAiSettings } from '@/components/ai/aiSettings';
 import type { ConversationRow, Label, Member, Team } from './types';
@@ -64,6 +66,7 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
   const aiOnNumber = aiReady && Boolean(conversation.channel?.ai_enabled);
   const name = displayName(conversation.contact);
   const takeable = isTakeable(conversation, me.id);
+  const typing = useTypingNow(conversation.typing_until);
   const replyDeadline =
     conversation.assignee_id === me.id && conversation.rotation_deadline && new Date(conversation.rotation_deadline).getTime() > Date.now()
       ? new Date(conversation.rotation_deadline).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
@@ -190,6 +193,12 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
           <UserRoundCog className="mr-1 h-4 w-4" />
           Pindahkan
         </Button>
+        <ChatFollowup conversationId={conversation.id} orgId={me.organization_id!} />
+        <ChatOrders
+          conversationId={conversation.id}
+          orgId={me.organization_id!}
+          contact={{ name, phone: /^\d{8,15}$/.test(conversation.contact.wa_id) ? conversation.contact.wa_id : '' }}
+        />
         <Select value={conversation.status} onValueChange={setStatus}>
           <SelectTrigger className="h-9 w-32">
             <SelectValue />
@@ -202,6 +211,11 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
             ))}
           </SelectContent>
         </Select>
+        {typing && (
+          <p className="basis-full animate-pulse text-xs font-medium text-primary" role="status">
+            {aiOnNumber && conversation.ai_engaged ? `${ai?.bot_name ?? 'AI'} sedang mengetik…` : 'Sedang mengetik…'}
+          </p>
+        )}
         {takeable && (
           <p className="basis-full rounded-md bg-warning/10 px-3 py-1.5 text-xs text-warning">
             Chat rotasi ini belum dibalas {memberName(assignee)}. Agen lain boleh mengambil alih.
@@ -212,7 +226,7 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
             Chat dari rotasi otomatis. Balas sebelum pukul {replyDeadline}, setelah itu agen lain bisa mengambil alih.
           </p>
         )}
-        {aiOnNumber && conversation.ai_handoff_at && !conversation.assignee_id && (
+        {aiOnNumber && conversation.ai_handoff_at && !conversation.ai_engaged && !conversation.assignee_id && (
           <p className="basis-full rounded-md bg-warning/10 px-3 py-1.5 text-xs text-warning">
             AI menyerahkan chat ini ke agen{conversation.ai_handoff_reason ? `: ${conversation.ai_handoff_reason}` : '.'} Ambil chat
             untuk membalas.
@@ -259,4 +273,16 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
       />
     </div>
   );
+}
+
+// True while `until` is in the future; re-renders when it passes.
+function useTypingNow(until: string | null) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const ms = until ? new Date(until).getTime() - Date.now() : 0;
+    if (ms <= 0) return;
+    const timer = setTimeout(() => tick((t) => t + 1), ms + 50);
+    return () => clearTimeout(timer);
+  }, [until]);
+  return !!until && new Date(until).getTime() > Date.now();
 }

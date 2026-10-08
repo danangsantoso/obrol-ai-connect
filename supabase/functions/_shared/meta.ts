@@ -200,3 +200,13 @@ export function contactKey(provider: "messenger" | "instagram", userId: string):
 export function userIdFromKey(key: string): string {
   return key.replace(/^(fb|ig):/, "");
 }
+
+// Typing indicator in Messenger / Instagram (Meta turns it off after ~20 s or at the reply).
+export async function typingOn(pageToken: string, recipientId: string): Promise<void> {
+  await graph("me/messages", {
+    method: "POST",
+    token: pageToken,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ recipient: { id: recipientId }, sender_action: "typing_on" }),
+  });
+}

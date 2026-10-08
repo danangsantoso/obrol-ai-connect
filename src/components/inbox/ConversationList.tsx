@@ -44,6 +44,7 @@ interface Props {
   onAgentFilterChange: ((value: string) => void) | null;
   loading: boolean;
   meId: string;
+  live: boolean;
 }
 
 export function ConversationList({
@@ -63,6 +64,7 @@ export function ConversationList({
   onAgentFilterChange,
   loading,
   meId,
+  live,
 }: Props) {
   const labelMap = new Map(labels.map((l) => [l.id, l]));
   const activeMembers = [...members.values()].filter((m) => m.is_active);
@@ -133,6 +135,11 @@ export function ConversationList({
         )}
       </div>
 
+      {!live && (
+        <p className="border-b border-warning/30 bg-warning/10 px-3 py-1.5 text-xs text-warning" role="status">
+          Koneksi realtime terputus. Daftar diperbarui otomatis tiap 5 detik.
+        </p>
+      )}
       <ScrollArea className="flex-1">
         {loading && <p className="p-4 text-sm text-muted-foreground">Memuat percakapan...</p>}
         {!loading && conversations.length === 0 && (
@@ -178,10 +185,10 @@ export function ConversationList({
                     ? <span className="font-medium text-warning">Belum dibalas {memberName(assignee)} · bisa diambil</span>
                     : assignee
                     ? `Ditangani ${memberName(assignee)}`
-                    : conv.ai_handoff_at
-                      ? <span className="font-medium text-warning">Perlu agen (dari AI)</span>
-                      : conv.ai_last_reply_at && conv.ai_active
-                        ? <span className="font-medium text-primary">Dijawab AI</span>
+                    : conv.ai_engaged && conv.ai_active
+                      ? <span className="font-medium text-primary">Dijawab AI</span>
+                      : conv.ai_handoff_at
+                        ? <span className="font-medium text-warning">Perlu agen (dari AI)</span>
                         : 'Belum di-assign'}
                   {conv.status === 'pending' && ' · Pending'}
                 </p>

@@ -10,6 +10,7 @@ import { corsHeaders, HttpError, json, readJson } from "../_shared/http.ts";
 import { adminClient, requireMember } from "../_shared/supabase.ts";
 import { decryptSecret, encryptSecret } from "../_shared/crypto.ts";
 import { dialogUrl, exchangeCode, listPages, subscribePage, unsubscribePage } from "../_shared/meta.ts";
+import { quotaError } from "../_shared/plans.ts";
 
 interface StoredPage {
   id: string;
@@ -222,7 +223,7 @@ async function upsertChannel(
       .insert({ organization_id: orgId, ...fields, connection_status: "connected", connection_updated_at: new Date().toISOString() })
       .select("id")
       .single();
-    if (error) throw error;
+    if (error) throw quotaError(error) ?? error;
     channelId = data.id;
   }
   const { error } = await admin

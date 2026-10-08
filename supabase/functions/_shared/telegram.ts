@@ -64,7 +64,17 @@ interface SentMessage {
   message_id: number;
 }
 
-export async function sendText(token: string, chatId: string, text: string): Promise<number> {
+// `html` is the same text with Telegram HTML formatting; if Telegram rejects
+// the markup, the plain text goes out instead.
+export async function sendText(token: string, chatId: string, text: string, html?: string): Promise<number> {
+  if (html && html !== text) {
+    try {
+      const sent = await call<SentMessage>(token, "sendMessage", { chat_id: chatId, text: html, parse_mode: "HTML" });
+      return sent.message_id;
+    } catch (err) {
+      console.error("telegram rejected formatted text, sending plain", err);
+    }
+  }
   const sent = await call<SentMessage>(token, "sendMessage", { chat_id: chatId, text });
   return sent.message_id;
 }
@@ -97,3 +107,8 @@ export async function sendFile(
 // Contacts from Telegram are stored as tg:<chat id>; message ids as tg:<chat id>:<message id>.
 export const telegramKey = (chatId: number | string) => `tg:${chatId}`;
 export const telegramMessageId = (chatId: number | string, messageId: number) => `tg:${chatId}:${messageId}`;
+
+// "typing..." in Telegram; it lasts about 5 seconds, so repeat it for longer waits.
+export function sendTyping(token: string, chatId: string) {
+  return call<boolean>(token, "sendChatAction", { chat_id: chatId, action: "typing" });
+}

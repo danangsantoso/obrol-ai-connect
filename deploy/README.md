@@ -211,6 +211,12 @@ webhook yang gagal. Referensi lengkap: [docs/API.md](../docs/API.md).
    - Unggah dokumen per produk atau dokumen umum (PDF, DOCX, TXT, MD, CSV): spesifikasi, FAQ, pengiriman, pembayaran, garansi.
 4. Coba dulu di tab **Uji coba**. Kalau jawabannya sudah pas, nyalakan **Balas otomatis** dan centang nomor yang dijawab AI.
 
+Pesan suara & gambar (**AI Agent → Pengaturan → Pesan suara & gambar**):
+- **Gambar**: Claude, ChatGPT, dan Gemini ikut membaca foto dari pelanggan. Bukti transfer selalu diserahkan ke tim
+  beserta nominal yang terbaca.
+- **Pesan suara**: pilih layanan transkripsi (OpenAI Whisper, Groq, atau layanan lain yang kompatibel) dan simpan
+  API key-nya. AI menjawab isi voice note, dan agen bisa menekan **Ubah jadi teks** di chat.
+
 Cara kerja AI:
 - AI hanya menjawab chat yang belum diambil agen. Begitu agen mengambil chat, AI berhenti.
 - Kalau informasinya tidak ada di pengetahuan, pelanggan minta bicara dengan manusia, atau ada komplain/pembayaran/refund, AI mengirim pesan serah-terima. Chat tetap di antrean dengan catatan alasannya untuk agen.
@@ -218,6 +224,108 @@ Cara kerja AI:
 
 API key disimpan terenkripsi dengan `BALAS_SECRET_KEY` (dibuat installer di `.env`). Kalau kunci itu diganti,
 API key harus disimpan ulang. Log AI: tab **Riwayat**, dan `/var/log/balas-ai.log` untuk penyapu per menit.
+
+## 5a. Follow-up otomatis
+
+Menu **Follow-up → Urutan pesan**: klik **Pakai contoh 7 lapis** (kata-kata sudah disiapkan) atau buat sendiri,
+maksimal 10 lapis. Atur jeda tiap lapis (hari/jam) dan jam kirim. Pakai `{sapaan}`, `{nama}`, `{agen}`, `{bot}`,
+dan `{toko}` di pesan.
+
+- **Manual**: agen klik tombol **Follow-up** di chat dan memilih urutannya.
+- **Otomatis**: chat masuk sendiri saat kita sudah membalas dan pelanggan diam selama N jam. Bisa dibatasi ke chat
+  berlabel tertentu.
+- Urutan berhenti begitu pelanggan membalas atau membayar pesanan. Hasilnya ada di tab **Pelacakan** (berapa yang
+  membalas, setelah lapis ke berapa, per agen).
+- Nomor WhatsApp API resmi: setelah 24 jam sejak pesan terakhir pelanggan, sebuah lapis hanya bisa terkirim bila diberi
+  template yang sudah disetujui Meta.
+
+Pesan dikirim oleh penyapu per menit (`ai-sweep.sh`, log di `/var/log/balas-ai.log`).
+
+## 5b. Pesanan, pembayaran & ongkir
+
+Atur di **Pengaturan → Pembayaran & ongkir**:
+
+- **Transfer bank**: isi rekening tujuan. Agen menekan **Tandai lunas** setelah memeriksa bukti transfer.
+- **Xendit**: isi secret key (Xendit Dashboard → Settings → API Keys, izin *Money-in write*) dan *callback verification
+  token*. Salin URL callback yang ditampilkan ke Xendit → Settings → Webhooks → *Invoices paid*.
+- **Midtrans**: isi server key, lalu salin URL notifikasi ke Midtrans → Settings → Configuration →
+  *Payment Notification URL*. Matikan **Mode produksi** saat memakai key sandbox.
+- **Ongkir**: tarif tetap, atau tarif kurir otomatis lewat **Biteship** (API key dari biteship.com, plus kode pos asal).
+  Isi berat produk di katalog agar ongkir akurat.
+- **AI boleh membuat pesanan**: AI membuat pesanan begitu pelanggan setuju dan datanya lengkap, lalu mengirim tagihan.
+
+Pesanan dibuat dari tombol **Pesanan** di chat dan dikelola di menu **Pesanan** (lunas, kirim dengan resi, selesai,
+batal, ekspor CSV). Tagihan yang tidak dibayar sampai batas waktu otomatis jadi *Kedaluwarsa*. Event `order.created`,
+`order.paid`, dan `order.status_changed` bisa dikirim ke webhook Anda.
+
+## 5c. Broadcast
+
+Menu **Broadcast** (admin dan supervisor): satu pesan ke banyak kontak, dengan filter label dan "aktif chat dalam N
+hari", jadwal kirim, dan kecepatan per menit. Hasil per broadcast: terkirim, diterima, dibaca, dan membalas.
+
+- **WhatsApp API resmi**: wajib template yang disetujui Meta (kategori *Marketing* untuk promo). Sinkronkan template di
+  Pengaturan.
+- **WhatsApp scan QR**: teks biasa. Nomor bisa diblokir WhatsApp kalau mengirim promo ke banyak orang yang tidak
+  menyimpan nomor Anda. Kirim hanya ke pelanggan yang pernah chat, dengan kecepatan rendah (bawaan 8 pesan/menit).
+- **Telegram**: teks ke pengguna yang pernah chat dengan bot.
+- Messenger dan Instagram tidak didukung karena Meta melarang pesan promosi di luar 24 jam.
+- Pelanggan yang membalas **STOP** atau **BERHENTI** tidak akan menerima broadcast lagi.
+
+## 5d. Jam operasional, survei kepuasan & pertanyaan belum terjawab
+
+- **Pengaturan → Jam operasional & survei kepuasan**: di luar jam kerja, AI langsung menjawab tanpa menunggu agen,
+  chat tidak dirotasi ke agen, dan nomor tanpa AI mengirim pesan "sedang tutup".
+- **Survei kepuasan**: saat chat diselesaikan, pelanggan diminta memberi nilai 1–5. Balasan angka tercatat per agen
+  dan tidak membuka chat lagi.
+- **AI Agent → Belum terjawab**: pertanyaan yang tidak bisa dijawab AI karena datanya belum ada, diurutkan dari
+  yang paling sering ditanyakan. Klik **Jawab**: jawaban disimpan sebagai dokumen FAQ dan langsung dipakai AI.
+
+## 5e. Laporan performa
+
+Menu **Laporan** (admin dan supervisor) menampilkan, per agen dan AI:
+- waktu respons (median, dan persen yang dibalas sesuai target menit);
+- jumlah chat diselesaikan dan lama penyelesaiannya;
+- nilai kepuasan (CSAT);
+- pesanan lunas dan omzet.
+
+Ada juga tren harian. Tombol **Ekspor Excel (CSV)** mengunduh file yang langsung terbuka di Excel.
+
+## 5f. Paket langganan tenant (Master Admin)
+
+Di halaman Master Admin, bagian **Paket langganan**, buat paket dengan batas:
+- jumlah pengguna;
+- jumlah kanal;
+- balasan AI per bulan;
+- pesan broadcast per bulan.
+
+Kosongkan batas yang tidak ingin dibatasi. Tandai satu paket sebagai **bawaan** (dengan masa trial) agar tenant baru
+otomatis memakainya.
+
+Di daftar tenant, pilih paket per tenant dan tekan **+30 hari** untuk memperpanjang.
+
+Saat kuota habis atau paket berakhir:
+- **Balasan AI**: chat diserahkan ke tim.
+- **Broadcast**: pesan sisanya tidak dikirim.
+- **Pengguna atau kanal baru**: ditolak dengan pesan yang jelas.
+
+Admin tenant melihat pemakaiannya di **Pengaturan → Paket & pemakaian**, dan mendapat peringatan di atas halaman
+saat paket hampir berakhir atau kuota hampir habis. Tenant tanpa paket tidak dibatasi.
+
+## 5g. Aplikasi di HP & notifikasi
+
+Balas.id bisa dipasang seperti aplikasi:
+- **Android/Chrome/Edge**: menu browser → **Pasang aplikasi**, atau tombol **Pasang aplikasi Balas.id** di ikon lonceng.
+- **iPhone/iPad (iOS 16.4+)**: buka di Safari → Bagikan → **Tambah ke Layar Utama**, lalu buka dari ikonnya.
+
+Setiap agen menekan ikon **lonceng → Aktifkan notifikasi** di tiap perangkat. Notifikasi muncul walau aplikasi
+ditutup untuk:
+- pesan baru di chat miliknya;
+- chat yang diberikan kepadanya;
+- AI yang butuh bantuan (agen yang online/away);
+- disebut di catatan.
+
+Kunci VAPID dibuat otomatis saat pertama dipakai. `PUSH_CONTACT_EMAIL` di `.env` (opsional) adalah email kontak yang
+dikirim ke layanan push browser.
 
 ## 6. Update aplikasi
 

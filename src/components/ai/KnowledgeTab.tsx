@@ -30,7 +30,7 @@ const rupiah = (n: number | null) => (n === null ? "–" : `Rp${Number(n).toLoca
 // Products
 // ---------------------------------------------------------------------------
 
-const EMPTY_PRODUCT = { name: "", sku: "", price: "", summary: "", keywords: "", is_active: true };
+const EMPTY_PRODUCT = { name: "", sku: "", price: "", weight: "1000", summary: "", keywords: "", is_active: true };
 
 function ProductDialog({
   orgId,
@@ -56,6 +56,7 @@ function ProductDialog({
           name: product.name,
           sku: product.sku ?? "",
           price: product.price === null ? "" : String(product.price),
+          weight: String(product.weight_grams ?? 1000),
           summary: product.summary,
           keywords: product.keywords,
           is_active: product.is_active,
@@ -72,6 +73,7 @@ function ProductDialog({
       name: form.name.trim(),
       sku: form.sku.trim() || null,
       price: form.price.trim() ? Number(form.price.replace(/[^\d.]/g, "")) : null,
+      weight_grams: Math.min(100000, Math.max(1, Number(form.weight.replace(/[^\d]/g, "")) || 1000)),
       summary: form.summary.trim(),
       keywords: form.keywords.trim(),
       is_active: form.is_active,
@@ -110,6 +112,10 @@ function ProductDialog({
             <div className="space-y-1">
               <Label htmlFor="p-sku">SKU</Label>
               <Input id="p-sku" value={form.sku} maxLength={80} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="p-weight">Berat (gram, untuk ongkir)</Label>
+              <Input id="p-weight" inputMode="numeric" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} />
             </div>
           </div>
           <div className="space-y-1">

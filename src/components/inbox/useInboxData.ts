@@ -6,8 +6,32 @@ import type { AssignmentLog, ConversationRow, Label, Member, Message, Note, Quic
 const CONVERSATION_SELECT =
   '*, contact:contacts!inner(id, wa_id, name, profile_name, username), channel:channels(provider, name, ai_enabled), conversation_labels(label_id)';
 
+// Realtime can drop (phone asleep, network change, server restart). While it is
+// down the data is polled every few seconds, and it is reloaded as soon as the
+// connection is back or the tab is opened again, so nothing is missed.
+const LIVE_POLL_MS = 30_000;
+const FALLBACK_POLL_MS = 5_000;
+const DOWN = new Set(['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED']);
+
+function useReloadOnReturn(reload: () => void) {
+  const latest = useRef(reload);
+  latest.current = reload;
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') latest.current();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('online', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', onVisible);
+    };
+  }, []);
+}
+
 export function useConversations(orgId: string) {
   const queryClient = useQueryClient();
+  const [live, setLive] = useState(true);
   const query = useQuery({
     queryKey: ['conversations', orgId],
     queryFn: async () => {
@@ -22,12 +46,16 @@ export function useConversations(orgId: string) {
     // Realtime only reports rows the user can still see; a periodic refresh
     // drops chats that were transferred away and shows rotated chats whose
     // agent missed the reply deadline.
-    refetchInterval: 30_000,
+    refetchInterval: live ? LIVE_POLL_MS : FALLBACK_POLL_MS,
   });
+
+  const reload = () => queryClient.invalidateQueries({ queryKey: ['conversations', orgId] });
+  useReloadOnReturn(reload);
 
   // Any change in the organization's conversations refreshes the list.
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let wasDown = false;
     const channel = supabase
       .channel(`conversations:${orgId}`)
       .on(
@@ -38,14 +66,23 @@ export function useConversations(orgId: string) {
           timer = setTimeout(() => queryClient.invalidateQueries({ queryKey: ['conversations', orgId] }), 250);
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          if (wasDown) queryClient.invalidateQueries({ queryKey: ['conversations', orgId] });
+          wasDown = false;
+          setLive(true);
+        } else if (DOWN.has(status)) {
+          wasDown = true;
+          setLive(false);
+        }
+      });
     return () => {
       clearTimeout(timer);
       supabase.removeChannel(channel);
     };
   }, [orgId, queryClient]);
 
-  return query;
+  return { ...query, live };
 }
 
 // Conversation ids whose messages contain the search text (RLS limits it to what the user may see).
@@ -127,7 +164,32 @@ export function useTimeline(conversationId: string | undefined) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [logs, setLogs] = useState<AssignmentLog[]>([]);
   const [loading, setLoading] = useState(false);
+  const [live, setLive] = useState(true);
+  const [reloadTick, setReloadTick] = useState(0);
   const current = useRef(conversationId);
+  useReloadOnReturn(() => setReloadTick((t) => t + 1));
+
+  // While realtime is down, poll the open chat.
+  useEffect(() => {
+    if (live || !conversationId) return;
+    const timer = setInterval(() => setReloadTick((t) => t + 1), FALLBACK_POLL_MS);
+    return () => clearInterval(timer);
+  }, [live, conversationId]);
+
+  // Reload without clearing the screen (after a reconnect, on return, or while polling).
+  useEffect(() => {
+    if (!reloadTick || !conversationId) return;
+    Promise.all([
+      supabase.from('messages').select('*').eq('conversation_id', conversationId).order('created_at').limit(500),
+      supabase.from('notes').select('*').eq('conversation_id', conversationId).order('created_at'),
+      supabase.from('assignment_logs').select('*').eq('conversation_id', conversationId).order('created_at'),
+    ]).then(([m, n, l]) => {
+      if (current.current !== conversationId) return;
+      if (m.data) setMessages(m.data);
+      if (n.data) setNotes(n.data);
+      if (l.data) setLogs(l.data);
+    });
+  }, [reloadTick, conversationId]);
 
   useEffect(() => {
     current.current = conversationId;
@@ -159,6 +221,7 @@ export function useTimeline(conversationId: string | undefined) {
       return copy;
     };
 
+    let wasDown = false;
     const channel = supabase
       .channel(`timeline:${conversationId}`)
       .on(
@@ -174,7 +237,16 @@ export function useTimeline(conversationId: string | undefined) {
         { event: 'INSERT', schema: 'public', table: 'notes', filter: `conversation_id=eq.${conversationId}` },
         (payload) => setNotes((rows) => upsert(rows, payload.new as Note)),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          if (wasDown) setReloadTick((t) => t + 1);
+          wasDown = false;
+          setLive(true);
+        } else if (DOWN.has(status)) {
+          wasDown = true;
+          setLive(false);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

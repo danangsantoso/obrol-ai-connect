@@ -207,11 +207,11 @@ async function poll(
   await admin.from("webchat_visitors").update({ last_seen_at: new Date().toISOString() }).eq("id", v.id);
   const { data: conv } = await admin
     .from("conversations")
-    .select("id")
+    .select("id, typing_until")
     .eq("channel_id", channel.id)
     .eq("contact_id", v.contact_id)
     .maybeSingle();
-  if (!conv) return { messages: [] };
+  if (!conv) return { messages: [], typing: false };
 
   let query = admin
     .from("messages")
@@ -254,5 +254,7 @@ async function poll(
       .update({ status: input.open ? "read" : "delivered" })
       .in("id", unread.map((m) => m.id));
   }
-  return { messages };
+  // The AI (or an agent) is typing a reply: the widget shows the dots.
+  const typing = !!conv.typing_until && new Date(conv.typing_until).getTime() > Date.now();
+  return { messages, typing };
 }

@@ -37,7 +37,7 @@ export default function Inbox() {
   const [agentFilter, setAgentFilter] = useState(ALL);
   const canFilterAgents = profile!.role !== 'agent';
 
-  const { data: conversations = [], isLoading } = useConversations(orgId);
+  const { data: conversations = [], isLoading, live } = useConversations(orgId);
   const { data: members = [] } = useMembers(orgId);
   const { data: teams = [] } = useTeams(orgId);
   const { data: labels = [] } = useLabels(orgId);
@@ -102,6 +102,7 @@ export default function Inbox() {
         onAgentFilterChange={canFilterAgents ? setAgentFilter : null}
         loading={isLoading}
         meId={meId}
+        live={live}
       />
       {selected ? (
         <>

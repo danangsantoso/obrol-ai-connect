@@ -14,6 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { PROVIDERS, type Provider, useAiSettings } from "./aiSettings";
 import { callFunction, errorMessage } from "@/lib/api";
 import { toast } from "sonner";
+import { DEFAULT_SOUL } from "./soul";
+import { VoiceVisionCard } from "./VoiceVisionCard";
+import { ChatText } from "@/components/chat/ChatText";
 
 const DEFAULTS = {
   enabled: false,
@@ -24,14 +27,35 @@ const DEFAULTS = {
   instructions: "",
   handoff_message: "Baik kak, saya sambungkan ke tim CS kami ya. Mohon ditunggu sebentar 🙏",
   reply_delay_seconds: 6,
-  max_auto_replies: 10,
+  max_auto_replies: 30,
   reclaim_on_resolve: true,
+  agent_wait_minutes: 3,
+  simulate_typing: true,
+  use_emoji: true,
+  salutation: "auto" as Salutation,
+  handoff_rules: "",
+  persona: "",
 };
+
+type Salutation = "auto" | "kak" | "bapak_ibu" | "name_only";
+
+const SALUTATIONS: Record<Salutation, { label: string; example: string }> = {
+  auto: { label: "Otomatis (Bapak/Ibu bila jelas, selain itu Kak)", example: "Izinkan {bot} membantu *Bapak Budi* ya 😊" },
+  kak: { label: "Selalu Kak", example: "Izinkan {bot} membantu *Kak Budi* ya 😊" },
+  bapak_ibu: { label: "Selalu Bapak/Ibu", example: "Izinkan {bot} membantu *Ibu Siti* ya 😊" },
+  name_only: { label: "Nama saja", example: "Izinkan {bot} membantu *Budi* ya 😊" },
+};
+
+// One phrase per line (commas also split), lower-cased, without duplicates.
+function parsePhrases(text: string): string[] {
+  return [...new Set(text.split(/[\n,]+/).map((p) => p.trim().toLowerCase()).filter(Boolean))].slice(0, 50);
+}
 
 export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: boolean }) {
   const queryClient = useQueryClient();
   const { data: settings, isLoading, isFetched } = useAiSettings(orgId);
   const [form, setForm] = useState(DEFAULTS);
+  const [phrases, setPhrases] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -62,7 +86,14 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
       reply_delay_seconds: settings.reply_delay_seconds,
       max_auto_replies: settings.max_auto_replies,
       reclaim_on_resolve: settings.reclaim_on_resolve,
+      agent_wait_minutes: settings.agent_wait_minutes,
+      simulate_typing: settings.simulate_typing,
+      use_emoji: settings.use_emoji,
+      salutation: settings.salutation as Salutation,
+      handoff_rules: settings.handoff_rules,
+      persona: settings.persona,
     });
+    setPhrases(settings.handoff_keywords.join("\n"));
   }, [settings, isFetched]);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["ai-settings", orgId] });
@@ -86,6 +117,8 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
         model: form.model.trim(),
         base_url: form.base_url.trim() || null,
         bot_name: form.bot_name.trim() || "Asisten",
+        handoff_keywords: parsePhrases(phrases),
+        handoff_rules: form.handoff_rules.trim(),
       },
       { onConflict: "organization_id" },
     );
@@ -305,6 +338,24 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
               />
             </label>
 
+            <div className="max-w-3xl space-y-1 rounded-lg border p-3">
+              <Label htmlFor="ai-wait">Beri waktu agen dulu sebelum AI mengambil alih (menit)</Label>
+              <Input
+                id="ai-wait"
+                type="number"
+                min={0}
+                max={120}
+                className="w-32"
+                value={form.agent_wait_minutes}
+                disabled={!isAdmin}
+                onChange={(e) => setForm({ ...form, agent_wait_minutes: Math.max(0, Math.min(120, Number(e.target.value) || 0)) })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Chat masuk ditangani agen dulu (termasuk lewat rotasi). Jika belum ada agen yang membalas dalam waktu ini, AI
+                mengambil alih dan terus menjawab sampai ada agen yang mengambil chat. Isi 0 agar AI langsung menjawab.
+              </p>
+            </div>
+
             <div className="grid max-w-3xl gap-3 md:grid-cols-3">
               <div className="space-y-1">
                 <Label htmlFor="ai-name">Nama bot</Label>
@@ -337,6 +388,65 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
             </div>
             <label className="flex max-w-3xl items-start gap-3 rounded-lg border p-3 text-sm">
               <Switch
+                checked={form.use_emoji}
+                disabled={!isAdmin}
+                onCheckedChange={(v) => setForm({ ...form, use_emoji: v })}
+                aria-label="AI memakai emoji"
+              />
+              <span>
+                <span className="font-medium">AI memakai emoji 😊</span>
+                <span className="block text-muted-foreground">
+                  Balasan AI diberi 1–2 emoji agar terasa ramah (dikurangi saat pelanggan komplain). Matikan untuk gaya formal tanpa
+                  emoji.
+                </span>
+              </span>
+            </label>
+            <div className="max-w-3xl space-y-2 rounded-lg border p-3 text-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-medium">Sapa pelanggan dengan namanya</span>
+                <Select
+                  value={form.salutation}
+                  disabled={!isAdmin}
+                  onValueChange={(v) => setForm({ ...form, salutation: v as Salutation })}
+                >
+                  <SelectTrigger className="h-8 w-auto min-w-[260px]" aria-label="Cara memanggil pelanggan">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(SALUTATIONS) as Salutation[]).map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {SALUTATIONS[k].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-muted-foreground">
+                AI memakai nama dari profil WhatsApp/Instagram/Telegram, form live chat, atau nama yang disebut pelanggan di chat
+                (lalu disimpan ke kontak). Nama ditulis <strong>tebal</strong> dan diulang di setiap balasan, misalnya:{" "}
+                <span className="rounded bg-muted px-1.5 py-0.5 text-foreground">
+                  <ChatText text={SALUTATIONS[form.salutation].example.replace("{bot}", form.bot_name.trim() || "Asisten").replace(" 😊", form.use_emoji ? " 😊" : "")} />
+                </span>
+                . Jika nama belum diketahui, AI menanyakannya dengan sopan.
+              </p>
+            </div>
+            <label className="flex max-w-3xl items-start gap-3 rounded-lg border p-3 text-sm">
+              <Switch
+                checked={form.simulate_typing}
+                disabled={!isAdmin}
+                onCheckedChange={(v) => setForm({ ...form, simulate_typing: v })}
+                aria-label="Tampilkan sedang mengetik"
+              />
+              <span>
+                <span className="font-medium">Tampilkan "sedang mengetik…" sebelum AI membalas</span>
+                <span className="block text-muted-foreground">
+                  Pelanggan melihat status mengetik selama ±1,5–8 detik (sesuai panjang jawaban) di WhatsApp, Messenger,
+                  Instagram, dan Telegram. Di live chat website, jawaban muncul huruf demi huruf.
+                </span>
+              </span>
+            </label>
+            <label className="flex max-w-3xl items-start gap-3 rounded-lg border p-3 text-sm">
+              <Switch
                 checked={form.reclaim_on_resolve}
                 disabled={!isAdmin}
                 onCheckedChange={(v) => setForm({ ...form, reclaim_on_resolve: v })}
@@ -350,6 +460,71 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
                 </span>
               </span>
             </label>
+            <div className="max-w-3xl space-y-2 rounded-lg border p-4">
+              <div>
+                <p className="font-medium">Jiwa AI (soul.md)</p>
+                <p className="text-sm text-muted-foreground">
+                  Karakter, gaya bicara, dan cara berjualan CS AI Anda. Tulis bebas seperti menjelaskan ke karyawan baru,
+                  atau unggah file soul.md. Jika dikosongkan, AI memakai jiwa bawaan: CS ramah yang mengejar closing.
+                </p>
+              </div>
+              <Textarea
+                id="ai-persona"
+                rows={12}
+                maxLength={8000}
+                disabled={!isAdmin}
+                className="font-mono text-xs"
+                placeholder={DEFAULT_SOUL}
+                value={form.persona}
+                onChange={(e) => setForm({ ...form, persona: e.target.value })}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                {isAdmin && (
+                  <>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, persona: DEFAULT_SOUL })}>
+                      Pakai contoh
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <label className="cursor-pointer">
+                        Unggah soul.md
+                        <input
+                          type="file"
+                          accept=".md,.markdown,.txt,text/markdown,text/plain"
+                          className="hidden"
+                          aria-label="Unggah soul.md"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            if (!file) return;
+                            if (file.size > 32_000) {
+                              toast.error("File terlalu besar (maks. 8.000 karakter)");
+                              return;
+                            }
+                            const text = (await file.text()).slice(0, 8000);
+                            setForm((f) => ({ ...f, persona: text }));
+                            toast.success(`${file.name} dimuat. Klik Simpan pengaturan.`);
+                          }}
+                        />
+                      </label>
+                    </Button>
+                  </>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const url = URL.createObjectURL(new Blob([form.persona || DEFAULT_SOUL], { type: "text/markdown" }));
+                    const a = Object.assign(document.createElement("a"), { href: url, download: "soul.md" });
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  Unduh soul.md
+                </Button>
+                <span className="ml-auto text-xs text-muted-foreground">{form.persona.length}/8000</span>
+              </div>
+            </div>
             <div className="max-w-3xl space-y-1">
               <Label htmlFor="ai-instructions">Instruksi untuk AI</Label>
               <Textarea
@@ -365,16 +540,54 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
                 Gaya bahasa, aturan toko, dan hal yang tidak boleh dijawab. Info produk diisi di tab Produk & Pengetahuan.
               </p>
             </div>
-            <div className="max-w-3xl space-y-1">
-              <Label htmlFor="ai-handoff">Pesan saat diserahkan ke agen</Label>
-              <Textarea
-                id="ai-handoff"
-                rows={2}
-                maxLength={500}
-                disabled={!isAdmin}
-                value={form.handoff_message}
-                onChange={(e) => setForm({ ...form, handoff_message: e.target.value })}
-              />
+            <div className="max-w-3xl space-y-4 rounded-lg border p-4">
+              <div>
+                <p className="font-medium">Serahkan ke tim</p>
+                <p className="text-sm text-muted-foreground">
+                  Kapan AI berhenti dan menyerahkan chat ke agen, dan apa yang dikatakan AI ke pelanggan saat itu.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ai-handoff">Pesan ke pelanggan saat diserahkan ke tim</Label>
+                <Textarea
+                  id="ai-handoff"
+                  rows={2}
+                  maxLength={500}
+                  disabled={!isAdmin}
+                  value={form.handoff_message}
+                  onChange={(e) => setForm({ ...form, handoff_message: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ai-phrases">Kalimat pemicu (satu per baris)</Label>
+                <Textarea
+                  id="ai-phrases"
+                  rows={4}
+                  disabled={!isAdmin}
+                  placeholder={"bicara dengan admin\nmau ke cs\nkomplain\nrefund"}
+                  value={phrases}
+                  onChange={(e) => setPhrases(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Jika pesan pelanggan mengandung salah satu kalimat ini, chat langsung diserahkan ke tim tanpa dijawab AI.
+                  Huruf besar/kecil tidak berpengaruh.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ai-rules">Aturan tambahan kapan AI menyerahkan ke tim</Label>
+                <Textarea
+                  id="ai-rules"
+                  rows={3}
+                  maxLength={2000}
+                  disabled={!isAdmin}
+                  placeholder={"Pesanan di atas 50 kg atau untuk reseller\nPelanggan menanyakan pengiriman ke luar negeri"}
+                  value={form.handoff_rules}
+                  onChange={(e) => setForm({ ...form, handoff_rules: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Selain aturan bawaan (info tidak ada, komplain, pembayaran, refund, pelanggan minta bicara dengan orang).
+                </p>
+              </div>
             </div>
 
             <div className="max-w-3xl space-y-2">
@@ -402,6 +615,7 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
           </CardContent>
         </Card>
       </form>
+      <VoiceVisionCard orgId={orgId} isAdmin={isAdmin} />
     </div>
   );
 }
