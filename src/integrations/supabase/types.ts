@@ -9,6 +9,64 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_media: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          description: string;
+          file_name: string;
+          file_path: string;
+          id: string;
+          is_active: boolean;
+          mime_type: string;
+          organization_id: string;
+          size_bytes: number;
+          title: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          file_name: string;
+          file_path: string;
+          id?: string;
+          is_active?: boolean;
+          mime_type: string;
+          organization_id: string;
+          size_bytes: number;
+          title: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          file_name?: string;
+          file_path?: string;
+          id?: string;
+          is_active?: boolean;
+          mime_type?: string;
+          organization_id?: string;
+          size_bytes?: number;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_media_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_media_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_runs: {
         Row: {
           conversation_id: string | null;

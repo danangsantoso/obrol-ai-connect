@@ -68,8 +68,10 @@ export const REPLY_SCHEMA = {
     reason: { type: "string" },
     customer_name: { type: "string" },
     missing_info: { type: "string" },
+    // Keys of the organization's files to send after the reply (F1, F2, ...).
+    attachments: { type: "array", items: { type: "string" } },
   },
-  required: ["reply", "handoff", "reason", "customer_name", "missing_info"],
+  required: ["reply", "handoff", "reason", "customer_name", "missing_info", "attachments"],
   additionalProperties: false,
 };
 
