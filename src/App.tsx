@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { AuthProvider, useAuth, type AppRole } from "./contexts/AuthContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import Auth from "./pages/Auth";
@@ -26,6 +27,12 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Integrations = lazy(() => import("./pages/Integrations"));
 const MasterAdmin = lazy(() => import("./pages/MasterAdmin"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
+const MobileApp = lazy(() => import("./mobile/MobileApp"));
+
+// The Android app always opens the mobile screens.
+if (Capacitor.isNativePlatform() && !window.location.pathname.startsWith("/m")) {
+  window.history.replaceState(null, "", "/m");
+}
 
 const queryClient = new QueryClient();
 
@@ -86,6 +93,7 @@ const App = () => (
           <Suspense fallback={<FullPageSpinner />}>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/m/*" element={<MobileApp />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route
                 path="/master"

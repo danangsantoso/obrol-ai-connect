@@ -1,0 +1,5 @@
+/build/*
+!/build/.npmkeep
+
+# Firebase config, added by the APK workflow from a secret
+google-services.json

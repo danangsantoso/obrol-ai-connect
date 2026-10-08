@@ -327,6 +327,40 @@ ditutup untuk:
 Kunci VAPID dibuat otomatis saat pertama dipakai. `PUSH_CONTACT_EMAIL` di `.env` (opsional) adalah email kontak yang
 dikirim ke layanan push browser.
 
+### Aplikasi agen untuk HP (APK Android & iPhone)
+
+Tampilan khusus HP ada di `https://<web Balas.id>/m`: pengenalan saat pertama dibuka, Inbox (Chat saya / Antrean /
+Dilayani AI), percakapan (ambil alih AI, serahkan ke AI, catatan internal, balasan cepat, lampiran), profil
+pelanggan, kontak, pesanan (konfirmasi bayar, input resi), status & notifikasi, serta ubah profil dan foto.
+
+- **iPhone**: buka `https://<web Balas.id>/m` di Safari → Bagikan → **Tambah ke Layar Utama** (iOS 16.4+ untuk
+  notifikasi). Apple tidak mengizinkan file APK; aplikasi App Store butuh akun Apple Developer.
+- **Android (APK)**: dibuat oleh GitHub Actions. Buka tab **Actions → APK Android (agen) → Run workflow**, isi
+  alamat web Balas.id (mis. `https://balasapp.contoh.id`), lalu unduh APK dari **Releases**. Kirim file APK ke
+  karyawan; di HP buka file itu, izinkan *Instal aplikasi tidak dikenal*, lalu **Pasang**. Aplikasi membuka
+  `/m` dari server Anda, jadi setiap `deploy.sh` langsung memperbarui isi aplikasi tanpa APK baru.
+
+Notifikasi di aplikasi Android memakai Firebase Cloud Messaging (gratis):
+1. Buat proyek di [console.firebase.google.com](https://console.firebase.google.com) → **Tambah aplikasi Android**
+   dengan nama paket `id.balas.agen` → unduh `google-services.json`.
+2. Di GitHub: **Settings → Secrets and variables → Actions → New repository secret** `GOOGLE_SERVICES_JSON`, isi
+   dengan seluruh isi file tersebut. Jalankan ulang workflow APK.
+3. Di Firebase: **Project settings → Service accounts → Generate new private key**. Simpan isinya (base64) di
+   `/opt/balas/supabase/.env` sebagai `FCM_SERVICE_ACCOUNT=...`
+   (`base64 -w0 file-kunci.json`), lalu jalankan `deploy.sh`.
+
+Agar APK baru bisa dipasang menimpa yang lama, tanda tangani dengan kunci tetap. Buat sekali di VPS:
+
+```bash
+docker run --rm -it -v /root:/k eclipse-temurin:21 keytool -genkeypair -v -keystore /k/balas-agen.jks \
+  -alias balas -keyalg RSA -keysize 2048 -validity 10000
+base64 -w0 /root/balas-agen.jks   # isi untuk secret ANDROID_KEYSTORE_BASE64
+```
+
+Lalu buat secret `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` (`balas`), dan
+`ANDROID_KEY_PASSWORD`. Simpan `balas-agen.jks` dan kata sandinya di tempat aman: tanpa kunci yang sama, pembaruan
+harus menghapus aplikasi lama dulu.
+
 ## 6. Update aplikasi
 
 ```bash
