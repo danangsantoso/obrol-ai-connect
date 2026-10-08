@@ -2264,6 +2264,112 @@ export type Database = {
           },
         ];
       };
+      push_config: {
+        Row: {
+          created_at: string;
+          id: number;
+          private_jwk: NonNullable<Json>;
+          public_key: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: number;
+          private_jwk: NonNullable<Json>;
+          public_key: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: number;
+          private_jwk?: NonNullable<Json>;
+          public_key?: string;
+        };
+        Relationships: [];
+      };
+      push_queue: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: string;
+          sent_at: string | null;
+          tag: string | null;
+          title: string;
+          url: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          body: string;
+          created_at?: string;
+          id?: string;
+          sent_at?: string | null;
+          tag?: string | null;
+          title: string;
+          url?: string;
+          user_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: string;
+          sent_at?: string | null;
+          tag?: string | null;
+          title?: string;
+          url?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_queue_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      push_subscriptions: {
+        Row: {
+          auth: string;
+          created_at: string;
+          endpoint: string;
+          id: string;
+          last_used_at: string | null;
+          p256dh: string;
+          user_agent: string | null;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          auth: string;
+          created_at?: string;
+          endpoint: string;
+          id?: string;
+          last_used_at?: string | null;
+          p256dh: string;
+          user_agent?: string | null;
+          user_id: string;
+        };
+        Update: {
+          auth?: string;
+          created_at?: string;
+          endpoint?: string;
+          id?: string;
+          last_used_at?: string | null;
+          p256dh?: string;
+          user_agent?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       quick_replies: {
         Row: {
           body: string;
@@ -2867,6 +2973,7 @@ export type Database = {
           webhook_id: string;
         }[];
       };
+      contact_label: { Args: { p_conversation: string }; Returns: string };
       create_api_key: { Args: { key_name: string }; Returns: string };
       create_organization: { Args: { org_name: string }; Returns: string };
       csat_rating: { Args: { p_body: string }; Returns: number };
@@ -3197,6 +3304,16 @@ export type Database = {
         Args: { p_org: string; p_team: string };
         Returns: string;
       };
+      notify_users: {
+        Args: {
+          p_body: string;
+          p_tag: string;
+          p_title: string;
+          p_url: string;
+          p_users: string[];
+        };
+        Returns: undefined;
+      };
       org_plan_usage: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -3250,6 +3367,25 @@ export type Database = {
       purge_webhook_deliveries: {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
+      };
+      push_claim: {
+        Args: { p_limit?: number };
+        Returns: {
+          body: string;
+          created_at: string;
+          id: string;
+          sent_at: string | null;
+          tag: string | null;
+          title: string;
+          url: string;
+          user_id: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "push_queue";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
       };
       record_knowledge_gap: {
         Args: { p_conversation: string; p_org: string; p_question: string };
@@ -3443,6 +3579,7 @@ export type Database = {
         Args: { p_amount?: number; p_kind: string; p_org: string };
         Returns: number;
       };
+      wake_push: { Args: Record<PropertyKey, never>; Returns: undefined };
       wake_webhook_dispatch: {
         Args: Record<PropertyKey, never>;
         Returns: undefined;

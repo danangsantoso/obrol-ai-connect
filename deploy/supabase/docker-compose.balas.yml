@@ -52,6 +52,9 @@ services:
       XENDIT_API_BASE: ${XENDIT_API_BASE:-https://api.xendit.co}
       MIDTRANS_API_BASE: ${MIDTRANS_API_BASE:-}
       BITESHIP_API_BASE: ${BITESHIP_API_BASE:-https://api.biteship.com}
+      # Contact address sent to browsers' push services with notifications
+      PUSH_CONTACT_EMAIL: ${PUSH_CONTACT_EMAIL:-}
+      PUSH_EXTRA_ORIGINS: ${PUSH_EXTRA_ORIGINS:-}
       # Encryption key for AI provider API keys and Page tokens stored in the database
       BALAS_SECRET_KEY: ${BALAS_SECRET_KEY}
       # Public URL of the web app: CORS origin and invitation redirect

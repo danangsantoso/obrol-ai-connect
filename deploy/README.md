@@ -311,6 +311,22 @@ Saat kuota habis atau paket berakhir:
 Admin tenant melihat pemakaiannya di **Pengaturan → Paket & pemakaian**, dan mendapat peringatan di atas halaman
 saat paket hampir berakhir atau kuota hampir habis. Tenant tanpa paket tidak dibatasi.
 
+## 5g. Aplikasi di HP & notifikasi
+
+Balas.id bisa dipasang seperti aplikasi:
+- **Android/Chrome/Edge**: menu browser → **Pasang aplikasi**, atau tombol **Pasang aplikasi Balas.id** di ikon lonceng.
+- **iPhone/iPad (iOS 16.4+)**: buka di Safari → Bagikan → **Tambah ke Layar Utama**, lalu buka dari ikonnya.
+
+Setiap agen menekan ikon **lonceng → Aktifkan notifikasi** di tiap perangkat. Notifikasi muncul walau aplikasi
+ditutup untuk:
+- pesan baru di chat miliknya;
+- chat yang diberikan kepadanya;
+- AI yang butuh bantuan (agen yang online/away);
+- disebut di catatan.
+
+Kunci VAPID dibuat otomatis saat pertama dipakai. `PUSH_CONTACT_EMAIL` di `.env` (opsional) adalah email kontak yang
+dikirim ke layanan push browser.
+
 ## 6. Update aplikasi
 
 ```bash
