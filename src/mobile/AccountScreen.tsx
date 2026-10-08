@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ROLE_LABELS, callFunction, errorMessage } from "@/lib/api";
 import { pushSupported, subscribeWebPush, webPushSubscribed } from "@/lib/webpush";
 import { cn } from "@/lib/utils";
-import { askNotificationPermission, isNativeApp, notificationPermission, registerNativePush, unregisterNativePush, type PermissionState } from "./native";
+import { askNotificationPermission, isNativeApp, nativePushAvailable, notificationPermission, registerNativePush, unregisterNativePush, type PermissionState } from "./native";
 import { Avatar, BottomNav, Screen, Section } from "./ui";
 
 const STATUSES = [
@@ -92,7 +92,8 @@ export default function AccountScreen() {
     await signOut();
   };
 
-  const notifOn = native ? permission === "granted" : subscribed;
+  const noFirebase = native && !nativePushAvailable();
+  const notifOn = native ? !noFirebase && permission === "granted" : subscribed;
   const help = STATUSES.find((s) => s.value === status)?.help;
 
   return (
@@ -147,7 +148,12 @@ export default function AccountScreen() {
         </Section>
 
         <Section title="Notifikasi di HP ini">
-          {!native && !pushSupported() ? (
+          {noFirebase ? (
+            <p className="text-[13px] leading-relaxed text-slate-600">
+              Notifikasi belum tersedia di versi aplikasi ini. Admin perlu menyiapkan Firebase lalu membagikan APK terbaru. Sementara itu,
+              buka aplikasi secara berkala untuk melihat chat baru.
+            </p>
+          ) : !native && !pushSupported() ? (
             <p className="text-[13px] leading-relaxed text-slate-600">
               Browser ini belum mendukung notifikasi. Di iPhone: buka Balas.id di Safari, ketuk Bagikan → <b>Tambah ke Layar Utama</b>, lalu
               buka dari ikonnya.
