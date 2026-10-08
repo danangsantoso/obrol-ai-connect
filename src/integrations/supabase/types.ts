@@ -118,6 +118,9 @@ export type Database = {
       ai_settings: {
         Row: {
           agent_wait_minutes: number;
+          ai_followup: boolean;
+          ai_followup_after_hours: number;
+          ai_followup_max: number;
           api_key_hint: string | null;
           base_url: string | null;
           bot_name: string;
@@ -126,6 +129,7 @@ export type Database = {
           handoff_message: string;
           handoff_rules: string;
           instructions: string;
+          keep_serving: boolean;
           max_auto_replies: number;
           model: string;
           organization_id: string;
@@ -146,6 +150,9 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           agent_wait_minutes?: number;
+          ai_followup?: boolean;
+          ai_followup_after_hours?: number;
+          ai_followup_max?: number;
           api_key_hint?: string | null;
           base_url?: string | null;
           bot_name?: string;
@@ -154,6 +161,7 @@ export type Database = {
           handoff_message?: string;
           handoff_rules?: string;
           instructions?: string;
+          keep_serving?: boolean;
           max_auto_replies?: number;
           model?: string;
           organization_id: string;
@@ -173,6 +181,9 @@ export type Database = {
         };
         Update: {
           agent_wait_minutes?: number;
+          ai_followup?: boolean;
+          ai_followup_after_hours?: number;
+          ai_followup_max?: number;
           api_key_hint?: string | null;
           base_url?: string | null;
           bot_name?: string;
@@ -181,6 +192,7 @@ export type Database = {
           handoff_message?: string;
           handoff_rules?: string;
           instructions?: string;
+          keep_serving?: boolean;
           max_auto_replies?: number;
           model?: string;
           organization_id?: string;
@@ -829,8 +841,10 @@ export type Database = {
           ai_busy_until: string | null;
           ai_due_at: string | null;
           ai_engaged: boolean;
+          ai_followups_sent: number;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
+          ai_last_followup_at: string | null;
           ai_last_reply_at: string | null;
           ai_pending_at: string | null;
           ai_pending_message_id: string | null;
@@ -861,8 +875,10 @@ export type Database = {
           ai_busy_until?: string | null;
           ai_due_at?: string | null;
           ai_engaged?: boolean;
+          ai_followups_sent?: number;
           ai_handoff_at?: string | null;
           ai_handoff_reason?: string | null;
+          ai_last_followup_at?: string | null;
           ai_last_reply_at?: string | null;
           ai_pending_at?: string | null;
           ai_pending_message_id?: string | null;
@@ -892,8 +908,10 @@ export type Database = {
           ai_busy_until?: string | null;
           ai_due_at?: string | null;
           ai_engaged?: boolean;
+          ai_followups_sent?: number;
           ai_handoff_at?: string | null;
           ai_handoff_reason?: string | null;
+          ai_last_followup_at?: string | null;
           ai_last_reply_at?: string | null;
           ai_pending_at?: string | null;
           ai_pending_message_id?: string | null;
@@ -2791,6 +2809,15 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      ai_followup_claim: {
+        Args: { p_limit?: number };
+        Returns: {
+          conversation_id: string;
+          followup_max: number;
+          followup_number: number;
+          organization_id: string;
+        }[];
+      };
       apply_message_status: {
         Args: {
           p_error: Json;
@@ -2815,8 +2842,10 @@ export type Database = {
           ai_busy_until: string | null;
           ai_due_at: string | null;
           ai_engaged: boolean;
+          ai_followups_sent: number;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
+          ai_last_followup_at: string | null;
           ai_last_reply_at: string | null;
           ai_pending_at: string | null;
           ai_pending_message_id: string | null;
@@ -2928,8 +2957,10 @@ export type Database = {
           ai_busy_until: string | null;
           ai_due_at: string | null;
           ai_engaged: boolean;
+          ai_followups_sent: number;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
+          ai_last_followup_at: string | null;
           ai_last_reply_at: string | null;
           ai_pending_at: string | null;
           ai_pending_message_id: string | null;
@@ -3173,8 +3204,10 @@ export type Database = {
           ai_busy_until: string | null;
           ai_due_at: string | null;
           ai_engaged: boolean;
+          ai_followups_sent: number;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
+          ai_last_followup_at: string | null;
           ai_last_reply_at: string | null;
           ai_pending_at: string | null;
           ai_pending_message_id: string | null;
@@ -3497,8 +3530,10 @@ export type Database = {
           ai_busy_until: string | null;
           ai_due_at: string | null;
           ai_engaged: boolean;
+          ai_followups_sent: number;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
+          ai_last_followup_at: string | null;
           ai_last_reply_at: string | null;
           ai_pending_at: string | null;
           ai_pending_message_id: string | null;
@@ -3540,8 +3575,10 @@ export type Database = {
           ai_busy_until: string | null;
           ai_due_at: string | null;
           ai_engaged: boolean;
+          ai_followups_sent: number;
           ai_handoff_at: string | null;
           ai_handoff_reason: string | null;
+          ai_last_followup_at: string | null;
           ai_last_reply_at: string | null;
           ai_pending_at: string | null;
           ai_pending_message_id: string | null;

@@ -81,7 +81,9 @@ function senderLabel(message: Message, sender?: Member) {
     broadcast?: { name: string };
     csat?: boolean;
     away?: boolean;
+    ai_followup?: number;
   };
+  if (meta.ai && meta.ai_followup) return `🤖 ${meta.bot_name || 'AI'} · follow-up ${meta.ai_followup}`;
   if (meta.csat) return '⭐ Survei kepuasan';
   if (meta.away) return '🌙 Di luar jam operasional';
   if (meta.broadcast) return `📣 Broadcast · ${meta.broadcast.name}`;
