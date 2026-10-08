@@ -19,9 +19,12 @@ const evaluate = (expression) => new Promise((resolve) => {
 });
 const ua = await evaluate('navigator.userAgent');
 const native = await evaluate('Boolean(window.Capacitor && window.Capacitor.isNativePlatform())');
-console.log({ ua, native, url: await evaluate('location.href') });
+const url = await evaluate('location.href');
+console.log({ ua, native, url });
 ws.close();
-if (!native) throw new Error('Capacitor bridge missing');
+// The offline page (server unreachable, as in pull request builds) has no bridge.
+const offline = /\/index\.html$/.test(new URL(url).pathname);
+if (!native && !offline) throw new Error('Capacitor bridge missing');
 if (!/BalasAgen\/1/.test(ua)) throw new Error('user agent flag missing');
 if (/BalasFCM/.test(ua) !== (expectFcm === 'yes')) throw new Error(`BalasFCM flag should be ${expectFcm}`);
 console.log('WebView check ok');
