@@ -3,6 +3,7 @@ import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
 import { adminClient, requireMember } from "../_shared/supabase.ts";
 import { decryptSecret, encryptSecret } from "../_shared/crypto.ts";
 import { deleteWebhook, getMe, setWebhook } from "../_shared/telegram.ts";
+import { quotaError } from "../_shared/plans.ts";
 
 const randomHex = (bytes: number) =>
   Array.from(crypto.getRandomValues(new Uint8Array(bytes)), (b) => b.toString(16).padStart(2, "0")).join("");
@@ -47,7 +48,7 @@ serveJson(async (req) => {
         .insert({ organization_id: member.organization_id, provider: "telegram", external_id: String(bot.id), ...fields })
         .select("id")
         .single();
-      if (error) throw error;
+      if (error) throw quotaError(error) ?? error;
       channelId = data.id;
     }
 

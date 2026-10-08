@@ -663,6 +663,10 @@ async function runTurn(admin: SupabaseClient, conversationId: string) {
     } else if (conv.ai_reply_count >= ai.settings.max_auto_replies) {
       outcome = "handoff";
       reason = `Batas ${ai.settings.max_auto_replies} balasan otomatis tercapai.`;
+    } else if (((await admin.rpc("use_quota", { p_org: orgId, p_kind: "ai_replies", p_amount: 1 })).data ?? 1) < 1) {
+      // The tenant's plan: monthly AI replies used up, or the plan has ended.
+      outcome = "handoff";
+      reason = "Kuota balasan AI paket bulan ini habis atau paket sudah berakhir.";
     } else {
       const chat = await prepareChat(admin, ai, conversationId);
       const contact = await customerOf(admin, conversationId);

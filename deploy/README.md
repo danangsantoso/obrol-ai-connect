@@ -290,6 +290,27 @@ Menu **Laporan** (admin dan supervisor) menampilkan, per agen dan AI:
 
 Ada juga tren harian. Tombol **Ekspor Excel (CSV)** mengunduh file yang langsung terbuka di Excel.
 
+## 5f. Paket langganan tenant (Master Admin)
+
+Di halaman Master Admin, bagian **Paket langganan**, buat paket dengan batas:
+- jumlah pengguna;
+- jumlah kanal;
+- balasan AI per bulan;
+- pesan broadcast per bulan.
+
+Kosongkan batas yang tidak ingin dibatasi. Tandai satu paket sebagai **bawaan** (dengan masa trial) agar tenant baru
+otomatis memakainya.
+
+Di daftar tenant, pilih paket per tenant dan tekan **+30 hari** untuk memperpanjang.
+
+Saat kuota habis atau paket berakhir:
+- **Balasan AI**: chat diserahkan ke tim.
+- **Broadcast**: pesan sisanya tidak dikirim.
+- **Pengguna atau kanal baru**: ditolak dengan pesan yang jelas.
+
+Admin tenant melihat pemakaiannya di **Pengaturan → Paket & pemakaian**, dan mendapat peringatan di atas halaman
+saat paket hampir berakhir atau kuota hampir habis. Tenant tanpa paket tidak dibatasi.
+
 ## 6. Update aplikasi
 
 ```bash

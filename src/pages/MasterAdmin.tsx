@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Logo } from "@/components/brand/Logo";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { PlansCard, TenantPlan, usePlans } from "@/components/master/Plans";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { callFunction, errorMessage } from "@/lib/api";
@@ -215,6 +216,7 @@ export default function MasterAdmin() {
     },
   });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["master-tenants"] });
+  const { data: plans = [] } = usePlans();
 
   const setActive = async (id: string, name: string, active: boolean) => {
     const question = active
@@ -283,6 +285,8 @@ export default function MasterAdmin() {
 
         <RegistrationRequests onApproved={refresh} />
 
+        <PlansCard />
+
         <Card>
           <CardHeader>
             <CardTitle>Daftar tenant</CardTitle>
@@ -299,6 +303,7 @@ export default function MasterAdmin() {
                   <TableRow>
                     <TableHead>Tenant</TableHead>
                     <TableHead>Superadmin</TableHead>
+                    <TableHead>Paket</TableHead>
                     <TableHead className="text-right">Anggota</TableHead>
                     <TableHead className="text-right">Kanal</TableHead>
                     <TableHead className="text-right">Chat</TableHead>
@@ -331,6 +336,9 @@ export default function MasterAdmin() {
                               </Button>
                             </div>
                           ))}
+                        </TableCell>
+                        <TableCell>
+                          <TenantPlan tenant={t} plans={plans} onChanged={refresh} />
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{Number(t.members)}</TableCell>
                         <TableCell className="text-right tabular-nums">{Number(t.channels)}</TableCell>

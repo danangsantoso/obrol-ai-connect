@@ -3,6 +3,7 @@
 // or an email invitation (needs SMTP).
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
 import { adminClient, requireMember, type Role } from "../_shared/supabase.ts";
+import { assertUserQuota, quotaError } from "../_shared/plans.ts";
 
 interface InviteRequest {
   email: string;
@@ -49,6 +50,8 @@ serveJson(async (req) => {
     .eq("email", email)
     .maybeSingle();
 
+  await assertUserQuota(admin, caller.organization_id);
+
   let userId: string;
   let invited = false;
   if (existing) {
@@ -89,7 +92,11 @@ serveJson(async (req) => {
   };
   if (fullName) update.full_name = fullName;
   const { error: profileError } = await admin.from("profiles").update(update).eq("id", userId);
-  if (profileError) throw profileError;
+  if (profileError) {
+    // Do not leave an account behind that belongs to no one.
+    if (!existing) await admin.auth.admin.deleteUser(userId);
+    throw quotaError(profileError) ?? profileError;
+  }
 
   if (teamIds.length) {
     const { error } = await admin

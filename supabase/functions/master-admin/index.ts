@@ -5,15 +5,20 @@
 //  set_tenant_active  - suspend (all members' logins blocked) or reactivate
 //  reset_password     - Superadmin back to the default password, change at next login
 //  rename_tenant
+//  set_tenant_plan    - plan and paid-until date (or extend by N days)
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
 import { adminClient, requireMasterAdmin } from "../_shared/supabase.ts";
+import { assertUserQuota, quotaError } from "../_shared/plans.ts";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const DEFAULT_PASSWORD = "12345678";
 const BAN_FOREVER = "876000h";
 
 interface Input {
-  action: "create_tenant" | "add_superadmin" | "set_tenant_active" | "reset_password" | "rename_tenant";
+  action: "create_tenant" | "add_superadmin" | "set_tenant_active" | "reset_password" | "rename_tenant" | "set_tenant_plan";
+  plan_id?: string | null;
+  expires_at?: string | null;
+  extend_days?: number;
   organization_id?: string;
   name?: string;
   admin_name?: string;
@@ -43,7 +48,10 @@ async function createSuperadmin(admin: SupabaseClient, orgId: string, input: Inp
     .from("profiles")
     .update({ organization_id: orgId, role: "admin", full_name: fullName || null, must_change_password: true })
     .eq("id", data.user.id);
-  if (profileError) throw profileError;
+  if (profileError) {
+    await admin.auth.admin.deleteUser(data.user.id);
+    throw quotaError(profileError) ?? profileError;
+  }
   return { user_id: data.user.id, email, password };
 }
 
@@ -73,8 +81,33 @@ serveJson(async (req) => {
         throw err;
       }
     }
+    case "set_tenant_plan": {
+      const org = await tenantOf(admin, input.organization_id);
+      const { data: current } = await admin.from("organizations").select("plan_expires_at").eq("id", org.id).single();
+      let expires: string | null = input.expires_at === undefined ? current?.plan_expires_at ?? null : input.expires_at;
+      if (input.extend_days) {
+        const days = Math.floor(Number(input.extend_days));
+        if (!(days >= 1 && days <= 3660)) throw new HttpError(400, "Perpanjangan 1–3660 hari", "invalid_request");
+        // Extend from the current end date, or from today when it has passed.
+        const from = Math.max(Date.now(), current?.plan_expires_at ? new Date(current.plan_expires_at).getTime() : 0);
+        expires = new Date(from + days * 86_400_000).toISOString();
+      }
+      if (expires && isNaN(new Date(expires).getTime())) throw new HttpError(400, "Tanggal tidak valid", "invalid_request");
+      const patch: Record<string, unknown> = { plan_expires_at: expires };
+      if (input.plan_id !== undefined) {
+        if (input.plan_id) {
+          const { data: plan } = await admin.from("plans").select("id").eq("id", input.plan_id).maybeSingle();
+          if (!plan) throw new HttpError(404, "Paket tidak ditemukan", "not_found");
+        }
+        patch.plan_id = input.plan_id;
+      }
+      const { error } = await admin.from("organizations").update(patch).eq("id", org.id);
+      if (error) throw error;
+      return json({ organization_id: org.id, ...patch });
+    }
     case "add_superadmin": {
       const org = await tenantOf(admin, input.organization_id);
+      await assertUserQuota(admin, org.id);
       return json({ superadmin: await createSuperadmin(admin, org.id, input) });
     }
     case "rename_tenant": {

@@ -1936,6 +1936,8 @@ export type Database = {
           is_active: boolean;
           name: string;
           outside_hours_message: string;
+          plan_expires_at: string | null;
+          plan_id: string | null;
           retention_days: number;
           rotate_timeout_minutes: number;
           suspended_at: string | null;
@@ -1955,6 +1957,8 @@ export type Database = {
           is_active?: boolean;
           name: string;
           outside_hours_message?: string;
+          plan_expires_at?: string | null;
+          plan_id?: string | null;
           retention_days?: number;
           rotate_timeout_minutes?: number;
           suspended_at?: string | null;
@@ -1973,13 +1977,23 @@ export type Database = {
           is_active?: boolean;
           name?: string;
           outside_hours_message?: string;
+          plan_expires_at?: string | null;
+          plan_id?: string | null;
           retention_days?: number;
           rotate_timeout_minutes?: number;
           suspended_at?: string | null;
           timezone?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "organizations_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "plans";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       payment_secrets: {
         Row: {
@@ -2079,6 +2093,49 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      plans: {
+        Row: {
+          ai_replies_per_month: number | null;
+          broadcast_per_month: number | null;
+          created_at: string;
+          description: string;
+          id: string;
+          is_default: boolean;
+          max_channels: number | null;
+          max_users: number | null;
+          name: string;
+          price_monthly: number;
+          trial_days: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          ai_replies_per_month?: number | null;
+          broadcast_per_month?: number | null;
+          created_at?: string;
+          description?: string;
+          id?: string;
+          is_default?: boolean;
+          max_channels?: number | null;
+          max_users?: number | null;
+          name: string;
+          price_monthly?: number;
+          trial_days?: number;
+        };
+        Update: {
+          ai_replies_per_month?: number | null;
+          broadcast_per_month?: number | null;
+          created_at?: string;
+          description?: string;
+          id?: string;
+          is_default?: boolean;
+          max_channels?: number | null;
+          max_users?: number | null;
+          name?: string;
+          price_monthly?: number;
+          trial_days?: number;
+        };
+        Relationships: [];
       };
       platform_admins: {
         Row: {
@@ -2425,6 +2482,36 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tenant_requests_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      usage_monthly: {
+        Row: {
+          ai_replies: number;
+          broadcast_messages: number;
+          month: string;
+          organization_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          ai_replies?: number;
+          broadcast_messages?: number;
+          month: string;
+          organization_id: string;
+        };
+        Update: {
+          ai_replies?: number;
+          broadcast_messages?: number;
+          month?: string;
+          organization_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "usage_monthly_organization_id_fkey";
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
@@ -3060,6 +3147,8 @@ export type Database = {
       master_tenant_overview: {
         Args: Record<PropertyKey, never>;
         Returns: {
+          ai_replies_month: number;
+          broadcast_month: number;
           channels: number;
           conversations: number;
           created_at: string;
@@ -3067,6 +3156,9 @@ export type Database = {
           is_active: boolean;
           members: number;
           name: string;
+          plan_expires_at: string;
+          plan_id: string;
+          plan_name: string;
           superadmins: Json;
           suspended_at: string;
         }[];
@@ -3104,6 +3196,23 @@ export type Database = {
       next_rotation_agent: {
         Args: { p_org: string; p_team: string };
         Returns: string;
+      };
+      org_plan_usage: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          ai_replies: number;
+          ai_replies_per_month: number;
+          broadcast_messages: number;
+          broadcast_per_month: number;
+          channels: number;
+          expired: boolean;
+          expires_at: string;
+          max_channels: number;
+          max_users: number;
+          plan_name: string;
+          price_monthly: number;
+          users: number;
+        }[];
       };
       performance_daily: {
         Args: { p_from: string; p_sla_minutes?: number; p_to: string };
@@ -3329,6 +3438,11 @@ export type Database = {
         };
       };
       test_webhook: { Args: { webhook: string }; Returns: undefined };
+      usage_month: { Args: { p_org: string }; Returns: string };
+      use_quota: {
+        Args: { p_amount?: number; p_kind: string; p_org: string };
+        Returns: number;
+      };
       wake_webhook_dispatch: {
         Args: Record<PropertyKey, never>;
         Returns: undefined;

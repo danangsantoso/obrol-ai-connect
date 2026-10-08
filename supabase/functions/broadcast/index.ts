@@ -36,7 +36,24 @@ async function sendBatch(admin: SupabaseClient, b: Broadcast, deadlineMs: number
     admin.from("ai_settings").select("bot_name, salutation").eq("organization_id", b.organization_id).maybeSingle(),
     admin.from("organizations").select("name").eq("id", b.organization_id).single(),
   ]);
-  const { data: batch, error } = await admin.rpc("broadcast_claim", { p_id: b.id, p_limit: b.per_minute });
+  // The plan's monthly broadcast allowance, for no more than this batch needs.
+  const { count: waiting } = await admin.from("broadcast_recipients").select("id", { count: "exact", head: true })
+    .eq("broadcast_id", b.id).eq("status", "pending");
+  const wanted = Math.min(b.per_minute, waiting ?? 0);
+  let allowed = b.per_minute;
+  let exhausted = false;
+  if (wanted > 0) {
+    const { data: granted } = await admin.rpc("use_quota", { p_org: b.organization_id, p_kind: "broadcast_messages", p_amount: wanted });
+    allowed = Number(granted ?? wanted);
+    exhausted = allowed < wanted;
+    if (allowed < 1) {
+      await admin.from("broadcast_recipients").update({ status: "failed", error: "Kuota broadcast paket bulan ini habis" })
+        .eq("broadcast_id", b.id).eq("status", "pending");
+      await admin.from("broadcasts").update({ status: "completed", finished_at: new Date().toISOString() }).eq("id", b.id);
+      return 0;
+    }
+  }
+  const { data: batch, error } = await admin.rpc("broadcast_claim", { p_id: b.id, p_limit: Math.min(b.per_minute, allowed) });
   if (error) throw error;
   const rows = (batch ?? []) as { id: string; contact_id: string }[];
   // Spread the batch over the minute; QR numbers get a little randomness so the
@@ -85,6 +102,11 @@ async function sendBatch(admin: SupabaseClient, b: Broadcast, deadlineMs: number
     }
     if (channel?.provider === "qr") await sleep(gap + Math.floor(Math.random() * 1500));
     else if (gap > 200) await sleep(Math.min(gap, 1000));
+  }
+  // The allowance ran out with this batch: the rest cannot go this month.
+  if (exhausted) {
+    await admin.from("broadcast_recipients").update({ status: "failed", error: "Kuota broadcast paket bulan ini habis" })
+      .eq("broadcast_id", b.id).eq("status", "pending");
   }
   const { count } = await admin.from("broadcast_recipients").select("id", { count: "exact", head: true })
     .eq("broadcast_id", b.id).in("status", ["pending", "sending"]);
