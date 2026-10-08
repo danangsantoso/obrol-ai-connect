@@ -73,21 +73,29 @@ Deno.serve(async (req) => {
 });
 
 // 628123@s.whatsapp.net -> 628123. Linked ids (…@lid) stay whole: they are not phone numbers.
+// Businesses hosted by Meta (WhatsApp Business on the Cloud API) write from
+// …@hosted (a phone number) or …@hosted.lid.
 function waIdFromJid(jid: string): string | null {
   const [user, server] = jid.split("@");
   if (!user || !server) return null;
-  if (server === "s.whatsapp.net" || server === "c.us") return user.split(":")[0];
-  if (server === "lid") return `${user.split(":")[0]}@lid`;
-  return null; // groups, broadcasts, newsletters
+  const id = user.split(":")[0];
+  if (server === "s.whatsapp.net" || server === "c.us" || server === "hosted") return id;
+  if (server === "lid" || server === "hosted.lid") return `${id}@${server}`;
+  return null; // groups, broadcasts, newsletters, Meta AI
+}
+
+// The phone-number jid when WhatsApp gives one next to a linked id.
+function customerJid(key: Raw): string {
+  const jid: string = key.remoteJid ?? "";
+  return /@(?:hosted\.)?lid$/.test(jid) && key.remoteJidAlt ? key.remoteJidAlt : jid;
 }
 
 async function handleMessage(admin: SupabaseClient, channel: Channel, data: Raw) {
   const key = data.key ?? {};
-  const jid: string = key.remoteJid?.includes("@lid") && key.remoteJidAlt ? key.remoteJidAlt : key.remoteJid ?? "";
-  const waId = waIdFromJid(jid);
+  const waId = waIdFromJid(customerJid(key));
   if (!waId || !key.id) return;
 
-  const described = describe(data.messageType, data.message ?? {});
+  const described = describe(...unwrap(data.messageType, data.message ?? {}));
   if (!described) return;
 
   const fromMe = key.fromMe === true;
@@ -172,6 +180,34 @@ async function handleConnection(admin: SupabaseClient, channel: Channel, data: R
     p_display_phone: status === "connected" && owner ? `+${owner}` : null,
   });
   if (error) throw error;
+}
+
+// Disappearing, view-once and captioned-document messages carry the real
+// message inside (common from WhatsApp Business accounts).
+const WRAPPERS = new Set([
+  "ephemeralMessage",
+  "viewOnceMessage",
+  "viewOnceMessageV2",
+  "viewOnceMessageV2Extension",
+  "documentWithCaptionMessage",
+  "deviceSentMessage",
+]);
+
+// The first content key, as Baileys' getContentType picks it.
+function contentType(message: Raw): string | undefined {
+  return Object.keys(message ?? {}).find((k) => (k === "conversation" || k.endsWith("Message")) && k !== "senderKeyDistributionMessage");
+}
+
+function unwrap(messageType: string | undefined, message: Raw): [string | undefined, Raw] {
+  let type = messageType;
+  let msg = message;
+  for (let depth = 0; type && WRAPPERS.has(type) && depth < 4; depth++) {
+    const inner = msg?.[type]?.message;
+    if (!inner || typeof inner !== "object") break;
+    msg = inner;
+    type = contentType(inner);
+  }
+  return [type, msg];
 }
 
 // Turns a Baileys message into our message type, display text and the details worth keeping.

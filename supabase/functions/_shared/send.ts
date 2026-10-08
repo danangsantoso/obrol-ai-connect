@@ -27,6 +27,11 @@ const WINDOW_MS = 24 * 60 * 60 * 1000;
 const HUMAN_AGENT_WINDOW_MS = 7 * WINDOW_MS;
 const MEDIA_TYPES: MediaType[] = ["image", "video", "audio", "document"];
 
+// Files an agent uploaded for this message, or the organization's AI files.
+function ownMedia(orgId: string, path: string) {
+  return !path.includes("..") && (path.startsWith(`${orgId}/outbound/`) || path.startsWith(`${orgId}/ai-media/`));
+}
+
 export async function sendToConversation(
   admin: SupabaseClient,
   conversationId: string,
@@ -96,7 +101,7 @@ export async function sendToConversation(
     if (viaQr) qrSend = () => evolution.sendText(instance, conv.contacts.wa_id, text, input.reply_to_wa_id);
   } else if (MEDIA_TYPES.includes(input.type as MediaType)) {
     const path = input.media_path ?? "";
-    if (!path.startsWith(`${conv.organization_id}/outbound/`)) {
+    if (!ownMedia(conv.organization_id, path)) {
       throw new HttpError(400, "media_path must be an uploaded outbound file", "invalid_request");
     }
     const file = await admin.storage.from("media").download(path);
@@ -256,7 +261,7 @@ async function sendSocialMessage(
 
   if (!MEDIA_TYPES.includes(input.type as MediaType)) throw new HttpError(400, "Unsupported message type", "invalid_request");
   const path = input.media_path ?? "";
-  if (!path.startsWith(`${conv.organization_id}/outbound/`)) {
+  if (!ownMedia(conv.organization_id, path)) {
     throw new HttpError(400, "media_path must be an uploaded outbound file", "invalid_request");
   }
   const file = await admin.storage.from("media").download(path);
@@ -311,7 +316,7 @@ async function sendDirectMessage(
 
   if (!MEDIA_TYPES.includes(input.type as MediaType)) throw new HttpError(400, "Unsupported message type", "invalid_request");
   const path = input.media_path ?? "";
-  if (!path.startsWith(`${conv.organization_id}/outbound/`)) {
+  if (!ownMedia(conv.organization_id, path)) {
     throw new HttpError(400, "media_path must be an uploaded outbound file", "invalid_request");
   }
   const file = await admin.storage.from("media").download(path);

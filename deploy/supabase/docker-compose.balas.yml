@@ -6,6 +6,19 @@ services:
   api-gw:
     ports: !override
       - "127.0.0.1:${API_GW_HTTP_PORT:-8000}:8000/tcp"
+    # Upstream waits for Studio to be healthy. Studio (the database admin UI)
+    # is slow to answer its health check on small servers, and then the API
+    # gateway and the functions that receive every customer message never
+    # start. Chat must not depend on the admin UI.
+    depends_on:
+      studio:
+        condition: service_started
+
+  # Its health check (10 s) times out on small servers, which also failed
+  # deploy.sh's "wait until healthy". Studio is optional for Balas.id.
+  studio:
+    healthcheck:
+      disable: true
 
   # Balas.id does not use the connection pooler (functions go through the API,
   # migrations through the db container), so it only starts on request:

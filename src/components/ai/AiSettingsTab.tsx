@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { DEFAULT_SOUL } from "./soul";
 import { VoiceVisionCard } from "./VoiceVisionCard";
 import { KeepServingCard } from "./KeepServingCard";
+import { AiMediaCard } from "./AiMediaCard";
 import { ChatText } from "@/components/chat/ChatText";
 
 const DEFAULTS = {
@@ -618,6 +619,7 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
         </Card>
       </form>
       <KeepServingCard orgId={orgId} isAdmin={isAdmin} />
+      <AiMediaCard orgId={orgId} />
       <VoiceVisionCard orgId={orgId} isAdmin={isAdmin} />
     </div>
   );
