@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import type { CapacitorConfig } from "@capacitor/cli";
 
 // The agents' Android app. It opens the Balas.id web app's mobile screens
@@ -5,6 +6,9 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // web deploy updates the app without a new APK. mobile/www only holds the
 // page shown when the phone is offline.
 const appUrl = process.env.BALAS_APP_URL?.replace(/\/+$/, "");
+// Push needs Firebase in the APK: without google-services.json the push
+// plugin crashes the app, so the web code is told through the user agent.
+const firebase = existsSync("android/app/google-services.json");
 
 const config: CapacitorConfig = {
   appId: "id.balas.agen",
@@ -19,6 +23,7 @@ const config: CapacitorConfig = {
     : undefined,
   android: {
     allowMixedContent: false,
+    appendUserAgent: firebase ? "BalasAgen/1 BalasFCM" : "BalasAgen/1",
   },
   plugins: {
     PushNotifications: {

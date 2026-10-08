@@ -8,6 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const isNativeApp = () => Capacitor.isNativePlatform();
 
+// The APK was built with Firebase (google-services.json). Without it the push
+// plugin crashes the app on register(), so it is never called then.
+export const nativePushAvailable = () => isNativeApp() && /\bBalasFCM\b/.test(navigator.userAgent);
+
 const TOKEN_KEY = "balas.m.fcm";
 
 // Notification links use the web app's paths; the app opens its own screen.
@@ -47,7 +51,7 @@ export async function askNotificationPermission(): Promise<PermissionState> {
 
 // Registers this phone for the signed-in person (needs permission first).
 export async function registerNativePush(): Promise<boolean> {
-  if (!isNativeApp() || (await notificationPermission()) !== "granted") return false;
+  if (!nativePushAvailable() || (await notificationPermission()) !== "granted") return false;
   const handles: Promise<{ remove: () => Promise<void> }>[] = [];
   const token = await new Promise<string | null>((resolve) => {
     const timer = setTimeout(() => resolve(null), 15_000);
