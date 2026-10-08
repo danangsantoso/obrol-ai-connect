@@ -752,6 +752,59 @@ export type Database = {
           },
         ];
       };
+      conversation_resolutions: {
+        Row: {
+          agent_id: string | null;
+          by_ai: boolean;
+          conversation_id: string;
+          id: string;
+          opened_at: string;
+          organization_id: string;
+          resolved_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          agent_id?: string | null;
+          by_ai?: boolean;
+          conversation_id: string;
+          id?: string;
+          opened_at: string;
+          organization_id: string;
+          resolved_at?: string;
+        };
+        Update: {
+          agent_id?: string | null;
+          by_ai?: boolean;
+          conversation_id?: string;
+          id?: string;
+          opened_at?: string;
+          organization_id?: string;
+          resolved_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_resolutions_agent_id_fkey";
+            columns: ["agent_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_resolutions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_resolutions_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       conversations: {
         Row: {
           ai_active: boolean;
@@ -3034,6 +3087,35 @@ export type Database = {
         Args: { p_org: string; p_team: string };
         Returns: string;
       };
+      performance_daily: {
+        Args: { p_from: string; p_sla_minutes?: number; p_to: string };
+        Returns: {
+          day: string;
+          median_response_seconds: number;
+          new_chats: number;
+          replies: number;
+          resolved: number;
+          within_sla: number;
+        }[];
+      };
+      performance_report: {
+        Args: { p_from: string; p_sla_minutes?: number; p_to: string };
+        Returns: {
+          actor: string;
+          agent_id: string;
+          avg_response_seconds: number;
+          chats: number;
+          csat_answered: number;
+          csat_average: number;
+          median_resolution_minutes: number;
+          median_response_seconds: number;
+          orders_paid: number;
+          replies: number;
+          resolved: number;
+          revenue: number;
+          within_sla: number;
+        }[];
+      };
       purge_expired_messages: {
         Args: Record<PropertyKey, never>;
         Returns: string[];
@@ -3088,6 +3170,17 @@ export type Database = {
       reject_tenant_request: {
         Args: { reason?: string; request_id: string };
         Returns: undefined;
+      };
+      reply_waits: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          conversation_id: string;
+          from_phone: boolean;
+          is_ai: boolean;
+          replied_at: string;
+          sender_id: string;
+          wait_seconds: number;
+        }[];
       };
       request_tenant: {
         Args: { p_company: string; p_note?: string; p_phone?: string };

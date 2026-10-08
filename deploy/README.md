@@ -274,6 +274,16 @@ hari", jadwal kirim, dan kecepatan per menit. Hasil per broadcast: terkirim, dit
 - **AI Agent → Belum terjawab**: pertanyaan yang tidak bisa dijawab AI karena datanya belum ada, diurutkan dari
   yang paling sering ditanyakan. Klik **Jawab**: jawaban disimpan sebagai dokumen FAQ dan langsung dipakai AI.
 
+## 5e. Laporan performa
+
+Menu **Laporan** (admin dan supervisor) menampilkan, per agen dan AI:
+- waktu respons (median, dan persen yang dibalas sesuai target menit);
+- jumlah chat diselesaikan dan lama penyelesaiannya;
+- nilai kepuasan (CSAT);
+- pesanan lunas dan omzet.
+
+Ada juga tren harian. Tombol **Ekspor Excel (CSV)** mengunduh file yang langsung terbuka di Excel.
+
 ## 6. Update aplikasi
 
 ```bash

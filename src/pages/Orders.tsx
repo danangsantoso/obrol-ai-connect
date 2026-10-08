@@ -10,13 +10,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderDetail, StatusBadge } from "@/components/orders/OrderDetail";
 import { ORDER_STATUS, type OrderItem, formatDateTime, rupiah } from "@/components/orders/orders";
+import { downloadCsv } from "@/lib/csv";
 
 const PAID = ["paid", "processing", "shipped", "completed"];
-
-function csvCell(v: unknown) {
-  const s = String(v ?? "");
-  return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
 
 export default function Orders() {
   const { profile } = useAuth();
@@ -65,13 +61,7 @@ export default function Orders() {
       (o.items as unknown as OrderItem[]).map((i) => `${i.qty}x ${i.name}`).join("; "),
       o.subtotal, o.shipping_cost, o.discount, o.total, [o.courier, o.courier_service].filter(Boolean).join(" "), o.tracking_number, formatDateTime(o.paid_at),
     ]);
-    const csv = [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
-    const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `pesanan-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(`pesanan-${new Date().toISOString().slice(0, 10)}.csv`, [header, ...rows]);
   };
 
   return (

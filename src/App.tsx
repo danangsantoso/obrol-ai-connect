@@ -17,6 +17,7 @@ const QuickReplies = lazy(() => import("./pages/QuickReplies"));
 const Followup = lazy(() => import("./pages/Followup"));
 const Orders = lazy(() => import("./pages/Orders"));
 const Broadcast = lazy(() => import("./pages/Broadcast"));
+const Reports = lazy(() => import("./pages/Reports"));
 const Pipeline = lazy(() => import("./pages/Pipeline"));
 const Team = lazy(() => import("./pages/Team"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -110,6 +111,14 @@ const App = () => (
                 <Route path="quick-replies" element={<QuickReplies />} />
                 <Route path="followup" element={<Followup />} />
                 <Route path="orders" element={<Orders />} />
+                <Route
+                  path="reports"
+                  element={
+                    <ProtectedRoute roles={["admin", "supervisor"]}>
+                      <Reports />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="broadcast"
                   element={
