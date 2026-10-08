@@ -3,23 +3,14 @@ import { Bell, BellOff, BellRing, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { callFunction, errorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { pushSupported, subscribeWebPush, unsubscribeWebPush, webPushSubscribed } from "@/lib/webpush";
 
 interface InstallPrompt extends Event {
   prompt: () => Promise<void>;
 }
-
-const pushSupported = () => typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-
-function keyBytes(base64url: string) {
-  const b64 = base64url.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((base64url.length + 3) % 4);
-  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-}
-const toB64url = (buf: ArrayBuffer | null) =>
-  buf ? btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") : "";
 
 // Push notifications on this device (phone or computer), and installing the app.
 export function PushControl() {
@@ -35,9 +26,7 @@ export function PushControl() {
       setInstall(e as InstallPrompt);
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
-    if (pushSupported()) {
-      navigator.serviceWorker.getRegistration().then(async (reg) => setSubscribed(Boolean(await reg?.pushManager.getSubscription())));
-    }
+    webPushSubscribed().then(setSubscribed);
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
   }, []);
 
@@ -46,36 +35,20 @@ export function PushControl() {
   const enable = async () => {
     setBusy(true);
     try {
-      const result = await Notification.requestPermission();
-      setPermission(result);
-      if (result !== "granted") throw new Error("Izin notifikasi ditolak di browser. Aktifkan di pengaturan situs.");
-      const reg = (await navigator.serviceWorker.getRegistration()) ?? (await navigator.serviceWorker.register("/sw.js"));
-      await navigator.serviceWorker.ready;
-      const { public_key } = await callFunction<{ public_key: string }>("push", { action: "public_key" });
-      const sub = (await reg.pushManager.getSubscription()) ??
-        (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(public_key) }));
-      const { error } = await supabase.from("push_subscriptions").upsert(
-        { user_id: profile.id, endpoint: sub.endpoint, p256dh: toB64url(sub.getKey("p256dh")), auth: toB64url(sub.getKey("auth")), user_agent: navigator.userAgent.slice(0, 300) },
-        { onConflict: "endpoint" },
-      );
-      if (error) throw error;
+      await subscribeWebPush(profile.id);
       setSubscribed(true);
       toast.success("Notifikasi aktif di perangkat ini");
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
+      setPermission(typeof Notification !== "undefined" ? Notification.permission : "denied");
       setBusy(false);
     }
   };
   const disable = async () => {
     setBusy(true);
     try {
-      const reg = await navigator.serviceWorker.getRegistration();
-      const sub = await reg?.pushManager.getSubscription();
-      if (sub) {
-        await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
-        await sub.unsubscribe();
-      }
+      await unsubscribeWebPush();
       setSubscribed(false);
       toast.success("Notifikasi dimatikan di perangkat ini");
     } finally {

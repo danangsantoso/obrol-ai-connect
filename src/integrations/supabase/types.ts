@@ -2348,33 +2348,36 @@ export type Database = {
       };
       push_subscriptions: {
         Row: {
-          auth: string;
+          auth: string | null;
           created_at: string;
           endpoint: string;
           id: string;
+          kind: string;
           last_used_at: string | null;
-          p256dh: string;
+          p256dh: string | null;
           user_agent: string | null;
           user_id: string;
         };
         ComputedFields: never;
         Insert: {
-          auth: string;
+          auth?: string | null;
           created_at?: string;
           endpoint: string;
           id?: string;
+          kind?: string;
           last_used_at?: string | null;
-          p256dh: string;
+          p256dh?: string | null;
           user_agent?: string | null;
           user_id: string;
         };
         Update: {
-          auth?: string;
+          auth?: string | null;
           created_at?: string;
           endpoint?: string;
           id?: string;
+          kind?: string;
           last_used_at?: string | null;
-          p256dh?: string;
+          p256dh?: string | null;
           user_agent?: string | null;
           user_id?: string;
         };
@@ -3463,6 +3466,10 @@ export type Database = {
         };
       };
       registration_mode: { Args: Record<PropertyKey, never>; Returns: string };
+      register_push_device: {
+        Args: { p_token: string; p_user_agent?: string };
+        Returns: undefined;
+      };
       reject_tenant_request: {
         Args: { reason?: string; request_id: string };
         Returns: undefined;

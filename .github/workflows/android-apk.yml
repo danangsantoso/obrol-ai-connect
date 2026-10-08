@@ -1,0 +1,144 @@
+# Builds the agents' Android app (APK).
+#
+# Run it from Actions → "APK Android (agen)" → Run workflow, with the web
+# address of your Balas.id (for example https://balasapp.example.com), or set
+# the repository variable BALAS_APP_URL once. The APK opens that address, so
+# a web deploy updates the app; a new APK is only needed when this file, the
+# android/ folder or capacitor.config.ts change.
+#
+# Optional secrets (Settings → Secrets and variables → Actions):
+#   GOOGLE_SERVICES_JSON       google-services.json from Firebase (as is or
+#                              base64): notifications on the phone
+#   ANDROID_KEYSTORE_BASE64    release signing key (.jks, base64), and its
+#   ANDROID_KEYSTORE_PASSWORD  passwords and alias; with the same key every
+#   ANDROID_KEY_ALIAS          new APK installs over the old one. Without it
+#   ANDROID_KEY_PASSWORD       the APK is debug-signed.
+name: APK Android (agen)
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: "Alamat web Balas.id, mis. https://balasapp.contoh.id (kosong = variabel BALAS_APP_URL)"
+        required: false
+        default: ""
+      release:
+        description: "Terbitkan di Releases agar APK mudah diunduh"
+        type: boolean
+        default: true
+  pull_request:
+    paths:
+      - "android/**"
+      - "mobile/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - ".github/workflows/android-apk.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Web address the app opens
+        env:
+          INPUT_URL: ${{ inputs.app_url }}
+          VAR_URL: ${{ vars.BALAS_APP_URL }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          url="${INPUT_URL:-$VAR_URL}"
+          if [ -z "$url" ] && [ "$EVENT" = "pull_request" ]; then
+            # Build check only.
+            url="https://balas.invalid"
+          fi
+          if ! printf '%s' "$url" | grep -Eq '^https://[A-Za-z0-9.-]+(:[0-9]+)?/?$'; then
+            echo "::error::Isi alamat web Balas.id saat menjalankan workflow (contoh: https://balasapp.contoh.id) atau buat variabel BALAS_APP_URL."
+            exit 1
+          fi
+          echo "BALAS_APP_URL=${url%/}" >> "$GITHUB_ENV"
+          echo "Aplikasi membuka ${url%/}/m"
+
+      - name: Firebase (notifications)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::warning::Secret GOOGLE_SERVICES_JSON belum diisi: APK tetap jadi, tetapi notifikasi di HP belum aktif."
+            exit 0
+          fi
+          if printf '%s' "$GOOGLE_SERVICES_JSON" | head -c 1 | grep -q '{'; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            printf '%s' "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+          fi
+          python3 -c "import json; d=json.load(open('android/app/google-services.json')); assert any(c['client_info']['android_client_info']['package_name']=='id.balas.agen' for c in d['client']), 'google-services.json bukan untuk id.balas.agen'"
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::Kunci tanda tangan (ANDROID_KEYSTORE_BASE64) belum diisi: APK ditandatangani kunci debug. Pembaruan berikutnya perlu hapus-pasang ulang aplikasi."
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "ANDROID_KEY_ALIAS=$KEY_ALIAS"
+            echo "ANDROID_KEY_PASSWORD=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+          } >> "$GITHUB_ENV"
+
+      - name: Build APK
+        working-directory: android
+        run: |
+          version="1.0.${{ github.run_number }}"
+          if [ -n "$ANDROID_KEYSTORE_FILE" ]; then task=assembleRelease; built=app/build/outputs/apk/release/app-release.apk
+          else task=assembleDebug; built=app/build/outputs/apk/debug/app-debug.apk; fi
+          chmod +x gradlew
+          ./gradlew "$task" -PversionCode=${{ github.run_number }} -PversionName="$version" --no-daemon --stacktrace
+          mkdir -p ../out
+          cp "$built" "../out/balas-agen-$version.apk"
+          echo "APK_VERSION=$version" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: balas-agen-${{ env.APK_VERSION }}
+          path: out/*.apk
+          if-no-files-found: error
+
+      - name: Publish release
+        if: github.event_name == 'workflow_dispatch' && inputs.release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "agen-v$APK_VERSION" out/*.apk \
+            --target "${{ github.sha }}" \
+            --title "Balas.id Agen $APK_VERSION (Android)" \
+            --notes "Aplikasi HP untuk agen & CS. Membuka $BALAS_APP_URL/m.
+
+          Cara pasang: unduh file .apk di bawah ke HP Android, buka, izinkan \"Instal aplikasi tidak dikenal\" bila diminta, lalu Pasang."

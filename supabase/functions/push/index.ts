@@ -7,6 +7,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
 import { adminClient, requireMember } from "../_shared/supabase.ts";
 import { sendPush, vapidKeys } from "../_shared/webpush.ts";
+import { sendFcm, serviceAccount } from "../_shared/fcm.ts";
 
 const subject = () => `mailto:${Deno.env.get("PUSH_CONTACT_EMAIL") || "admin@balas.id"}`;
 
@@ -15,14 +16,20 @@ async function dispatch(admin: SupabaseClient) {
   if (error) throw error;
   if (!queued?.length) return { sent: 0 };
   const vapid = await vapidKeys(admin);
+  const fcm = serviceAccount();
   const users = [...new Set((queued as { user_id: string }[]).map((q) => q.user_id))];
-  const { data: devices } = await admin.from("push_subscriptions").select("id, user_id, endpoint, p256dh, auth").in("user_id", users);
+  const { data: devices } = await admin.from("push_subscriptions").select("id, user_id, kind, endpoint, p256dh, auth").in("user_id", users);
   let sent = 0;
   const gone: string[] = [];
   const used: string[] = [];
   await Promise.all((queued as { user_id: string; title: string; body: string; url: string; tag: string | null }[]).flatMap((q) =>
     (devices ?? []).filter((d) => d.user_id === q.user_id).map(async (d) => {
-      const r = await sendPush(vapid, d, { title: q.title, body: q.body, url: q.url, tag: q.tag }, subject());
+      const message = { title: q.title, body: q.body, url: q.url, tag: q.tag };
+      // Android app devices need the Firebase service account; without it they are skipped.
+      if (d.kind === "fcm" && !fcm) return;
+      const r = d.kind === "fcm"
+        ? await sendFcm(fcm!, d.endpoint, message)
+        : await sendPush(vapid, { endpoint: d.endpoint, p256dh: d.p256dh ?? "", auth: d.auth ?? "" }, message, subject());
       if (r === "ok") {
         sent++;
         used.push(d.id);

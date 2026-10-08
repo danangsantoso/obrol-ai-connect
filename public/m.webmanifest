@@ -1,0 +1,18 @@
+{
+  "name": "Balas.id Agen",
+  "short_name": "Balas.id",
+  "description": "Balas chat pelanggan dari HP",
+  "lang": "id",
+  "id": "/m",
+  "start_url": "/m",
+  "scope": "/m",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#1D4ED8",
+  "icons": [
+    { "src": "/brand/balas-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/balas-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/balas-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
