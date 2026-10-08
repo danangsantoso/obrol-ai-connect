@@ -9,6 +9,7 @@ import { extensionFor, isValidSignature } from "../_shared/whatsapp.ts";
 import { decryptSecret } from "../_shared/crypto.ts";
 import { contactKey, customerProfile } from "../_shared/meta.ts";
 import { triggerAutoReply } from "../_shared/ai.ts";
+import { isDataError } from "../_shared/http.ts";
 
 // Messenger payloads vary by message type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
@@ -61,7 +62,12 @@ Deno.serve(async (req) => {
         continue;
       }
       for (const event of entry.messaging ?? []) {
-        await handleEvent(admin, channel, String(entry.id), event);
+        try {
+          await handleEvent(admin, channel, String(entry.id), event);
+        } catch (err) {
+          if (!isDataError(err)) throw err;
+          console.error(`${provider} event could not be stored, skipped`, err);
+        }
       }
     }
   } catch (err) {

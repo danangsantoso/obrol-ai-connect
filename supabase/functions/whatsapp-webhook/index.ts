@@ -6,6 +6,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { adminClient } from "../_shared/supabase.ts";
 import { downloadMedia, extensionFor, isValidSignature } from "../_shared/whatsapp.ts";
 import { triggerAutoReply } from "../_shared/ai.ts";
+import { isDataError } from "../_shared/http.ts";
 
 // Meta's webhook payloads vary by message type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
@@ -75,11 +76,25 @@ async function handleChange(admin: SupabaseClient, value: WaMessage) {
   const phoneNumberId: string | undefined = value.metadata?.phone_number_id;
   if (!phoneNumberId) return;
 
+  // Customers with a WhatsApp username may come as a business-scoped id
+  // (BSUID, e.g. "ID.abc123") instead of a phone number, in "from" and user_id.
   const names = new Map<string, string>();
-  for (const c of value.contacts ?? []) names.set(c.wa_id, c.profile?.name ?? "");
+  for (const c of value.contacts ?? []) {
+    for (const id of [c.wa_id, c.user_id]) if (id) names.set(id, c.profile?.name ?? "");
+  }
 
   for (const message of value.messages ?? []) {
-    await handleInbound(admin, phoneNumberId, message, names.get(message.from) ?? "");
+    const from = message.from ?? message.user_id;
+    if (!from) {
+      console.warn(`message ${message.id} without sender id, skipped`);
+      continue;
+    }
+    try {
+      await handleInbound(admin, phoneNumberId, { ...message, from }, names.get(from) ?? "");
+    } catch (err) {
+      if (!isDataError(err)) throw err;
+      console.error(`message ${message.id} could not be stored, skipped`, err);
+    }
   }
 
   for (const status of value.statuses ?? []) {

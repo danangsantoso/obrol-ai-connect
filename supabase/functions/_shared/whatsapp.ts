@@ -35,15 +35,21 @@ async function graph<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
+const BSUID = /^[A-Z]{2}\.[A-Za-z0-9]+$/;
+
 // Sends a message and returns its WhatsApp message id (wamid).
 export async function sendMessage(
   phoneNumberId: string,
   payload: Record<string, unknown>,
 ): Promise<string> {
+  // Customers known only by a business-scoped id (BSUID, e.g. "ID.abc123")
+  // are addressed with "recipient" instead of a phone number in "to".
+  const { to, ...rest } = payload;
+  const address = typeof to === "string" && BSUID.test(to) ? { recipient: to } : { to };
   const data = await graph<{ messages: { id: string }[] }>(`${phoneNumberId}/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", ...payload }),
+    body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", ...address, ...rest }),
   });
   return data.messages[0].id;
 }

@@ -39,6 +39,8 @@ export function formatWaId(waId: string, username?: string | null) {
   if (waId.startsWith('ig:')) return username ? `Instagram @${username}` : 'Instagram';
   if (waId.startsWith('tg:')) return username ? `Telegram @${username}` : 'Telegram';
   if (waId.startsWith('web:')) return 'Live chat website';
+  // WhatsApp customers with a username can be known only by a business-scoped id (e.g. ID.abc123).
+  if (/^[A-Z]{2}\.[A-Za-z0-9]+$/.test(waId)) return 'WhatsApp (nomor disembunyikan)';
   return waId.includes('@') ? 'Nomor disembunyikan' : `+${waId}`;
 }
 

@@ -7,6 +7,7 @@ import { displayName } from '@/lib/api';
 import { ChatView } from '@/components/inbox/ChatView';
 import { ContactPanel } from '@/components/inbox/ContactPanel';
 import { ConversationList } from '@/components/inbox/ConversationList';
+import { DisconnectedBanner } from '@/components/inbox/DisconnectedBanner';
 import { useConversations, useLabels, useMembers, useMessageSearch, useTeams } from '@/components/inbox/useInboxData';
 import { ALL, isTakeable, type ConversationRow, type InboxTab } from '@/components/inbox/types';
 
@@ -84,45 +85,48 @@ export default function Inbox() {
   }, [queryClient, orgId]);
 
   return (
-    <div className="flex h-full">
-      <ConversationList
-        conversations={visible}
-        counts={counts}
-        tab={tab}
-        onTabChange={setTab}
-        search={search}
-        onSearchChange={setSearch}
-        selectedId={conversationId}
-        onSelect={(id) => navigate(`/inbox/${id}`)}
-        members={memberMap}
-        labels={labels}
-        labelFilter={labelFilter}
-        onLabelFilterChange={setLabelFilter}
-        agentFilter={canFilterAgents ? agentFilter : null}
-        onAgentFilterChange={canFilterAgents ? setAgentFilter : null}
-        loading={isLoading}
-        meId={meId}
-        live={live}
-      />
-      {selected ? (
-        <>
-          <ChatView
-            conversation={selected}
-            me={profile!}
-            members={members}
-            memberMap={memberMap}
-            teams={teams}
-            labels={labels}
-            onChanged={refresh}
-          />
-          <ContactPanel contactId={selected.contact_id} />
-        </>
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground">
-          <MessageSquare className="h-10 w-10 text-primary/40" />
-          <p className="text-sm">Pilih percakapan untuk mulai membalas.</p>
-        </div>
-      )}
+    <div className="flex h-full flex-col">
+      <DisconnectedBanner orgId={orgId} canFix={profile!.role === 'admin'} className="border-b border-red-200" />
+      <div className="flex min-h-0 flex-1">
+        <ConversationList
+          conversations={visible}
+          counts={counts}
+          tab={tab}
+          onTabChange={setTab}
+          search={search}
+          onSearchChange={setSearch}
+          selectedId={conversationId}
+          onSelect={(id) => navigate(`/inbox/${id}`)}
+          members={memberMap}
+          labels={labels}
+          labelFilter={labelFilter}
+          onLabelFilterChange={setLabelFilter}
+          agentFilter={canFilterAgents ? agentFilter : null}
+          onAgentFilterChange={canFilterAgents ? setAgentFilter : null}
+          loading={isLoading}
+          meId={meId}
+          live={live}
+        />
+        {selected ? (
+          <>
+            <ChatView
+              conversation={selected}
+              me={profile!}
+              members={members}
+              memberMap={memberMap}
+              teams={teams}
+              labels={labels}
+              onChanged={refresh}
+            />
+            <ContactPanel contactId={selected.contact_id} />
+          </>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground">
+            <MessageSquare className="h-10 w-10 text-primary/40" />
+            <p className="text-sm">Pilih percakapan untuk mulai membalas.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

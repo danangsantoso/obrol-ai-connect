@@ -50,3 +50,11 @@ export async function readJson<T>(req: Request): Promise<T> {
     throw new HttpError(400, "Body must be valid JSON", "invalid_json");
   }
 }
+
+// A database error caused by the data itself (a bad value, a broken
+// constraint): retrying the same webhook would fail again, so such a message
+// is logged and skipped instead of holding back the rest of the batch.
+export function isDataError(err: unknown): boolean {
+  const code = (err as { code?: unknown })?.code;
+  return typeof code === "string" && /^(22|23)/.test(code);
+}
