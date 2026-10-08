@@ -65,4 +65,10 @@ if [[ -f /etc/cron.d/balas ]] && ! grep -q ai-sweep.sh /etc/cron.d/balas; then
   echo "* * * * * root $APP_DIR/deploy/scripts/ai-sweep.sh >> /var/log/balas-ai.log 2>&1" >>/etc/cron.d/balas
 fi
 
+# The services that receive and answer customer messages must be running.
+running="$(compose ps --status running --services 2>/dev/null || true)"
+for svc in db api-gw functions evolution; do
+  grep -qx "$svc" <<<"$running" || die "Layanan $svc tidak berjalan: pesan pelanggan tidak akan masuk. Lihat: cd $SUPABASE_DIR && sudo docker compose logs --tail 50 $svc"
+done
+
 log "Selesai deploy $(git rev-parse --short HEAD)"
