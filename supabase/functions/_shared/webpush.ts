@@ -104,7 +104,13 @@ export interface PushTarget {
 // Sends one notification; "gone" means the device unsubscribed (delete it).
 export async function sendPush(vapid: Vapid, target: PushTarget, message: unknown, subject: string): Promise<"ok" | "gone" | "error"> {
   if (!allowedEndpoint(target.endpoint)) return "gone";
-  const body = await encryptPayload(enc(JSON.stringify(message)), target.p256dh, target.auth);
+  let body: Bytes;
+  try {
+    body = await encryptPayload(enc(JSON.stringify(message)), target.p256dh, target.auth);
+  } catch {
+    // Unusable keys (a broken subscription): drop it rather than fail the others.
+    return "gone";
+  }
   try {
     const res = await fetch(target.endpoint, {
       method: "POST",

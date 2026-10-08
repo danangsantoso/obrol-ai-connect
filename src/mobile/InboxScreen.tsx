@@ -11,6 +11,7 @@ import { isTakeable, memberName, type ConversationRow, type Member } from "@/com
 import { useAiSettings } from "@/components/ai/aiSettings";
 import { Avatar, BottomNav, ChannelBadge, Empty, Screen, Segmented } from "./ui";
 import { aiServing } from "./helpers";
+import { DisconnectedBanner } from "@/components/inbox/DisconnectedBanner";
 
 type Tab = "mine" | "queue" | "ai";
 
@@ -144,6 +145,7 @@ export default function InboxScreen() {
 
   return (
     <Screen header={header} footer={<BottomNav unread={unread} />}>
+      <DisconnectedBanner orgId={orgId} canFix={profile!.role === "admin"} />
       {!live && (
         <p role="status" className="bg-amber-50 px-4 py-2 text-xs text-amber-800">
           Koneksi terputus sementara. Daftar diperbarui otomatis.

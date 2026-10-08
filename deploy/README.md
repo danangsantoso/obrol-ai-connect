@@ -361,6 +361,21 @@ Lalu buat secret `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROI
 `ANDROID_KEY_PASSWORD`. Simpan `balas-agen.jks` dan kata sandinya di tempat aman: tanpa kunci yang sama, pembaruan
 harus menghapus aplikasi lama dulu.
 
+### Chat tidak masuk?
+
+```bash
+cd /opt/balas/app && sudo ./deploy/scripts/diagnose.sh
+```
+
+Skrip ini hanya membaca dan menampilkan:
+- layanan yang berjalan;
+- status tiap nomor;
+- pesan masuk terakhir per nomor;
+- error AI;
+- error terbaru dari fungsi penerima pesan dan gateway QR.
+
+Nomor QR yang terputus juga tampil sebagai pita merah di Inbox, dan admin/supervisor mendapat notifikasi.
+
 ## 6. Update aplikasi
 
 ```bash
