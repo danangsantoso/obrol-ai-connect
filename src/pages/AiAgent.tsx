@@ -4,6 +4,7 @@ import { AiSettingsTab } from "@/components/ai/AiSettingsTab";
 import { KnowledgeTab } from "@/components/ai/KnowledgeTab";
 import { PlaygroundTab } from "@/components/ai/PlaygroundTab";
 import { RunsTab } from "@/components/ai/RunsTab";
+import { GapsTab } from "@/components/ai/GapsTab";
 
 export default function AiAgent() {
   const { profile } = useAuth();
@@ -20,6 +21,7 @@ export default function AiAgent() {
         <TabsList>
           <TabsTrigger value="settings">Pengaturan</TabsTrigger>
           <TabsTrigger value="knowledge">Produk & Pengetahuan</TabsTrigger>
+          <TabsTrigger value="gaps">Belum terjawab</TabsTrigger>
           <TabsTrigger value="playground">Uji coba</TabsTrigger>
           <TabsTrigger value="runs">Riwayat</TabsTrigger>
         </TabsList>
@@ -28,6 +30,9 @@ export default function AiAgent() {
         </TabsContent>
         <TabsContent value="knowledge" className="pt-2">
           <KnowledgeTab orgId={orgId} />
+        </TabsContent>
+        <TabsContent value="gaps" className="pt-2">
+          <GapsTab orgId={orgId} />
         </TabsContent>
         <TabsContent value="playground" className="pt-2">
           <PlaygroundTab />

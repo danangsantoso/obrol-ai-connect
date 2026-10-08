@@ -18,10 +18,12 @@ export type Database = {
           input_tokens: number | null;
           kind: string;
           latency_ms: number | null;
+          missing_info: string | null;
           model: string | null;
           organization_id: string;
           output_tokens: number | null;
           provider: Database["public"]["Enums"]["ai_provider"] | null;
+          question: string | null;
           reason: string | null;
           reply: string | null;
           sources: NonNullable<Json>;
@@ -36,10 +38,12 @@ export type Database = {
           input_tokens?: number | null;
           kind: string;
           latency_ms?: number | null;
+          missing_info?: string | null;
           model?: string | null;
           organization_id: string;
           output_tokens?: number | null;
           provider?: Database["public"]["Enums"]["ai_provider"] | null;
+          question?: string | null;
           reason?: string | null;
           reply?: string | null;
           sources?: NonNullable<Json>;
@@ -53,10 +57,12 @@ export type Database = {
           input_tokens?: number | null;
           kind?: string;
           latency_ms?: number | null;
+          missing_info?: string | null;
           model?: string | null;
           organization_id?: string;
           output_tokens?: number | null;
           provider?: Database["public"]["Enums"]["ai_provider"] | null;
+          question?: string | null;
           reason?: string | null;
           reply?: string | null;
           sources?: NonNullable<Json>;
@@ -879,6 +885,87 @@ export type Database = {
           },
         ];
       };
+      csat_requests: {
+        Row: {
+          agent_id: string | null;
+          answered_at: string | null;
+          conversation_id: string;
+          created_at: string;
+          episode_opened_at: string;
+          handled_by_ai: boolean;
+          id: string;
+          message_id: string | null;
+          organization_id: string;
+          rating: number | null;
+          send_after: string;
+          sent_at: string | null;
+          status: string;
+          thanked: boolean;
+        };
+        ComputedFields: never;
+        Insert: {
+          agent_id?: string | null;
+          answered_at?: string | null;
+          conversation_id: string;
+          created_at?: string;
+          episode_opened_at: string;
+          handled_by_ai?: boolean;
+          id?: string;
+          message_id?: string | null;
+          organization_id: string;
+          rating?: number | null;
+          send_after?: string;
+          sent_at?: string | null;
+          status?: string;
+          thanked?: boolean;
+        };
+        Update: {
+          agent_id?: string | null;
+          answered_at?: string | null;
+          conversation_id?: string;
+          created_at?: string;
+          episode_opened_at?: string;
+          handled_by_ai?: boolean;
+          id?: string;
+          message_id?: string | null;
+          organization_id?: string;
+          rating?: number | null;
+          send_after?: string;
+          sent_at?: string | null;
+          status?: string;
+          thanked?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "csat_requests_agent_id_fkey";
+            columns: ["agent_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "csat_requests_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "csat_requests_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "csat_requests_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       followup_enrollments: {
         Row: {
           agent_id: string | null;
@@ -1269,6 +1356,68 @@ export type Database = {
             columns: ["product_id"];
             isOneToOne: false;
             referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      knowledge_gaps: {
+        Row: {
+          answer_doc_id: string | null;
+          conversation_id: string | null;
+          created_at: string;
+          id: string;
+          last_asked_at: string;
+          organization_id: string;
+          question: string;
+          question_key: string;
+          status: string;
+          times_asked: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          answer_doc_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string;
+          id?: string;
+          last_asked_at?: string;
+          organization_id: string;
+          question: string;
+          question_key: string;
+          status?: string;
+          times_asked?: number;
+        };
+        Update: {
+          answer_doc_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string;
+          id?: string;
+          last_asked_at?: string;
+          organization_id?: string;
+          question?: string;
+          question_key?: string;
+          status?: string;
+          times_asked?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_gaps_answer_doc_id_fkey";
+            columns: ["answer_doc_id"];
+            isOneToOne: false;
+            referencedRelation: "knowledge_docs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "knowledge_gaps_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "knowledge_gaps_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];
@@ -1706,11 +1855,16 @@ export type Database = {
       organizations: {
         Row: {
           auto_rotate: boolean;
+          business_hours: NonNullable<Json>;
           created_at: string;
+          csat_enabled: boolean;
+          csat_message: string;
+          csat_thanks: string;
           followup_alert_days: number;
           id: string;
           is_active: boolean;
           name: string;
+          outside_hours_message: string;
           retention_days: number;
           rotate_timeout_minutes: number;
           suspended_at: string | null;
@@ -1720,11 +1874,16 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           auto_rotate?: boolean;
+          business_hours?: NonNullable<Json>;
           created_at?: string;
+          csat_enabled?: boolean;
+          csat_message?: string;
+          csat_thanks?: string;
           followup_alert_days?: number;
           id?: string;
           is_active?: boolean;
           name: string;
+          outside_hours_message?: string;
           retention_days?: number;
           rotate_timeout_minutes?: number;
           suspended_at?: string | null;
@@ -1733,11 +1892,16 @@ export type Database = {
         };
         Update: {
           auto_rotate?: boolean;
+          business_hours?: NonNullable<Json>;
           created_at?: string;
+          csat_enabled?: boolean;
+          csat_message?: string;
+          csat_thanks?: string;
           followup_alert_days?: number;
           id?: string;
           is_active?: boolean;
           name?: string;
+          outside_hours_message?: string;
           retention_days?: number;
           rotate_timeout_minutes?: number;
           suspended_at?: string | null;
@@ -2547,6 +2711,18 @@ export type Database = {
       };
       create_api_key: { Args: { key_name: string }; Returns: string };
       create_organization: { Args: { org_name: string }; Returns: string };
+      csat_rating: { Args: { p_body: string }; Returns: number };
+      csat_summary: {
+        Args: { p_days?: number };
+        Returns: {
+          agent_id: string;
+          answered: number;
+          average: number;
+          handled_by_ai: boolean;
+          satisfied: number;
+          surveys: number;
+        }[];
+      };
       current_org_id: { Args: Record<PropertyKey, never>; Returns: string };
       current_role_name: {
         Args: Record<PropertyKey, never>;
@@ -2804,6 +2980,10 @@ export type Database = {
           organization_id: string;
         }[];
       };
+      is_business_open: {
+        Args: { p_at?: string; p_org: string };
+        Returns: boolean;
+      };
       is_master_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       mark_conversation_read: { Args: { conv_id: string }; Returns: undefined };
       master_tenant_overview: {
@@ -2860,6 +3040,10 @@ export type Database = {
       };
       purge_webhook_deliveries: {
         Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
+      record_knowledge_gap: {
+        Args: { p_conversation: string; p_org: string; p_question: string };
         Returns: undefined;
       };
       record_outbound_message: {

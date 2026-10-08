@@ -33,8 +33,9 @@ export const REPLY_SCHEMA = {
     handoff: { type: "boolean" },
     reason: { type: "string" },
     customer_name: { type: "string" },
+    missing_info: { type: "string" },
   },
-  required: ["reply", "handoff", "reason", "customer_name"],
+  required: ["reply", "handoff", "reason", "customer_name", "missing_info"],
   additionalProperties: false,
 };
 

@@ -46,7 +46,11 @@ function senderLabel(message: Message, sender?: Member) {
     sent_from_phone?: boolean;
     followup?: { step: number; of: number };
     broadcast?: { name: string };
+    csat?: boolean;
+    away?: boolean;
   };
+  if (meta.csat) return '⭐ Survei kepuasan';
+  if (meta.away) return '🌙 Di luar jam operasional';
   if (meta.broadcast) return `📣 Broadcast · ${meta.broadcast.name}`;
   if (meta.followup) return `⏰ Follow-up otomatis · lapis ${meta.followup.step}/${meta.followup.of}`;
   if (meta.ai) return `🤖 ${meta.bot_name || 'AI'}`;

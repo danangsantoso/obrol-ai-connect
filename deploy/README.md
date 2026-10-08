@@ -265,6 +265,15 @@ hari", jadwal kirim, dan kecepatan per menit. Hasil per broadcast: terkirim, dit
 - Messenger dan Instagram tidak didukung karena Meta melarang pesan promosi di luar 24 jam.
 - Pelanggan yang membalas **STOP** atau **BERHENTI** tidak akan menerima broadcast lagi.
 
+## 5d. Jam operasional, survei kepuasan & pertanyaan belum terjawab
+
+- **Pengaturan → Jam operasional & survei kepuasan**: di luar jam kerja, AI langsung menjawab tanpa menunggu agen,
+  chat tidak dirotasi ke agen, dan nomor tanpa AI mengirim pesan "sedang tutup".
+- **Survei kepuasan**: saat chat diselesaikan, pelanggan diminta memberi nilai 1–5. Balasan angka tercatat per agen
+  dan tidak membuka chat lagi.
+- **AI Agent → Belum terjawab**: pertanyaan yang tidak bisa dijawab AI karena datanya belum ada, diurutkan dari
+  yang paling sering ditanyakan. Klik **Jawab**: jawaban disimpan sebagai dokumen FAQ dan langsung dipakai AI.
+
 ## 6. Update aplikasi
 
 ```bash

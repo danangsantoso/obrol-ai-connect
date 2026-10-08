@@ -23,6 +23,7 @@ import { LABEL_COLORS } from "@/components/inbox/types";
 import { useLabels } from "@/components/inbox/useInboxData";
 import { cn } from "@/lib/utils";
 import { PaymentSettingsCard } from "@/components/orders/PaymentSettingsCard";
+import { ServiceSettingsCard } from "@/components/settings/ServiceSettingsCard";
 
 const WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`;
 const META_WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-webhook`;
@@ -644,6 +645,7 @@ export default function Settings() {
       </div>
       <OrganizationCard isAdmin={isAdmin} />
       <ChannelsCard isAdmin={isAdmin} />
+      <ServiceSettingsCard orgId={profile!.organization_id!} isAdmin={isAdmin} />
       <PaymentSettingsCard orgId={profile!.organization_id!} isAdmin={isAdmin} />
       <LabelsCard />
     </div>
