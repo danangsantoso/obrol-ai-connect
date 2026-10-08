@@ -87,19 +87,22 @@ export type Database = {
       };
       ai_secrets: {
         Row: {
-          api_key_encrypted: string;
+          api_key_encrypted: string | null;
           organization_id: string;
+          stt_api_key_encrypted: string | null;
           updated_at: string;
         };
         ComputedFields: never;
         Insert: {
-          api_key_encrypted: string;
+          api_key_encrypted?: string | null;
           organization_id: string;
+          stt_api_key_encrypted?: string | null;
           updated_at?: string;
         };
         Update: {
-          api_key_encrypted?: string;
+          api_key_encrypted?: string | null;
           organization_id?: string;
+          stt_api_key_encrypted?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -132,8 +135,13 @@ export type Database = {
           reply_delay_seconds: number;
           salutation: string;
           simulate_typing: boolean;
+          stt_base_url: string | null;
+          stt_key_hint: string | null;
+          stt_model: string;
+          stt_provider: string | null;
           updated_at: string;
           use_emoji: boolean;
+          vision_enabled: boolean;
         };
         ComputedFields: never;
         Insert: {
@@ -155,8 +163,13 @@ export type Database = {
           reply_delay_seconds?: number;
           salutation?: string;
           simulate_typing?: boolean;
+          stt_base_url?: string | null;
+          stt_key_hint?: string | null;
+          stt_model?: string;
+          stt_provider?: string | null;
           updated_at?: string;
           use_emoji?: boolean;
+          vision_enabled?: boolean;
         };
         Update: {
           agent_wait_minutes?: number;
@@ -177,8 +190,13 @@ export type Database = {
           reply_delay_seconds?: number;
           salutation?: string;
           simulate_typing?: boolean;
+          stt_base_url?: string | null;
+          stt_key_hint?: string | null;
+          stt_model?: string;
+          stt_provider?: string | null;
           updated_at?: string;
           use_emoji?: boolean;
+          vision_enabled?: boolean;
         };
         Relationships: [
           {

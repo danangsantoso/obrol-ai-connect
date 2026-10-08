@@ -15,6 +15,7 @@ import { PROVIDERS, type Provider, useAiSettings } from "./aiSettings";
 import { callFunction, errorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { DEFAULT_SOUL } from "./soul";
+import { VoiceVisionCard } from "./VoiceVisionCard";
 import { ChatText } from "@/components/chat/ChatText";
 
 const DEFAULTS = {
@@ -614,6 +615,7 @@ export function AiSettingsTab({ orgId, isAdmin }: { orgId: string; isAdmin: bool
           </CardContent>
         </Card>
       </form>
+      <VoiceVisionCard orgId={orgId} isAdmin={isAdmin} />
     </div>
   );
 }

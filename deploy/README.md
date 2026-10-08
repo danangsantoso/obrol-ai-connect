@@ -211,6 +211,12 @@ webhook yang gagal. Referensi lengkap: [docs/API.md](../docs/API.md).
    - Unggah dokumen per produk atau dokumen umum (PDF, DOCX, TXT, MD, CSV): spesifikasi, FAQ, pengiriman, pembayaran, garansi.
 4. Coba dulu di tab **Uji coba**. Kalau jawabannya sudah pas, nyalakan **Balas otomatis** dan centang nomor yang dijawab AI.
 
+Pesan suara & gambar (**AI Agent → Pengaturan → Pesan suara & gambar**):
+- **Gambar**: Claude, ChatGPT, dan Gemini ikut membaca foto dari pelanggan. Bukti transfer selalu diserahkan ke tim
+  beserta nominal yang terbaca.
+- **Pesan suara**: pilih layanan transkripsi (OpenAI Whisper, Groq, atau layanan lain yang kompatibel) dan simpan
+  API key-nya. AI menjawab isi voice note, dan agen bisa menekan **Ubah jadi teks** di chat.
+
 Cara kerja AI:
 - AI hanya menjawab chat yang belum diambil agen. Begitu agen mengambil chat, AI berhenti.
 - Kalau informasinya tidak ada di pengetahuan, pelanggan minta bicara dengan manusia, atau ada komplain/pembayaran/refund, AI mengirim pesan serah-terima. Chat tetap di antrean dengan catatan alasannya untuk agen.

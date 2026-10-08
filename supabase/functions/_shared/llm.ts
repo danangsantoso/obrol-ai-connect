@@ -8,6 +8,40 @@ export type Provider = "openai" | "anthropic" | "deepseek" | "gemini" | "custom"
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  // Pictures the customer sent with this turn (base64), for models that can see.
+  images?: { mime: string; data: string }[];
+}
+
+// Provider-specific message content with pictures.
+function anthropicMessages(messages: ChatMessage[]) {
+  return messages.map((m) =>
+    m.images?.length
+      ? {
+        role: m.role,
+        content: [
+          ...m.images.map((img) => ({
+            type: "image" as const,
+            source: { type: "base64" as const, media_type: img.mime as "image/jpeg" | "image/png" | "image/gif" | "image/webp", data: img.data },
+          })),
+          { type: "text" as const, text: m.content },
+        ],
+      }
+      : { role: m.role, content: m.content }
+  );
+}
+
+function openAiMessages(messages: ChatMessage[]) {
+  return messages.map((m) =>
+    m.images?.length
+      ? {
+        role: m.role,
+        content: [
+          { type: "text", text: m.content },
+          ...m.images.map((img) => ({ type: "image_url", image_url: { url: `data:${img.mime};base64,${img.data}` } })),
+        ],
+      }
+      : { role: m.role, content: m.content }
+  );
 }
 
 export interface LlmConfig {
@@ -138,7 +172,7 @@ async function completeAnthropic(
       model: cfg.model,
       max_tokens: MAX_OUTPUT_TOKENS,
       system,
-      messages,
+      messages: anthropicMessages(messages),
       // Chat replies are short and latency matters: low effort.
       ...(CURRENT_CLAUDE.test(cfg.model) || STRUCTURED_CLAUDE.test(cfg.model)
         ? {
@@ -194,7 +228,7 @@ async function completeOpenAiCompatible(
 
   const body: Record<string, unknown> = {
     model: cfg.model,
-    messages: [{ role: "system", content: system }, ...messages],
+    messages: [{ role: "system", content: system }, ...openAiMessages(messages)],
   };
   if (cfg.provider === "openai") {
     // Reasoning models count their thinking in this budget.

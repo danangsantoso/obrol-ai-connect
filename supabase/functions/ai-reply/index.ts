@@ -3,13 +3,16 @@
 //  sweep    - pick up chats whose automatic answer was missed (service role; cron every minute)
 //  suggest  - draft a reply for the agent handling a chat (members)
 //  test     - try a question against the current settings and knowledge (admins, supervisors)
+//  transcribe - turn a voice note into text (members who can see the chat)
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
 import { adminClient, callerClient, isServiceRole, requireMember } from "../_shared/supabase.ts";
 import { answer, autoReply, cleanName, loadAi, logRun, suggest, toChat } from "../_shared/ai.ts";
 import { LlmError } from "../_shared/llm.ts";
+import { AUDIO_TYPES, sttConfig, transcribe } from "../_shared/media.ts";
 
 interface AiRequest {
-  action: "process" | "sweep" | "suggest" | "test";
+  action: "process" | "sweep" | "suggest" | "test" | "transcribe";
+  message_id?: string;
   conversation_id?: string;
   question?: string;
   history?: { role: "customer" | "agent"; text: string }[];
@@ -65,6 +68,20 @@ serveJson(async (req) => {
     if (!allowed) throw new HttpError(404, "Conversation not found", "not_found");
     const result = await suggest(admin, member.organization_id, input.conversation_id);
     return json({ reply: result.reply, handoff: result.handoff, reason: result.reason, sources: result.sources });
+  }
+
+  if (input.action === "transcribe") {
+    const member = await requireMember(req, admin);
+    const { data: msg } = await admin.from("messages").select("id, organization_id, conversation_id, direction, type, body, media_path, media_mime, metadata")
+      .eq("id", input.message_id ?? "").eq("organization_id", member.organization_id).maybeSingle();
+    if (!msg) throw new HttpError(404, "Pesan tidak ditemukan", "not_found");
+    const { data: allowed } = await callerClient(req).rpc("can_access_conversation", { conv_id: msg.conversation_id });
+    if (allowed !== true) throw new HttpError(404, "Pesan tidak ditemukan", "not_found");
+    if (!AUDIO_TYPES.includes(msg.type)) throw new HttpError(400, "Bukan pesan suara", "invalid_request");
+    if (typeof msg.metadata?.transcript === "string") return json({ transcript: msg.metadata.transcript });
+    const cfg = await sttConfig(admin, member.organization_id);
+    if (!cfg) throw new HttpError(400, "Transkripsi suara belum diatur di AI Agent", "stt_not_configured");
+    return json({ transcript: await transcribe(admin, cfg, msg) });
   }
 
   if (input.action === "test") {
