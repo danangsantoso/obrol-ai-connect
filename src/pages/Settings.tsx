@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, BadgeCheck, Code, Copy, Facebook, Loader2, QrCode, RefreshCw, Trash2, Unplug } from "lucide-react";
+import { ArrowDown, ArrowUp, BadgeCheck, Code, Copy, Facebook, Loader2, QrCode, RefreshCw, ShieldCheck, Trash2, Unplug } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,7 +59,7 @@ function CopyField({ label, value, hint }: { label: string; value: string; hint:
 }
 
 function OrganizationCard({ isAdmin }: { isAdmin: boolean }) {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const orgId = profile!.organization_id!;
   const { data: org, refetch } = useQuery({
     queryKey: ["organization", orgId],
@@ -80,6 +80,14 @@ function OrganizationCard({ isAdmin }: { isAdmin: boolean }) {
     refetch();
   };
 
+  const setRequireMfa = async (value: boolean) => {
+    const { error } = await supabase.from("organizations").update({ require_mfa: value }).eq("id", orgId);
+    if (error) toast.error(errorMessage(error));
+    else toast.success(value ? "Admin & Supervisor wajib memakai verifikasi 2 langkah" : "Verifikasi 2 langkah tidak lagi wajib");
+    await refetch();
+    await refreshProfile();
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -93,6 +101,18 @@ function OrganizationCard({ isAdmin }: { isAdmin: boolean }) {
           <Input value={name} onChange={(e) => setName(e.target.value)} disabled={!isAdmin} minLength={2} required />
           {isAdmin && <Button type="submit">Simpan</Button>}
         </form>
+        <div className="mt-6 flex max-w-2xl items-start justify-between gap-4 rounded-lg border p-4">
+          <div className="space-y-1">
+            <Label htmlFor="require-mfa" className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Wajibkan verifikasi 2 langkah untuk Admin & Supervisor
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Saat masuk, selain password mereka memasukkan kode dari aplikasi Authenticator di HP. Yang belum memasang
+              diminta memasangnya dulu. Agen tetap bisa memasangnya sendiri lewat menu akun.
+            </p>
+          </div>
+          <Switch id="require-mfa" checked={Boolean(org?.require_mfa)} onCheckedChange={setRequireMfa} disabled={!isAdmin || !org} />
+        </div>
       </CardContent>
     </Card>
   );

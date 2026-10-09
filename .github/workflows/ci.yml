@@ -1,0 +1,80 @@
+# Automatic checks on every pull request and on main: the web app (lint,
+# types, build), the Edge Functions (types), the VPS scripts (shellcheck) and
+# the database (all migrations on an empty database + pgTAP tests in
+# supabase/tests). A red check means the change is not safe to deploy yet.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Web app
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: Types
+        run: npx tsc --noEmit -p tsconfig.app.json && npx tsc --noEmit -p tsconfig.node.json
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://api.example.com
+          VITE_SUPABASE_ANON_KEY: ci-placeholder
+
+  functions:
+    name: Edge Functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Types
+        working-directory: supabase/functions
+        run: deno check --node-modules-dir=none */index.ts
+
+  scripts:
+    name: VPS scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: shellcheck -x -P deploy/scripts deploy/scripts/*.sh .github/scripts/*.sh
+
+  database:
+    name: Database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      # Auth and Storage create their own tables the migrations build on.
+      - name: Start Supabase and apply all migrations
+        run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor,realtime,postgres-meta
+      - name: Database tests
+        run: supabase test db
+      - name: Stop
+        if: always()
+        run: supabase stop --no-backup

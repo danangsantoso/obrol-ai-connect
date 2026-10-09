@@ -6,7 +6,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { adminClient } from "../_shared/supabase.ts";
 import { downloadMedia, extensionFor, isValidSignature } from "../_shared/whatsapp.ts";
 import { triggerAutoReply } from "../_shared/ai.ts";
-import { isDataError } from "../_shared/http.ts";
+import { isDataError, reportError } from "../_shared/http.ts";
 
 // Meta's webhook payloads vary by message type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     }
   } catch (err) {
     // A non-2xx makes Meta retry later; ingestion is idempotent so retries are safe.
-    console.error("webhook processing failed", err);
+    reportError("whatsapp webhook processing failed", err);
     return new Response("Temporary failure", { status: 500 });
   }
   return new Response("OK", { status: 200 });
@@ -93,7 +93,7 @@ async function handleChange(admin: SupabaseClient, value: WaMessage) {
       await handleInbound(admin, phoneNumberId, { ...message, from }, names.get(from) ?? "");
     } catch (err) {
       if (!isDataError(err)) throw err;
-      console.error(`message ${message.id} could not be stored, skipped`, err);
+      reportError("whatsapp message could not be stored, skipped", err);
     }
   }
 
@@ -143,7 +143,7 @@ async function handleInbound(
     await storeMedia(admin, data, message.id, media);
   }
   if (data.inserted) {
-    await triggerAutoReply(admin, data.conversation_id).catch((err) => console.error("ai trigger failed", err));
+    await triggerAutoReply(admin, data.conversation_id).catch((err) => reportError("ai trigger failed", err));
   }
 }
 
@@ -168,7 +168,7 @@ async function storeMedia(
       .eq("id", row.message_id);
   } catch (err) {
     // The message is kept; metadata.media_id allows a later retry.
-    console.error(`could not store media ${media.id}`, err);
+    reportError("could not store whatsapp media", err);
   }
 }
 

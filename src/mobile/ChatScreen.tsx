@@ -9,6 +9,7 @@ import { callFunction, displayName, errorMessage, formatWaId, socialWindowRemain
 import { cn } from "@/lib/utils";
 import { Timeline } from "@/components/inbox/Timeline";
 import { TemplateSender } from "@/components/inbox/TemplateSender";
+import { ScheduleButton, ScheduledList, SnoozeButton } from "@/components/inbox/Scheduling";
 import { TransferDialog } from "@/components/inbox/TransferDialog";
 import { useConversations, useMembers, useQuickReplies, useTeams, useTimeline } from "@/components/inbox/useInboxData";
 import { isTakeable, memberName, type ConversationRow, type Message } from "@/components/inbox/types";
@@ -162,8 +163,10 @@ export default function ChatScreen() {
         <Timeline items={items} members={members} loading={loadingItems} />
       </div>
 
+      <ScheduledList conversationId={conv.id} meId={meId} canManage={profile!.role !== "agent"} />
       {!windowOpen && provider === "cloud_api" && <TemplateSender conversationId={conv.id} orgId={orgId} onSent={addMessage} />}
       <MobileComposer
+        snooze={<SnoozeButton conversation={conv} onChanged={refresh} className="h-8 rounded-full text-xs" />}
         conversationId={conv.id}
         orgId={orgId}
         userId={meId}
@@ -271,6 +274,7 @@ function MobileComposer({
   windowOpen,
   claims,
   onSent,
+  snooze,
 }: {
   conversationId: string;
   orgId: string;
@@ -279,6 +283,7 @@ function MobileComposer({
   windowOpen: boolean;
   claims: boolean;
   onSent: (m: Message) => void;
+  snooze: React.ReactNode;
 }) {
   const [note, setNote] = useState(!windowOpen);
   const [text, setText] = useState("");
@@ -430,6 +435,17 @@ function MobileComposer({
         >
           Catatan internal
         </button>
+        {!note && (
+          <ScheduleButton
+            conversationId={conversationId}
+            orgId={orgId}
+            userId={userId}
+            text={text}
+            disabled={sending || blocked || !text.trim() || Boolean(file)}
+            onScheduled={() => setText("")}
+          />
+        )}
+        <span className="ml-auto">{snooze}</span>
       </div>
     </div>
   );

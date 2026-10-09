@@ -11,7 +11,7 @@
 //   GET   /api/v1/contacts?search=&limit=
 //   POST  /api/v1/contacts                      { phone, name?, email?, company?, notes?, custom_fields? }
 //   GET   /api/v1/stats
-import { HttpError } from "../_shared/http.ts";
+import { HttpError, reportError } from "../_shared/http.ts";
 import { adminClient } from "../_shared/supabase.ts";
 import * as ops from "../_shared/integration.ts";
 
@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     if (err instanceof HttpError) return respond({ error: { code: err.code, message: err.message } }, err.status);
     const pg = err as { code?: string; message?: string };
     if (pg?.code === "22P02") return respond({ error: { code: "invalid_request", message: "Invalid id" } }, 400);
-    console.error(err);
+    reportError("api failed", err);
     return respond({ error: { code: "internal", message: "Internal error" } }, 500);
   }
 });

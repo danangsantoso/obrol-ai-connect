@@ -8,6 +8,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { adminClient } from "../_shared/supabase.ts";
 import { triggerAutoReply } from "../_shared/ai.ts";
 import { publicSignedUrl } from "../_shared/send.ts";
+import { reportError } from "../_shared/http.ts";
 
 interface Channel {
   id: string;
@@ -99,7 +100,7 @@ Deno.serve(async (req) => {
     }
   } catch (err) {
     if (err instanceof WidgetError) return reply({ error: err.message }, err.status);
-    console.error("webchat failed", err);
+    reportError("webchat failed", err);
     return reply({ error: "Terjadi gangguan, coba lagi." }, 500);
   }
 });
@@ -194,7 +195,7 @@ async function send(admin: SupabaseClient, channel: Channel, input: { visitor_id
     .single<{ message_id: string; conversation_id: string; inserted: boolean }>();
   if (error) throw error;
   await admin.from("webchat_visitors").update({ last_seen_at: new Date().toISOString() }).eq("id", v.id);
-  await triggerAutoReply(admin, row.conversation_id).catch((err) => console.error("ai trigger failed", err));
+  await triggerAutoReply(admin, row.conversation_id).catch((err) => reportError("ai trigger failed", err));
   return { id: row.message_id };
 }
 

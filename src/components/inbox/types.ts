@@ -15,7 +15,7 @@ export type ConversationRow = Tables<'conversations'> & {
   conversation_labels: { label_id: string }[];
 };
 
-export type InboxTab = 'unassigned' | 'mine' | 'all' | 'resolved';
+export type InboxTab = 'unassigned' | 'mine' | 'all' | 'snoozed' | 'resolved';
 
 export type TimelineItem =
   | { kind: 'message'; at: string; message: Message }

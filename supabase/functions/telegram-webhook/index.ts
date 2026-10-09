@@ -6,6 +6,7 @@ import { extensionFor } from "../_shared/whatsapp.ts";
 import { decryptSecret } from "../_shared/crypto.ts";
 import { downloadFile, telegramKey, telegramMessageId } from "../_shared/telegram.ts";
 import { triggerAutoReply } from "../_shared/ai.ts";
+import { reportError } from "../_shared/http.ts";
 
 // Telegram message objects vary by content type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
     await handleMessage(admin, channel.id, token, message);
   } catch (err) {
     // A non-2xx makes Telegram retry; ingestion is idempotent so retries are safe.
-    console.error("telegram webhook processing failed", err);
+    reportError("telegram webhook processing failed", err);
     return new Response("Temporary failure", { status: 500 });
   }
   return new Response("OK", { status: 200 });
@@ -94,7 +95,7 @@ async function handleMessage(admin: SupabaseClient, channelId: string, token: st
     await admin.from("contacts").update({ username: from.username }).eq("organization_id", row.organization_id).eq("wa_id", key);
   }
   if (described.fileId) await storeMedia(admin, token, row, described.fileId, described.filename, described.mime);
-  await triggerAutoReply(admin, row.conversation_id).catch((err) => console.error("ai trigger failed", err));
+  await triggerAutoReply(admin, row.conversation_id).catch((err) => reportError("ai trigger failed", err));
 }
 
 function describe(m: Raw): {
@@ -152,6 +153,6 @@ async function storeMedia(
     if (upload.error) throw upload.error;
     await admin.from("messages").update({ media_path: path, media_mime: mimeType, media_filename: filename ?? null }).eq("id", row.message_id);
   } catch (err) {
-    console.error(`could not store telegram media ${fileId}`, err);
+    reportError("could not store telegram media", err);
   }
 }

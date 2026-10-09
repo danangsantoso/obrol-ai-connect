@@ -37,7 +37,7 @@ export function serveJson(handler: (req: Request) => Promise<Response>) {
       if (err instanceof HttpError) {
         return json({ error: { code: err.code, message: err.message } }, err.status);
       }
-      console.error(err);
+      reportError("internal error", err);
       return json({ error: { code: "internal", message: "Internal error" } }, 500);
     }
   });
@@ -57,4 +57,21 @@ export async function readJson<T>(req: Request): Promise<T> {
 export function isDataError(err: unknown): boolean {
   const code = (err as { code?: unknown })?.code;
   return typeof code === "string" && /^(22|23)/.test(code);
+}
+
+// Logs an unexpected error and records it in app_errors (Master Admin ->
+// Kesehatan sistem), grouped by where it happened. Never throws.
+export function reportError(context: string, err?: unknown): void {
+  console.error(context, err ?? "");
+  const base = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!base || !key) return;
+  const message = err instanceof Error ? `${context}: ${err.message}` : err && typeof err === "object" && "message" in err ? `${context}: ${String((err as { message: unknown }).message)}` : context;
+  const detail = err instanceof Error ? (err.stack ?? err.message) : err === undefined ? null : typeof err === "object" ? JSON.stringify(err) : String(err);
+  const sent = fetch(`${base}/rest/v1/rpc/report_app_error`, {
+    method: "POST",
+    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_source: "function", p_message: message, p_detail: detail, p_url: context }),
+  }).then((res) => res.body?.cancel()).catch(() => {});
+  (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime?.waitUntil?.(sent);
 }

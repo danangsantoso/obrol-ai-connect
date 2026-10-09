@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useQuickReplies } from './useInboxData';
 import type { Member, Message } from './types';
 import { memberName } from './types';
+import { ScheduleButton } from './Scheduling';
 
 type Mode = 'reply' | 'note';
 
@@ -321,6 +322,16 @@ export function Composer({ conversationId, orgId, userId, contactName, members, 
           className="min-h-[44px] resize-none bg-card"
           disabled={replyDisabled}
         />
+        {mode === 'reply' && (
+          <ScheduleButton
+            conversationId={conversationId}
+            orgId={orgId}
+            userId={userId}
+            text={text}
+            disabled={sending || replyDisabled || !text.trim() || Boolean(file)}
+            onScheduled={() => setText('')}
+          />
+        )}
         <Button onClick={submit} disabled={sending || replyDisabled || (!text.trim() && !file)} aria-label="Kirim">
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>

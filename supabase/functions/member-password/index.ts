@@ -2,9 +2,10 @@
 //  change - the signed-in member sets a new password (required after the
 //           default / reset password); clears must_change_password
 //  reset  - an admin resets a member of their organization to the default
-//           password; the member must change it at the next sign-in
+//           password and removes their two-step verification (lost phone);
+//           the member must change the password at the next sign-in
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
-import { adminClient, requireMember } from "../_shared/supabase.ts";
+import { adminClient, audit, assertMfa, removeMfa, requireMember } from "../_shared/supabase.ts";
 
 const DEFAULT_PASSWORD = "12345678";
 
@@ -17,6 +18,7 @@ serveJson(async (req) => {
     const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
     const { data: auth, error: authError } = await admin.auth.getUser(token);
     if (authError || !auth.user) throw new HttpError(401, "Invalid or expired session", "unauthorized");
+    assertMfa(auth.user, token);
     const member = { id: auth.user.id };
     const password = input.password ?? "";
     if (password.length < 8) throw new HttpError(400, "Password minimal 8 karakter", "invalid_request");
@@ -43,8 +45,11 @@ serveJson(async (req) => {
     if (target.id === caller.id) throw new HttpError(400, "Anda tidak bisa mereset password sendiri", "invalid_request");
     const { error } = await admin.auth.admin.updateUserById(target.id, { password: DEFAULT_PASSWORD });
     if (error) throw new HttpError(400, error.message, "auth_error");
+    await removeMfa(admin, target.id);
     const { error: profileError } = await admin.from("profiles").update({ must_change_password: true }).eq("id", target.id);
     if (profileError) throw profileError;
+    const { data: who } = await admin.from("profiles").select("full_name, email").eq("id", target.id).single();
+    await audit(admin, caller, "update", "member", who?.full_name || who?.email || null, { password: { from: "•••", to: "direset, 2FA dimatikan" } }, target.id);
     return json({ reset: true, password: DEFAULT_PASSWORD });
   }
 

@@ -9,7 +9,7 @@ import { extensionFor, isValidSignature } from "../_shared/whatsapp.ts";
 import { decryptSecret } from "../_shared/crypto.ts";
 import { contactKey, customerProfile } from "../_shared/meta.ts";
 import { triggerAutoReply } from "../_shared/ai.ts";
-import { isDataError } from "../_shared/http.ts";
+import { isDataError, reportError } from "../_shared/http.ts";
 
 // Messenger payloads vary by message type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
@@ -66,13 +66,13 @@ Deno.serve(async (req) => {
           await handleEvent(admin, channel, String(entry.id), event);
         } catch (err) {
           if (!isDataError(err)) throw err;
-          console.error(`${provider} event could not be stored, skipped`, err);
+          reportError(`${provider} event could not be stored, skipped`, err);
         }
       }
     }
   } catch (err) {
     // A non-2xx makes Meta retry later; ingestion is idempotent so retries are safe.
-    console.error("meta webhook processing failed", err);
+    reportError("meta webhook processing failed", err);
     return new Response("Temporary failure", { status: 500 });
   }
   return new Response("OK", { status: 200 });
@@ -156,7 +156,7 @@ async function handleEvent(admin: SupabaseClient, channel: Channel, accountId: s
   }
   if (row.inserted && described.mediaUrl) await storeMedia(admin, row, described.mid, described.mediaUrl);
   if (row.inserted && !echo) {
-    await triggerAutoReply(admin, row.conversation_id).catch((err) => console.error("ai trigger failed", err));
+    await triggerAutoReply(admin, row.conversation_id).catch((err) => reportError("ai trigger failed", err));
   }
 }
 
@@ -225,7 +225,7 @@ async function storeMedia(
     if (upload.error) throw upload.error;
     await admin.from("messages").update({ media_path: path, media_mime: mimeType }).eq("id", row.message_id);
   } catch (err) {
-    console.error(`could not store media of ${mid}`, err);
+    reportError("could not store meta media", err);
   }
 }
 

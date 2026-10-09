@@ -4,7 +4,7 @@
 //  suggest  - draft a reply for the agent handling a chat (members)
 //  test     - try a question against the current settings and knowledge (admins, supervisors)
 //  transcribe - turn a voice note into text (members who can see the chat)
-import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
+import { HttpError, json, readJson, serveJson, reportError } from "../_shared/http.ts";
 import { adminClient, callerClient, isServiceRole, requireMember } from "../_shared/supabase.ts";
 import { answer, autoReply, cleanName, loadAi, logRun, suggest, toChat } from "../_shared/ai.ts";
 import { LlmError } from "../_shared/llm.ts";
@@ -23,7 +23,7 @@ declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | unde
 
 // Keeps work running after the response is sent.
 function inBackground(work: Promise<unknown>) {
-  const guarded = work.catch((err) => console.error("ai background task failed", err));
+  const guarded = work.catch((err) => reportError("ai background task failed", err));
   if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(guarded);
 }
 

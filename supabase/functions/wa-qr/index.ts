@@ -2,7 +2,7 @@
 // gateway: shows the QR code (or a pairing code), reports the connection state
 // and logs the number out.
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
-import { adminClient, requireMember } from "../_shared/supabase.ts";
+import { adminClient, audit, requireMember } from "../_shared/supabase.ts";
 import * as evolution from "../_shared/evolution.ts";
 
 interface QrRequest {
@@ -55,6 +55,8 @@ serveJson(async (req) => {
   if (input.action === "logout") {
     await evolution.logout(instance);
     await save("disconnected");
+    const { data: ch } = await admin.from("channels").select("name").eq("id", channel.id).single();
+    await audit(admin, member, "update", "channel", ch?.name ?? null, { connection_status: { from: "connected", to: "logout" } }, channel.id);
     return json({ status: "disconnected", phone: null, qr: null });
   }
 

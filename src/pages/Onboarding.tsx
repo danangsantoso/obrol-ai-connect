@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 // organization. Multi-tenant platform: ask for a tenant and wait for the
 // Master Admin's approval.
 export default function Onboarding() {
-  const { user, profile, loading, isMaster, refreshProfile, signOut } = useAuth();
+  const { user, profile, loading, isMaster, mfaPending, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({ company: '', phone: '', note: '' });
@@ -52,6 +52,7 @@ export default function Onboarding() {
 
   if (loading) return null;
   if (!user) return <Navigate to="/auth" replace />;
+  if (mfaPending) return <Navigate to="/" replace />;
   if (isMaster) return <Navigate to="/master" replace />;
   if (profile?.organization_id) return <Navigate to="/" replace />;
 

@@ -26,8 +26,10 @@ const AiAgent = lazy(() => import("./pages/AiAgent"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Integrations = lazy(() => import("./pages/Integrations"));
 const MasterAdmin = lazy(() => import("./pages/MasterAdmin"));
+const ActivityLog = lazy(() => import("./pages/ActivityLog"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const MobileApp = lazy(() => import("./mobile/MobileApp"));
+import { MfaChallenge, MfaRequired } from "./components/auth/Mfa";
 
 // The Android app always opens the mobile screens.
 if (Capacitor.isNativePlatform() && !window.location.pathname.startsWith("/m")) {
@@ -60,13 +62,15 @@ function SuspendedTenant() {
 // Signed in + member of an active organization (otherwise: login, onboarding,
 // or the Master Admin console), and no longer on the default password.
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: AppRole[] }) {
-  const { user, profile, loading, isMaster, tenantSuspended } = useAuth();
+  const { user, profile, loading, isMaster, tenantSuspended, mfaPending, mfaSetupNeeded } = useAuth();
 
   if (loading) return <FullPageSpinner />;
   if (!user) return <Navigate to="/auth" replace />;
+  if (mfaPending) return <MfaChallenge />;
   if (profile?.must_change_password) return <ChangePassword />;
   if (!profile?.organization_id) return <Navigate to={isMaster ? "/master" : "/onboarding"} replace />;
   if (tenantSuspended) return <SuspendedTenant />;
+  if (mfaSetupNeeded) return <MfaRequired />;
   if (roles && !roles.includes(profile.role)) return <Navigate to="/" replace />;
 
   return <>{children}</>;
@@ -74,10 +78,11 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
 
 // Platform owner only; belongs to no tenant.
 function MasterRoute({ children }: { children: React.ReactNode }) {
-  const { user, profile, loading, isMaster } = useAuth();
+  const { user, profile, loading, isMaster, mfaPending } = useAuth();
 
   if (loading) return <FullPageSpinner />;
   if (!user) return <Navigate to="/auth" replace />;
+  if (mfaPending) return <MfaChallenge />;
   if (profile?.must_change_password) return <ChangePassword />;
   if (!isMaster) return <Navigate to="/" replace />;
   return <>{children}</>;
@@ -124,6 +129,14 @@ const App = () => (
                   element={
                     <ProtectedRoute roles={["admin", "supervisor"]}>
                       <Reports />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="activity"
+                  element={
+                    <ProtectedRoute roles={["admin"]}>
+                      <ActivityLog />
                     </ProtectedRoute>
                   }
                 />

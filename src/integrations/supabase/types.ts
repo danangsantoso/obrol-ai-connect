@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   public: {
@@ -346,6 +340,63 @@ export type Database = {
         };
         Relationships: [];
       };
+      app_errors: {
+        Row: {
+          detail: string | null;
+          fingerprint: string;
+          first_seen: string;
+          id: number;
+          last_seen: string;
+          message: string;
+          occurrences: number;
+          organization_id: string | null;
+          resolved_at: string | null;
+          source: string;
+          url: string | null;
+          user_agent: string | null;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          detail?: string | null;
+          fingerprint: string;
+          first_seen?: string;
+          id?: never;
+          last_seen?: string;
+          message: string;
+          occurrences?: number;
+          organization_id?: string | null;
+          resolved_at?: string | null;
+          source: string;
+          url?: string | null;
+          user_agent?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          detail?: string | null;
+          fingerprint?: string;
+          first_seen?: string;
+          id?: never;
+          last_seen?: string;
+          message?: string;
+          occurrences?: number;
+          organization_id?: string | null;
+          resolved_at?: string | null;
+          source?: string;
+          url?: string | null;
+          user_agent?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "app_errors_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       assignment_logs: {
         Row: {
           actor_id: string | null;
@@ -432,6 +483,54 @@ export type Database = {
             columns: ["to_team_id"];
             isOneToOne: false;
             referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      audit_log: {
+        Row: {
+          action: string;
+          actor_id: string | null;
+          actor_name: string | null;
+          changes: Json | null;
+          created_at: string;
+          entity: string;
+          entity_id: string | null;
+          entity_name: string | null;
+          id: number;
+          organization_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          action: string;
+          actor_id?: string | null;
+          actor_name?: string | null;
+          changes?: Json | null;
+          created_at?: string;
+          entity: string;
+          entity_id?: string | null;
+          entity_name?: string | null;
+          id?: never;
+          organization_id: string;
+        };
+        Update: {
+          action?: string;
+          actor_id?: string | null;
+          actor_name?: string | null;
+          changes?: Json | null;
+          created_at?: string;
+          entity?: string;
+          entity_id?: string | null;
+          entity_name?: string | null;
+          id?: never;
+          organization_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];
@@ -755,6 +854,7 @@ export type Database = {
           custom_fields: NonNullable<Json>;
           email: string | null;
           id: string;
+          merged_into: string | null;
           name: string | null;
           notes: string | null;
           opt_in: boolean;
@@ -773,6 +873,7 @@ export type Database = {
           custom_fields?: NonNullable<Json>;
           email?: string | null;
           id?: string;
+          merged_into?: string | null;
           name?: string | null;
           notes?: string | null;
           opt_in?: boolean;
@@ -790,6 +891,7 @@ export type Database = {
           custom_fields?: NonNullable<Json>;
           email?: string | null;
           id?: string;
+          merged_into?: string | null;
           name?: string | null;
           notes?: string | null;
           opt_in?: boolean;
@@ -800,6 +902,13 @@ export type Database = {
           wa_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "contacts_merged_into_fkey";
+            columns: ["merged_into"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "contacts_organization_id_fkey";
             columns: ["organization_id"];
@@ -921,6 +1030,8 @@ export type Database = {
           resolved_at: string | null;
           rotated_at: string | null;
           rotation_deadline: string | null;
+          snoozed_by: string | null;
+          snoozed_until: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           typing_until: string | null;
@@ -955,6 +1066,8 @@ export type Database = {
           resolved_at?: string | null;
           rotated_at?: string | null;
           rotation_deadline?: string | null;
+          snoozed_by?: string | null;
+          snoozed_until?: string | null;
           status?: Database["public"]["Enums"]["conversation_status"];
           team_id?: string | null;
           typing_until?: string | null;
@@ -988,6 +1101,8 @@ export type Database = {
           resolved_at?: string | null;
           rotated_at?: string | null;
           rotation_deadline?: string | null;
+          snoozed_by?: string | null;
+          snoozed_until?: string | null;
           status?: Database["public"]["Enums"]["conversation_status"];
           team_id?: string | null;
           typing_until?: string | null;
@@ -1021,6 +1136,13 @@ export type Database = {
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_snoozed_by_fkey";
+            columns: ["snoozed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
           {
@@ -2014,6 +2136,7 @@ export type Database = {
           outside_hours_message: string;
           plan_expires_at: string | null;
           plan_id: string | null;
+          require_mfa: boolean;
           retention_days: number;
           rotate_timeout_minutes: number;
           suspended_at: string | null;
@@ -2035,6 +2158,7 @@ export type Database = {
           outside_hours_message?: string;
           plan_expires_at?: string | null;
           plan_id?: string | null;
+          require_mfa?: boolean;
           retention_days?: number;
           rotate_timeout_minutes?: number;
           suspended_at?: string | null;
@@ -2055,6 +2179,7 @@ export type Database = {
           outside_hours_message?: string;
           plan_expires_at?: string | null;
           plan_id?: string | null;
+          require_mfa?: boolean;
           retention_days?: number;
           rotate_timeout_minutes?: number;
           suspended_at?: string | null;
@@ -2495,6 +2620,112 @@ export type Database = {
           },
         ];
       };
+      scheduled_messages: {
+        Row: {
+          body: string | null;
+          claimed_at: string | null;
+          conversation_id: string;
+          created_at: string;
+          created_by: string | null;
+          error: string | null;
+          id: string;
+          media_filename: string | null;
+          media_path: string | null;
+          message_id: string | null;
+          organization_id: string;
+          send_at: string;
+          status: string;
+          type: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          body?: string | null;
+          claimed_at?: string | null;
+          conversation_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          error?: string | null;
+          id?: string;
+          media_filename?: string | null;
+          media_path?: string | null;
+          message_id?: string | null;
+          organization_id: string;
+          send_at: string;
+          status?: string;
+          type?: string;
+        };
+        Update: {
+          body?: string | null;
+          claimed_at?: string | null;
+          conversation_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          error?: string | null;
+          id?: string;
+          media_filename?: string | null;
+          media_path?: string | null;
+          message_id?: string | null;
+          organization_id?: string;
+          send_at?: string;
+          status?: string;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "scheduled_messages_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "scheduled_messages_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "scheduled_messages_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      system_status: {
+        Row: {
+          changed_at: string;
+          checked_at: string;
+          detail: NonNullable<Json>;
+          key: string;
+          ok: boolean;
+        };
+        ComputedFields: never;
+        Insert: {
+          changed_at?: string;
+          checked_at?: string;
+          detail?: NonNullable<Json>;
+          key: string;
+          ok: boolean;
+        };
+        Update: {
+          changed_at?: string;
+          checked_at?: string;
+          detail?: NonNullable<Json>;
+          key?: string;
+          ok?: boolean;
+        };
+        Relationships: [];
+      };
       team_members: {
         Row: {
           created_at: string;
@@ -2880,24 +3111,12 @@ export type Database = {
         }[];
       };
       apply_message_status: {
-        Args: {
-          p_error: Json;
-          p_status: Database["public"]["Enums"]["message_status"];
-          p_wa_message_id: string;
-        };
+        Args: { p_error: Json; p_status: Database["public"]["Enums"]["message_status"]; p_wa_message_id: string };
         Returns: undefined;
       };
-      approve_tenant_request: {
-        Args: { request_id: string; tenant_name?: string };
-        Returns: string;
-      };
+      approve_tenant_request: { Args: { request_id: string; tenant_name?: string }; Returns: string };
       assign_conversation: {
-        Args: {
-          conv_id: string;
-          note?: string;
-          to_assignee: string;
-          to_team?: string;
-        };
+        Args: { conv_id: string; note?: string; to_assignee: string; to_team?: string };
         Returns: {
           ai_active: boolean;
           ai_busy_until: string | null;
@@ -2925,6 +3144,8 @@ export type Database = {
           resolved_at: string | null;
           rotated_at: string | null;
           rotation_deadline: string | null;
+          snoozed_by: string | null;
+          snoozed_until: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           typing_until: string | null;
@@ -2937,6 +3158,18 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      audit_write: {
+        Args: {
+          p_action: string;
+          p_actor: string;
+          p_changes: Json;
+          p_entity: string;
+          p_entity_id: string;
+          p_entity_name: string;
+          p_org: string;
+        };
+        Returns: undefined;
       };
       broadcast_audience: {
         Args: {
@@ -2951,12 +3184,7 @@ export type Database = {
         }[];
       };
       broadcast_audience_count: {
-        Args: {
-          p_active_days: number;
-          p_channel: string;
-          p_label_ids: string[];
-          p_only_opt_in: boolean;
-        };
+        Args: { p_active_days: number; p_channel: string; p_label_ids: string[]; p_only_opt_in: boolean };
         Returns: number;
       };
       broadcast_claim: {
@@ -2981,10 +3209,7 @@ export type Database = {
           isSetofReturn: true;
         };
       };
-      broadcast_conversation: {
-        Args: { p_channel: string; p_contact: string };
-        Returns: string;
-      };
+      broadcast_conversation: { Args: { p_channel: string; p_contact: string }; Returns: string };
       broadcast_prepare: { Args: { p_id: string }; Returns: number };
       broadcast_stats: {
         Args: { p_ids: string[] };
@@ -2999,10 +3224,8 @@ export type Database = {
         }[];
       };
       can_access_conversation: { Args: { conv_id: string }; Returns: boolean };
-      chunk_text: {
-        Args: { p_max?: number; p_text: string };
-        Returns: string[];
-      };
+      cancel_scheduled_message: { Args: { p_id: string }; Returns: undefined };
+      chunk_text: { Args: { p_max?: number; p_text: string }; Returns: string[] };
       claim_ai_turn: {
         Args: { p_conversation_id: string };
         Returns: {
@@ -3040,6 +3263,8 @@ export type Database = {
           resolved_at: string | null;
           rotated_at: string | null;
           rotation_deadline: string | null;
+          snoozed_by: string | null;
+          snoozed_until: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           typing_until: string | null;
@@ -3051,6 +3276,31 @@ export type Database = {
           to: "conversations";
           isOneToOne: true;
           isSetofReturn: false;
+        };
+      };
+      claim_scheduled_messages: {
+        Args: { p_limit: number };
+        Returns: {
+          body: string | null;
+          claimed_at: string | null;
+          conversation_id: string;
+          created_at: string;
+          created_by: string | null;
+          error: string | null;
+          id: string;
+          media_filename: string | null;
+          media_path: string | null;
+          message_id: string | null;
+          organization_id: string;
+          send_at: string;
+          status: string;
+          type: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "scheduled_messages";
+          isOneToOne: false;
+          isSetofReturn: true;
         };
       };
       claim_webhook_deliveries: {
@@ -3081,10 +3331,7 @@ export type Database = {
         }[];
       };
       current_org_id: { Args: Record<PropertyKey, never>; Returns: string };
-      current_role_name: {
-        Args: Record<PropertyKey, never>;
-        Returns: Database["public"]["Enums"]["app_role"];
-      };
+      current_role_name: { Args: Record<PropertyKey, never>; Returns: Database["public"]["Enums"]["app_role"] };
       current_team_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
       dashboard_daily_messages: {
         Args: { p_days?: number };
@@ -3094,23 +3341,10 @@ export type Database = {
           outbound: number;
         }[];
       };
-      enqueue_webhook_event: {
-        Args: { p_data: Json; p_event: string; p_org: string };
-        Returns: number;
-      };
+      enqueue_webhook_event: { Args: { p_data: Json; p_event: string; p_org: string }; Returns: number };
       expire_orders: { Args: Record<PropertyKey, never>; Returns: number };
-      finish_ai_turn: {
-        Args: {
-          p_conversation_id: string;
-          p_outcome: string;
-          p_reason: string;
-        };
-        Returns: undefined;
-      };
-      followup_auto_enroll: {
-        Args: Record<PropertyKey, never>;
-        Returns: number;
-      };
+      finish_ai_turn: { Args: { p_conversation_id: string; p_outcome: string; p_reason: string }; Returns: undefined };
+      followup_auto_enroll: { Args: Record<PropertyKey, never>; Returns: number };
       followup_claim_due: {
         Args: { p_limit?: number };
         Returns: {
@@ -3140,13 +3374,7 @@ export type Database = {
         };
       };
       followup_due_at: {
-        Args: {
-          p_days: number;
-          p_from: string;
-          p_hours: number;
-          p_send_hour: number;
-          p_tz: string;
-        };
+        Args: { p_days: number; p_from: string; p_hours: number; p_send_hour: number; p_tz: string };
         Returns: string;
       };
       followup_enroll: {
@@ -3178,13 +3406,7 @@ export type Database = {
         };
       };
       followup_record_send: {
-        Args: {
-          p_enrollment_id: string;
-          p_error: string;
-          p_message_id: string;
-          p_outcome: string;
-          p_position: number;
-        };
+        Args: { p_enrollment_id: string; p_error: string; p_message_id: string; p_outcome: string; p_position: number };
         Returns: {
           agent_id: string | null;
           attempts: number;
@@ -3226,10 +3448,7 @@ export type Database = {
           stopped: number;
         }[];
       };
-      followup_step_due: {
-        Args: { p_from: string; p_position: number; p_sequence_id: string };
-        Returns: string;
-      };
+      followup_step_due: { Args: { p_from: string; p_position: number; p_sequence_id: string }; Returns: string };
       followup_stop: {
         Args: { p_enrollment_id: string };
         Returns: {
@@ -3287,6 +3506,8 @@ export type Database = {
           resolved_at: string | null;
           rotated_at: string | null;
           rotation_deadline: string | null;
+          snoozed_by: string | null;
+          snoozed_until: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           typing_until: string | null;
@@ -3339,11 +3560,9 @@ export type Database = {
           organization_id: string;
         }[];
       };
-      is_business_open: {
-        Args: { p_at?: string; p_org: string };
-        Returns: boolean;
-      };
+      is_business_open: { Args: { p_at?: string; p_org: string }; Returns: boolean };
       is_master_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      log_activity: { Args: { p_action: string; p_entity: string; p_entity_name?: string }; Returns: undefined };
       mark_conversation_read: { Args: { conv_id: string }; Returns: undefined };
       master_tenant_overview: {
         Args: Record<PropertyKey, never>;
@@ -3389,23 +3608,17 @@ export type Database = {
           isSetofReturn: true;
         };
       };
-      move_conversation_label: {
-        Args: { conv_id: string; from_label: string; to_label: string };
+      merge_contacts: { Args: { p_keep: string; p_merge: string }; Returns: undefined };
+      mfa_ok: { Args: Record<PropertyKey, never>; Returns: boolean };
+      move_conversation_label: { Args: { conv_id: string; from_label: string; to_label: string }; Returns: undefined };
+      next_order_number: { Args: { p_org: string }; Returns: string };
+      next_rotation_agent: { Args: { p_org: string; p_team: string }; Returns: string };
+      notify_scheduled_failed: {
+        Args: { p_conversation: string; p_reason: string; p_user: string };
         Returns: undefined;
       };
-      next_order_number: { Args: { p_org: string }; Returns: string };
-      next_rotation_agent: {
-        Args: { p_org: string; p_team: string };
-        Returns: string;
-      };
       notify_users: {
-        Args: {
-          p_body: string;
-          p_tag: string;
-          p_title: string;
-          p_url: string;
-          p_users: string[];
-        };
+        Args: { p_body: string; p_tag: string; p_title: string; p_url: string; p_users: string[] };
         Returns: undefined;
       };
       org_plan_usage: {
@@ -3454,14 +3667,8 @@ export type Database = {
           within_sla: number;
         }[];
       };
-      purge_expired_messages: {
-        Args: Record<PropertyKey, never>;
-        Returns: string[];
-      };
-      purge_webhook_deliveries: {
-        Args: Record<PropertyKey, never>;
-        Returns: undefined;
-      };
+      purge_expired_messages: { Args: Record<PropertyKey, never>; Returns: string[] };
+      purge_webhook_deliveries: { Args: Record<PropertyKey, never>; Returns: undefined };
       push_claim: {
         Args: { p_limit?: number };
         Returns: {
@@ -3481,10 +3688,7 @@ export type Database = {
           isSetofReturn: true;
         };
       };
-      record_knowledge_gap: {
-        Args: { p_conversation: string; p_org: string; p_question: string };
-        Returns: undefined;
-      };
+      record_knowledge_gap: { Args: { p_conversation: string; p_org: string; p_question: string }; Returns: undefined };
       record_outbound_message: {
         Args: {
           p_body: string;
@@ -3523,15 +3727,9 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      register_push_device: { Args: { p_token: string; p_user_agent?: string }; Returns: undefined };
       registration_mode: { Args: Record<PropertyKey, never>; Returns: string };
-      register_push_device: {
-        Args: { p_token: string; p_user_agent?: string };
-        Returns: undefined;
-      };
-      reject_tenant_request: {
-        Args: { reason?: string; request_id: string };
-        Returns: undefined;
-      };
+      reject_tenant_request: { Args: { reason?: string; request_id: string }; Returns: undefined };
       reply_waits: {
         Args: { p_from: string; p_org: string; p_to: string };
         Returns: {
@@ -3542,6 +3740,10 @@ export type Database = {
           sender_id: string;
           wait_seconds: number;
         }[];
+      };
+      report_app_error: {
+        Args: { p_detail?: string; p_message: string; p_source: string; p_url?: string; p_user_agent?: string };
+        Returns: undefined;
       };
       request_tenant: {
         Args: { p_company: string; p_note?: string; p_phone?: string };
@@ -3568,6 +3770,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      resolve_app_error: { Args: { p_id: number }; Returns: undefined };
       revoke_api_key: { Args: { key_id: string }; Returns: undefined };
       search_knowledge: {
         Args: { p_limit?: number; p_org: string; p_query: string };
@@ -3581,11 +3784,7 @@ export type Database = {
         }[];
       };
       set_channel_connection: {
-        Args: {
-          p_display_phone: string;
-          p_instance_name: string;
-          p_status: string;
-        };
+        Args: { p_display_phone: string; p_instance_name: string; p_status: string };
         Returns: undefined;
       };
       set_conversation_ai: {
@@ -3617,6 +3816,8 @@ export type Database = {
           resolved_at: string | null;
           rotated_at: string | null;
           rotation_deadline: string | null;
+          snoozed_by: string | null;
+          snoozed_until: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           typing_until: string | null;
@@ -3631,10 +3832,7 @@ export type Database = {
         };
       };
       set_conversation_status: {
-        Args: {
-          conv_id: string;
-          new_status: Database["public"]["Enums"]["conversation_status"];
-        };
+        Args: { conv_id: string; new_status: Database["public"]["Enums"]["conversation_status"] };
         Returns: {
           ai_active: boolean;
           ai_busy_until: string | null;
@@ -3662,6 +3860,8 @@ export type Database = {
           resolved_at: string | null;
           rotated_at: string | null;
           rotation_deadline: string | null;
+          snoozed_by: string | null;
+          snoozed_until: string | null;
           status: Database["public"]["Enums"]["conversation_status"];
           team_id: string | null;
           typing_until: string | null;
@@ -3675,30 +3875,22 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      snooze_conversation: { Args: { p_conversation: string; p_until: string }; Returns: undefined };
+      system_alert: { Args: { p_body: string; p_title: string }; Returns: undefined };
       test_webhook: { Args: { webhook: string }; Returns: undefined };
+      unmerge_contact: { Args: { p_contact: string }; Returns: undefined };
       usage_month: { Args: { p_org: string }; Returns: string };
-      use_quota: {
-        Args: { p_amount?: number; p_kind: string; p_org: string };
-        Returns: number;
-      };
+      use_quota: { Args: { p_amount?: number; p_kind: string; p_org: string }; Returns: number };
+      wake_due_snoozes: { Args: Record<PropertyKey, never>; Returns: number };
       wake_push: { Args: Record<PropertyKey, never>; Returns: undefined };
-      wake_webhook_dispatch: {
-        Args: Record<PropertyKey, never>;
-        Returns: undefined;
-      };
+      wake_webhook_dispatch: { Args: Record<PropertyKey, never>; Returns: undefined };
       webhook_conversation_json: { Args: { p_conv: string }; Returns: Json };
     };
     Enums: {
       agent_status: "online" | "away" | "offline";
       ai_provider: "openai" | "anthropic" | "deepseek" | "gemini" | "custom";
       app_role: "admin" | "supervisor" | "agent";
-      channel_provider:
-        | "cloud_api"
-        | "qr"
-        | "messenger"
-        | "instagram"
-        | "telegram"
-        | "webchat";
+      channel_provider: "cloud_api" | "qr" | "messenger" | "instagram" | "telegram" | "webchat";
       conversation_status: "open" | "pending" | "resolved";
       message_direction: "inbound" | "outbound";
       message_status: "received" | "sent" | "delivered" | "read" | "failed";
@@ -3711,10 +3903,7 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<
-  keyof Database,
-  "public"
->];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
@@ -3726,19 +3915,15 @@ export type Tables<
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R;
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R;
       }
       ? R
@@ -3746,17 +3931,13 @@ export type Tables<
     : never;
 
 export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I;
     }
@@ -3771,17 +3952,13 @@ export type TablesInsert<
     : never;
 
 export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U;
     }
@@ -3796,17 +3973,13 @@ export type TablesUpdate<
     : never;
 
 export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+  DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
@@ -3821,9 +3994,7 @@ export type CompositeTypes<
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
@@ -3835,14 +4006,7 @@ export const Constants = {
       agent_status: ["online", "away", "offline"],
       ai_provider: ["openai", "anthropic", "deepseek", "gemini", "custom"],
       app_role: ["admin", "supervisor", "agent"],
-      channel_provider: [
-        "cloud_api",
-        "qr",
-        "messenger",
-        "instagram",
-        "telegram",
-        "webchat",
-      ],
+      channel_provider: ["cloud_api", "qr", "messenger", "instagram", "telegram", "webchat"],
       conversation_status: ["open", "pending", "resolved"],
       message_direction: ["inbound", "outbound"],
       message_status: ["received", "sent", "delivered", "read", "failed"],

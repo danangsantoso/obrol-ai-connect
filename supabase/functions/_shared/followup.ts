@@ -2,7 +2,7 @@
 // minute by the followup function (cron); the database decides what is due
 // and stops a sequence as soon as the customer replies.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { HttpError } from "./http.ts";
+import { HttpError, reportError } from "./http.ts";
 import { sendToConversation } from "./send.ts";
 import { cleanName, personalizeFollowup } from "./ai.ts";
 
@@ -136,7 +136,7 @@ async function sendStep(admin: SupabaseClient, e: Enrollment) {
   } catch (err) {
     const final = err instanceof HttpError && (FINAL_ERRORS.has(err.code) || err.status === 404);
     const msg = err instanceof Error ? err.message : String(err);
-    if (!final) console.error(`follow-up ${e.id} step ${step.position} failed`, err);
+    if (!final) reportError("follow-up step failed", err);
     await admin.rpc("followup_record_send", {
       p_enrollment_id: e.id, p_position: step.position, p_outcome: final ? "failed" : "retry", p_message_id: null, p_error: msg.slice(0, 500),
     });
@@ -199,7 +199,7 @@ export async function sweepAiFollowups(admin: SupabaseClient) {
       });
       sent++;
     } catch (err) {
-      console.error(`ai follow-up for ${row.conversation_id} failed`, err);
+      reportError("ai follow-up failed", err);
     }
   }
   return sent;

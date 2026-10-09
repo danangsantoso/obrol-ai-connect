@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { Search } from "lucide-react";
+import { Merge, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MergeContactDialog } from "@/components/contacts/MergeContactDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,14 +20,18 @@ export default function Contacts() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [mergeInto, setMergeInto] = useState<(typeof contacts)[number] | null>(null);
   const term = search.trim();
+  const canMerge = profile!.role !== "agent";
 
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ["contacts", term],
     queryFn: async () => {
       let query = supabase
         .from("contacts")
-        .select("id, wa_id, name, profile_name, username, email, company, created_at, conversations(id)")
+        .select("id, wa_id, name, profile_name, username, email, company, created_at, broadcast_opt_out, conversations(id), linked:contacts!merged_into(id, wa_id, username)")
+        // Numbers merged into another contact are listed under it.
+        .is("merged_into", null)
         .order("created_at", { ascending: false })
         .limit(200);
       if (term) {
@@ -73,19 +80,20 @@ export default function Contacts() {
                 <TableHead>Email</TableHead>
                 <TableHead>Perusahaan</TableHead>
                 <TableHead>Pertama kali chat</TableHead>
+                {canMerge && <TableHead className="w-28" />}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">
+                  <TableCell colSpan={canMerge ? 6 : 5} className="text-muted-foreground">
                     Memuat kontak...
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && contacts.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={canMerge ? 6 : 5} className="py-8 text-center text-muted-foreground">
                     Belum ada kontak.
                   </TableCell>
                 </TableRow>
@@ -98,11 +106,40 @@ export default function Contacts() {
                     className={conversationId ? "cursor-pointer" : undefined}
                     onClick={() => conversationId && navigate(`/inbox/${conversationId}`)}
                   >
-                    <TableCell className="font-medium">{displayName(c)}</TableCell>
-                    <TableCell>{formatWaId(c.wa_id, c.username)}</TableCell>
+                    <TableCell className="font-medium">
+                      {displayName(c)}
+                      {c.broadcast_opt_out && (
+                        <Badge variant="outline" className="ml-2 text-[10px] text-muted-foreground" title="Membalas STOP: tidak dikirimi broadcast">
+                          Tanpa promo
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {formatWaId(c.wa_id, c.username)}
+                      {c.linked?.map((l) => (
+                        <span key={l.id} className="block text-xs text-muted-foreground">
+                          + {formatWaId(l.wa_id, l.username)}
+                        </span>
+                      ))}
+                    </TableCell>
                     <TableCell>{c.email ?? "–"}</TableCell>
                     <TableCell>{c.company ?? "–"}</TableCell>
                     <TableCell>{format(new Date(c.created_at), "d MMM yyyy", { locale: localeId })}</TableCell>
+                    {canMerge && (
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMergeInto(c);
+                          }}
+                          title="Gabungkan kontak lain (nomor/akun lain orang yang sama) ke kontak ini"
+                        >
+                          <Merge className="mr-1 h-4 w-4" /> Gabungkan
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}
@@ -110,6 +147,12 @@ export default function Contacts() {
           </Table>
         </CardContent>
       </Card>
+      <MergeContactDialog
+        keep={mergeInto}
+        open={!!mergeInto}
+        onOpenChange={(v) => !v && setMergeInto(null)}
+        onDone={() => queryClient.invalidateQueries({ queryKey: ["contacts"] })}
+      />
     </div>
   );
 }

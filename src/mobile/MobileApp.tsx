@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import ChangePassword from "@/pages/ChangePassword";
+import { MfaChallenge, MfaRequired } from "@/components/auth/Mfa";
 import { listenToBackButton, listenToNotifications, registerNativePush } from "./native";
 import { ONBOARDED_KEY } from "./helpers";
 
@@ -16,6 +17,7 @@ const OrdersScreen = lazy(() => import("./OrdersScreen"));
 const AccountScreen = lazy(() => import("./AccountScreen"));
 const ProfileScreen = lazy(() => import("./ProfileScreen"));
 const PasswordScreen = lazy(() => import("./PasswordScreen"));
+const SecurityScreen = lazy(() => import("./SecurityScreen"));
 
 function Spinner() {
   return (
@@ -49,7 +51,7 @@ const onboarded = () => {
 // Signed-in screens: registers the phone for notifications and opens the chat
 // a tapped notification points at.
 function SignedIn({ children }: { children: React.ReactNode }) {
-  const { user, profile, loading, isMaster, tenantSuspended } = useAuth();
+  const { user, profile, loading, isMaster, tenantSuspended, mfaPending, mfaSetupNeeded } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,10 +65,12 @@ function SignedIn({ children }: { children: React.ReactNode }) {
 
   if (loading) return <Spinner />;
   if (!user) return <Navigate to={onboarded() ? "/m/masuk" : "/m/selamat-datang"} replace />;
+  if (mfaPending) return <MfaChallenge />;
   if (profile?.must_change_password) return <ChangePassword />;
   if (isMaster && !profile?.organization_id) return <Notice title="Akun Master Admin" body="Aplikasi HP ini untuk agen dan CS. Kelola platform dari Balas.id versi web." />;
   if (!profile?.organization_id) return <Notice title="Akun belum tergabung" body="Minta admin toko Anda menambahkan akun ini sebagai anggota tim." />;
   if (tenantSuspended) return <Notice title="Akun toko dinonaktifkan" body="Hubungi pengelola Balas.id untuk mengaktifkannya kembali." />;
+  if (mfaSetupNeeded) return <MfaRequired />;
   return <>{children}</>;
 }
 
@@ -110,6 +114,7 @@ export default function MobileApp() {
         <Route path="akun" element={signedIn(<AccountScreen />)} />
         <Route path="akun/profil" element={signedIn(<ProfileScreen />)} />
         <Route path="akun/kata-sandi" element={signedIn(<PasswordScreen />)} />
+        <Route path="akun/keamanan" element={signedIn(<SecurityScreen />)} />
         <Route path="*" element={<Navigate to="/m" replace />} />
       </Routes>
     </Suspense>

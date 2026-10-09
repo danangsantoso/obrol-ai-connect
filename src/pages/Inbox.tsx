@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { MessageSquare } from 'lucide-react';
+import { isSnoozed } from '@/components/inbox/Scheduling';
 import { useAuth } from '@/contexts/AuthContext';
 import { displayName } from '@/lib/api';
 import { ChatView } from '@/components/inbox/ChatView';
@@ -12,12 +13,16 @@ import { useConversations, useLabels, useMembers, useMessageSearch, useTeams } f
 import { ALL, isTakeable, type ConversationRow, type InboxTab } from '@/components/inbox/types';
 
 function inTab(conv: ConversationRow, tab: InboxTab, meId: string) {
+  // Snoozed chats only show in their own tab until the reminder.
+  if (tab !== 'resolved' && (tab === 'snoozed') !== isSnoozed(conv)) return false;
   switch (tab) {
     case 'unassigned':
       return (!conv.assignee_id && conv.status !== 'resolved') || isTakeable(conv, meId);
     case 'mine':
       return conv.assignee_id === meId && conv.status !== 'resolved';
     case 'all':
+      return conv.status !== 'resolved';
+    case 'snoozed':
       return conv.status !== 'resolved';
     case 'resolved':
       return conv.status === 'resolved';
@@ -47,7 +52,7 @@ export default function Inbox() {
   const memberMap = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
 
   const counts = useMemo(() => {
-    const result: Record<InboxTab, number> = { unassigned: 0, mine: 0, all: 0, resolved: 0 };
+    const result: Record<InboxTab, number> = { unassigned: 0, mine: 0, all: 0, snoozed: 0, resolved: 0 };
     for (const conv of conversations) {
       for (const t of Object.keys(result) as InboxTab[]) {
         if (inTab(conv, t, meId)) result[t] += 1;

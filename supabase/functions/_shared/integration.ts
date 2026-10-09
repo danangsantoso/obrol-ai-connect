@@ -241,7 +241,7 @@ async function uploadFromUrl(admin: SupabaseClient, orgId: string, url: string, 
   if (!res?.ok) throw new HttpError(400, `Could not download media_url (${res?.status ?? "network error"})`, "invalid_request");
   const bytes = new Uint8Array(await res.arrayBuffer());
   if (bytes.byteLength > MAX_MEDIA_BYTES) throw new HttpError(413, "File is larger than 16 MB", "too_large");
-  const name = (filename || new URL(url).pathname.split("/").pop() || "file").replace(/[^\w.\-]+/g, "_").slice(-80);
+  const name = (filename || new URL(url).pathname.split("/").pop() || "file").replace(/[^\w.-]+/g, "_").slice(-80);
   const mime = res.headers.get("content-type")?.split(";")[0] || "application/octet-stream";
   const path = `${orgId}/outbound/api-${crypto.randomUUID()}-${name}`;
   const { error } = await admin.storage.from("media").upload(path, bytes, { contentType: mime });

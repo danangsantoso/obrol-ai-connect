@@ -12,6 +12,7 @@ import { useAiSettings } from "@/components/ai/aiSettings";
 import { Avatar, BottomNav, ChannelBadge, Empty, Screen, Segmented } from "./ui";
 import { aiServing } from "./helpers";
 import { DisconnectedBanner } from "@/components/inbox/DisconnectedBanner";
+import { formatWhen, isSnoozed } from "@/components/inbox/Scheduling";
 
 type Tab = "mine" | "queue" | "ai";
 
@@ -40,6 +41,7 @@ const TONE: Record<Tag["tone"], string> = {
 };
 
 function tagFor(c: ConversationRow, meId: string, members: Map<string, Member>, aiReady: boolean): Tag | null {
+  if (isSnoozed(c)) return { text: `Ditunda s/d ${formatWhen(c.snoozed_until!)}`, tone: "slate" };
   if (isTakeable(c, meId)) return { text: `Belum dibalas ${memberName(members.get(c.assignee_id!))} · bisa diambil`, tone: "amber" };
   if (c.assignee_id === meId && c.rotation_deadline && new Date(c.rotation_deadline).getTime() > Date.now()) {
     return { text: `Balas sebelum ${format(new Date(c.rotation_deadline), "HH.mm")}`, tone: "amber" };
@@ -71,10 +73,12 @@ export default function InboxScreen() {
 
   const groups = useMemo(() => {
     const open = conversations.filter((c) => c.status !== "resolved");
+    // Snoozed chats wait in "Chat saya" (for whoever snoozed them) until the reminder.
+    const active = open.filter((c) => !isSnoozed(c));
     return {
-      mine: open.filter((c) => c.assignee_id === meId),
-      queue: open.filter((c) => (!c.assignee_id && !aiServing(c, aiReady)) || isTakeable(c, meId)),
-      ai: open.filter((c) => aiServing(c, aiReady)),
+      mine: open.filter((c) => (isSnoozed(c) ? c.snoozed_by === meId || c.assignee_id === meId : c.assignee_id === meId)),
+      queue: active.filter((c) => (!c.assignee_id && !aiServing(c, aiReady)) || isTakeable(c, meId)),
+      ai: active.filter((c) => aiServing(c, aiReady)),
     };
   }, [conversations, meId, aiReady]);
 
