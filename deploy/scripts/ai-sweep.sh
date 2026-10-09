@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Every minute: answers chats whose automatic AI reply was missed (e.g. a
 # function restart while the AI was waiting), sends due follow-up messages and
-# broadcasts, expires unpaid orders, and retries webhook deliveries and push
+# broadcasts, expires unpaid orders, sends ad events to Meta (and fetches ad
+# spend hourly), and retries webhook deliveries and push
 # notifications that failed. Installed by setup-vps.sh.
 set -euo pipefail
 
@@ -21,6 +22,7 @@ sweep ai-reply &
 sweep followup &
 sweep orders &
 sweep broadcast &
+sweep meta-ads &
 curl -fsS -o /dev/null -X POST --max-time 58 -H "Content-Type: application/json" -d '{}' \
   "http://127.0.0.1:${port:-8000}/functions/v1/webhook-dispatch" || echo "webhook-dispatch failed" >&2 &
 curl -fsS -o /dev/null -X POST --max-time 58 -H "Content-Type: application/json" -d '{"action":"dispatch"}' \

@@ -3,6 +3,448 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      ad_clicks: {
+        Row: {
+          ad_id: string | null;
+          ad_name: string | null;
+          adset_id: string | null;
+          adset_name: string | null;
+          campaign_id: string | null;
+          campaign_name: string | null;
+          code: string;
+          created_at: string;
+          fbc: string | null;
+          fbclid: string | null;
+          fbp: string | null;
+          id: string;
+          ip: string | null;
+          landing_url: string | null;
+          link_id: string | null;
+          matched_at: string | null;
+          matched_conversation_id: string | null;
+          organization_id: string;
+          user_agent: string | null;
+          utm: NonNullable<Json>;
+        };
+        ComputedFields: never;
+        Insert: {
+          ad_id?: string | null;
+          ad_name?: string | null;
+          adset_id?: string | null;
+          adset_name?: string | null;
+          campaign_id?: string | null;
+          campaign_name?: string | null;
+          code: string;
+          created_at?: string;
+          fbc?: string | null;
+          fbclid?: string | null;
+          fbp?: string | null;
+          id?: string;
+          ip?: string | null;
+          landing_url?: string | null;
+          link_id?: string | null;
+          matched_at?: string | null;
+          matched_conversation_id?: string | null;
+          organization_id: string;
+          user_agent?: string | null;
+          utm?: NonNullable<Json>;
+        };
+        Update: {
+          ad_id?: string | null;
+          ad_name?: string | null;
+          adset_id?: string | null;
+          adset_name?: string | null;
+          campaign_id?: string | null;
+          campaign_name?: string | null;
+          code?: string;
+          created_at?: string;
+          fbc?: string | null;
+          fbclid?: string | null;
+          fbp?: string | null;
+          id?: string;
+          ip?: string | null;
+          landing_url?: string | null;
+          link_id?: string | null;
+          matched_at?: string | null;
+          matched_conversation_id?: string | null;
+          organization_id?: string;
+          user_agent?: string | null;
+          utm?: NonNullable<Json>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_clicks_link_id_fkey";
+            columns: ["link_id"];
+            isOneToOne: false;
+            referencedRelation: "wa_links";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_clicks_matched_conversation_id_fkey";
+            columns: ["matched_conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_clicks_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ad_conversions: {
+        Row: {
+          cancelled_at: string | null;
+          contact_id: string | null;
+          conversation_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          id: string;
+          kind: string;
+          lead_id: string | null;
+          note: string | null;
+          occurred_at: string;
+          order_id: string | null;
+          organization_id: string;
+          value: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          cancelled_at?: string | null;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          id?: string;
+          kind: string;
+          lead_id?: string | null;
+          note?: string | null;
+          occurred_at?: string;
+          order_id?: string | null;
+          organization_id: string;
+          value: number;
+        };
+        Update: {
+          cancelled_at?: string | null;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          id?: string;
+          kind?: string;
+          lead_id?: string | null;
+          note?: string | null;
+          occurred_at?: string;
+          order_id?: string | null;
+          organization_id?: string;
+          value?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_conversions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_conversions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_conversions_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_conversions_lead_id_fkey";
+            columns: ["lead_id"];
+            isOneToOne: false;
+            referencedRelation: "ad_leads";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_conversions_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: true;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_conversions_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ad_leads: {
+        Row: {
+          ad_body: string | null;
+          ad_id: string | null;
+          ad_name: string | null;
+          adset_id: string | null;
+          adset_name: string | null;
+          campaign_id: string | null;
+          campaign_name: string | null;
+          channel_provider: string | null;
+          click_id: string | null;
+          contact_id: string;
+          conversation_id: string;
+          created_at: string;
+          ctwa_clid: string | null;
+          headline: string | null;
+          id: string;
+          media_url: string | null;
+          organization_id: string;
+          source: string;
+          source_url: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          ad_body?: string | null;
+          ad_id?: string | null;
+          ad_name?: string | null;
+          adset_id?: string | null;
+          adset_name?: string | null;
+          campaign_id?: string | null;
+          campaign_name?: string | null;
+          channel_provider?: string | null;
+          click_id?: string | null;
+          contact_id: string;
+          conversation_id: string;
+          created_at?: string;
+          ctwa_clid?: string | null;
+          headline?: string | null;
+          id?: string;
+          media_url?: string | null;
+          organization_id: string;
+          source: string;
+          source_url?: string | null;
+        };
+        Update: {
+          ad_body?: string | null;
+          ad_id?: string | null;
+          ad_name?: string | null;
+          adset_id?: string | null;
+          adset_name?: string | null;
+          campaign_id?: string | null;
+          campaign_name?: string | null;
+          channel_provider?: string | null;
+          click_id?: string | null;
+          contact_id?: string;
+          conversation_id?: string;
+          created_at?: string;
+          ctwa_clid?: string | null;
+          headline?: string | null;
+          id?: string;
+          media_url?: string | null;
+          organization_id?: string;
+          source?: string;
+          source_url?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_leads_click_id_fkey";
+            columns: ["click_id"];
+            isOneToOne: false;
+            referencedRelation: "ad_clicks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_leads_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_leads_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: true;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_leads_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ad_secrets: {
+        Row: {
+          ads_token_encrypted: string | null;
+          capi_token_encrypted: string | null;
+          organization_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          ads_token_encrypted?: string | null;
+          capi_token_encrypted?: string | null;
+          organization_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          ads_token_encrypted?: string | null;
+          capi_token_encrypted?: string | null;
+          organization_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_secrets_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ad_settings: {
+        Row: {
+          ad_account_id: string | null;
+          ads_token_hint: string | null;
+          attribution_days: number;
+          capi_token_hint: string | null;
+          last_event_at: string | null;
+          last_event_error: string | null;
+          last_spend_error: string | null;
+          last_spend_sync_at: string | null;
+          organization_id: string;
+          pixel_id: string | null;
+          send_checkout: boolean;
+          send_lead: boolean;
+          send_purchase: boolean;
+          test_event_code: string | null;
+          updated_at: string;
+          waba_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          ad_account_id?: string | null;
+          ads_token_hint?: string | null;
+          attribution_days?: number;
+          capi_token_hint?: string | null;
+          last_event_at?: string | null;
+          last_event_error?: string | null;
+          last_spend_error?: string | null;
+          last_spend_sync_at?: string | null;
+          organization_id: string;
+          pixel_id?: string | null;
+          send_checkout?: boolean;
+          send_lead?: boolean;
+          send_purchase?: boolean;
+          test_event_code?: string | null;
+          updated_at?: string;
+          waba_id?: string | null;
+        };
+        Update: {
+          ad_account_id?: string | null;
+          ads_token_hint?: string | null;
+          attribution_days?: number;
+          capi_token_hint?: string | null;
+          last_event_at?: string | null;
+          last_event_error?: string | null;
+          last_spend_error?: string | null;
+          last_spend_sync_at?: string | null;
+          organization_id?: string;
+          pixel_id?: string | null;
+          send_checkout?: boolean;
+          send_lead?: boolean;
+          send_purchase?: boolean;
+          test_event_code?: string | null;
+          updated_at?: string;
+          waba_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_settings_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ad_spend: {
+        Row: {
+          ad_id: string | null;
+          ad_key: string | null;
+          ad_name: string | null;
+          adset_id: string | null;
+          adset_name: string | null;
+          campaign_id: string | null;
+          campaign_name: string | null;
+          clicks: number;
+          date: string;
+          id: number;
+          impressions: number;
+          manual: boolean;
+          organization_id: string;
+          spend: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          ad_id?: string | null;
+          ad_key?: never;
+          ad_name?: string | null;
+          adset_id?: string | null;
+          adset_name?: string | null;
+          campaign_id?: string | null;
+          campaign_name?: string | null;
+          clicks?: number;
+          date: string;
+          id?: never;
+          impressions?: number;
+          manual?: boolean;
+          organization_id: string;
+          spend?: number;
+          updated_at?: string;
+        };
+        Update: {
+          ad_id?: string | null;
+          ad_key?: never;
+          ad_name?: string | null;
+          adset_id?: string | null;
+          adset_name?: string | null;
+          campaign_id?: string | null;
+          campaign_name?: string | null;
+          clicks?: number;
+          date?: string;
+          id?: never;
+          impressions?: number;
+          manual?: boolean;
+          organization_id?: string;
+          spend?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_spend_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_media: {
         Row: {
           created_at: string;
@@ -705,6 +1147,84 @@ export type Database = {
           },
           {
             foreignKeyName: "broadcasts_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      capi_events: {
+        Row: {
+          attempts: number;
+          conversion_id: string | null;
+          created_at: string;
+          event_id: string;
+          event_name: string;
+          id: number;
+          last_error: string | null;
+          lead_id: string | null;
+          next_attempt_at: string;
+          order_id: string | null;
+          organization_id: string;
+          sent_at: string | null;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          attempts?: number;
+          conversion_id?: string | null;
+          created_at?: string;
+          event_id: string;
+          event_name: string;
+          id?: never;
+          last_error?: string | null;
+          lead_id?: string | null;
+          next_attempt_at?: string;
+          order_id?: string | null;
+          organization_id: string;
+          sent_at?: string | null;
+          status?: string;
+        };
+        Update: {
+          attempts?: number;
+          conversion_id?: string | null;
+          created_at?: string;
+          event_id?: string;
+          event_name?: string;
+          id?: never;
+          last_error?: string | null;
+          lead_id?: string | null;
+          next_attempt_at?: string;
+          order_id?: string | null;
+          organization_id?: string;
+          sent_at?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "capi_events_conversion_id_fkey";
+            columns: ["conversion_id"];
+            isOneToOne: false;
+            referencedRelation: "ad_conversions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "capi_events_lead_id_fkey";
+            columns: ["lead_id"];
+            isOneToOne: false;
+            referencedRelation: "ad_leads";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "capi_events_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "capi_events_organization_id_fkey";
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
@@ -2935,6 +3455,68 @@ export type Database = {
           },
         ];
       };
+      wa_links: {
+        Row: {
+          campaign_name: string | null;
+          channel_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          is_active: boolean;
+          message: string;
+          name: string;
+          organization_id: string;
+          slug: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          campaign_name?: string | null;
+          channel_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_active?: boolean;
+          message?: string;
+          name: string;
+          organization_id: string;
+          slug: string;
+        };
+        Update: {
+          campaign_name?: string | null;
+          channel_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_active?: boolean;
+          message?: string;
+          name?: string;
+          organization_id?: string;
+          slug?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wa_links_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wa_links_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wa_links_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       webchat_visitors: {
         Row: {
           channel_id: string;
@@ -3101,6 +3683,23 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      ad_backfill_names: { Args: { p_org: string }; Returns: number };
+      ad_lead_for: { Args: { p_conversation: string }; Returns: string };
+      ads_check_access: { Args: Record<PropertyKey, never>; Returns: string };
+      ads_report: {
+        Args: { p_from: string; p_level: string; p_to: string };
+        Returns: {
+          closings: number;
+          key: string;
+          leads: number;
+          name: string;
+          parent: string;
+          path: string;
+          revenue: number;
+          spend: number;
+        }[];
+      };
+      ads_summary: { Args: { p_from: string; p_to: string }; Returns: Json };
       ai_followup_claim: {
         Args: { p_limit?: number };
         Returns: {
@@ -3224,7 +3823,32 @@ export type Database = {
         }[];
       };
       can_access_conversation: { Args: { conv_id: string }; Returns: boolean };
+      cancel_closing: { Args: { p_id: string }; Returns: undefined };
       cancel_scheduled_message: { Args: { p_id: string }; Returns: undefined };
+      capi_claim: {
+        Args: { p_limit: number };
+        Returns: {
+          attempts: number;
+          conversion_id: string | null;
+          created_at: string;
+          event_id: string;
+          event_name: string;
+          id: number;
+          last_error: string | null;
+          lead_id: string | null;
+          next_attempt_at: string;
+          order_id: string | null;
+          organization_id: string;
+          sent_at: string | null;
+          status: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "capi_events";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       chunk_text: { Args: { p_max?: number; p_text: string }; Returns: string[] };
       claim_ai_turn: {
         Args: { p_conversation_id: string };
@@ -3340,6 +3964,17 @@ export type Database = {
           inbound: number;
           outbound: number;
         }[];
+      };
+      enqueue_capi: {
+        Args: {
+          p_conversion: string;
+          p_event: string;
+          p_event_id: string;
+          p_lead: string;
+          p_order: string;
+          p_org: string;
+        };
+        Returns: undefined;
       };
       enqueue_webhook_event: { Args: { p_data: Json; p_event: string; p_org: string }; Returns: number };
       expire_orders: { Args: Record<PropertyKey, never>; Returns: number };
@@ -3563,6 +4198,10 @@ export type Database = {
       is_business_open: { Args: { p_at?: string; p_org: string }; Returns: boolean };
       is_master_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       log_activity: { Args: { p_action: string; p_entity: string; p_entity_name?: string }; Returns: undefined };
+      mark_closing: {
+        Args: { p_conversation: string; p_note?: string; p_send?: boolean; p_value: number };
+        Returns: string;
+      };
       mark_conversation_read: { Args: { conv_id: string }; Returns: undefined };
       master_tenant_overview: {
         Args: Record<PropertyKey, never>;
@@ -3667,6 +4306,7 @@ export type Database = {
           within_sla: number;
         }[];
       };
+      purge_ad_clicks: { Args: Record<PropertyKey, never>; Returns: number };
       purge_expired_messages: { Args: Record<PropertyKey, never>; Returns: string[] };
       purge_webhook_deliveries: { Args: Record<PropertyKey, never>; Returns: undefined };
       push_claim: {
@@ -3881,6 +4521,16 @@ export type Database = {
       unmerge_contact: { Args: { p_contact: string }; Returns: undefined };
       usage_month: { Args: { p_org: string }; Returns: string };
       use_quota: { Args: { p_amount?: number; p_kind: string; p_org: string }; Returns: number };
+      wa_link_stats: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          chats: number;
+          clicks: number;
+          closings: number;
+          link_id: string;
+          revenue: number;
+        }[];
+      };
       wake_due_snoozes: { Args: Record<PropertyKey, never>; Returns: number };
       wake_push: { Args: Record<PropertyKey, never>; Returns: undefined };
       wake_webhook_dispatch: { Args: Record<PropertyKey, never>; Returns: undefined };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, MessageSquare, Contact, Users, Settings, PanelLeftClose, PanelLeftOpen, Zap, SquareKanban, Bot, Plug, CalendarClock, ShoppingBag, Megaphone, BarChart3, History } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Contact, Users, Settings, PanelLeftClose, PanelLeftOpen, Zap, SquareKanban, Bot, Plug, CalendarClock, ShoppingBag, Megaphone, BarChart3, History, Target } from "lucide-react";
 import { useAuth, type AppRole } from "@/contexts/AuthContext";
 import { Logo, LogoMark } from "@/components/brand/Logo";
 import { useUnreadTotal } from "@/hooks/useInboxNotifications";
@@ -11,6 +11,7 @@ const navigation: { name: string; href: string; icon: typeof LayoutDashboard; ro
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Inbox", href: "/inbox", icon: MessageSquare },
   { name: "Laporan", href: "/reports", icon: BarChart3, roles: ["admin", "supervisor"] },
+  { name: "Iklan", href: "/ads", icon: Target, roles: ["admin", "supervisor"] },
   { name: "Pipeline", href: "/pipeline", icon: SquareKanban },
   { name: "Pesanan", href: "/orders", icon: ShoppingBag },
   { name: "Kontak", href: "/contacts", icon: Contact },

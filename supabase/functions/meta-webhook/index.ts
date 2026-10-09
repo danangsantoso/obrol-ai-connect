@@ -10,6 +10,7 @@ import { decryptSecret } from "../_shared/crypto.ts";
 import { contactKey, customerProfile } from "../_shared/meta.ts";
 import { triggerAutoReply } from "../_shared/ai.ts";
 import { isDataError, reportError } from "../_shared/http.ts";
+import { metaReferral } from "../_shared/referral.ts";
 
 // Messenger payloads vary by message type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
@@ -112,6 +113,8 @@ async function handleEvent(admin: SupabaseClient, channel: Channel, accountId: s
 
   const described = describe(event);
   if (!described) return;
+  const referral = echo ? null : metaReferral(event);
+  if (referral) described.metadata.referral = referral;
 
   // New customers: look up their name and picture once.
   let profile: { name: string | null; username: string | null; avatar: string | null } | null = null;

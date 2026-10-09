@@ -484,3 +484,9 @@ verify_jwt = true
 
 [functions.health]
 verify_jwt = false
+
+[functions.wa]
+verify_jwt = false
+
+[functions.meta-ads]
+verify_jwt = true

@@ -8,7 +8,7 @@ APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$APP_DIR/deploy/scripts/lib.sh"
 WEB_ROOT="${WEB_ROOT:-/var/www/balas}"
-FUNCTIONS=(_shared whatsapp-webhook send-message invite-member sync-templates purge-retention wa-qr wa-qr-webhook ai-reply ai-admin social-oauth meta-webhook telegram-connect telegram-webhook webchat member-password api mcp webhook-dispatch master-admin followup orders payment-webhook broadcast push health)
+FUNCTIONS=(_shared whatsapp-webhook send-message invite-member sync-templates purge-retention wa-qr wa-qr-webhook ai-reply ai-admin social-oauth meta-webhook telegram-connect telegram-webhook webchat member-password api mcp webhook-dispatch master-admin followup orders payment-webhook broadcast push health wa meta-ads)
 
 [[ -f "$SUPABASE_DIR/.env" ]] || die "Supabase belum terpasang di $SUPABASE_DIR (jalankan setup-vps.sh dulu)"
 cd "$APP_DIR"

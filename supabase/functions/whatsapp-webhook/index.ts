@@ -7,6 +7,7 @@ import { adminClient } from "../_shared/supabase.ts";
 import { downloadMedia, extensionFor, isValidSignature } from "../_shared/whatsapp.ts";
 import { triggerAutoReply } from "../_shared/ai.ts";
 import { isDataError, reportError } from "../_shared/http.ts";
+import { cloudReferral } from "../_shared/referral.ts";
 
 // Meta's webhook payloads vary by message type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
@@ -116,6 +117,8 @@ async function handleInbound(
   profileName: string,
 ) {
   const { body, metadata } = describe(message);
+  const referral = cloudReferral(message);
+  if (referral) metadata.referral = referral;
   const { data, error } = await admin
     .rpc("ingest_inbound_message", {
       p_phone_number_id: phoneNumberId,

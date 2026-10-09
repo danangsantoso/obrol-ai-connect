@@ -27,6 +27,9 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Integrations = lazy(() => import("./pages/Integrations"));
 const MasterAdmin = lazy(() => import("./pages/MasterAdmin"));
 const ActivityLog = lazy(() => import("./pages/ActivityLog"));
+const Ads = lazy(() => import("./pages/Ads"));
+const AdLinks = lazy(() => import("./pages/AdLinks"));
+const AdSettings = lazy(() => import("./pages/AdSettings"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const MobileApp = lazy(() => import("./mobile/MobileApp"));
 import { MfaChallenge, MfaRequired } from "./components/auth/Mfa";
@@ -129,6 +132,30 @@ const App = () => (
                   element={
                     <ProtectedRoute roles={["admin", "supervisor"]}>
                       <Reports />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="ads"
+                  element={
+                    <ProtectedRoute roles={["admin", "supervisor"]}>
+                      <Ads />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="ads/links"
+                  element={
+                    <ProtectedRoute roles={["admin", "supervisor"]}>
+                      <AdLinks />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="ads/settings"
+                  element={
+                    <ProtectedRoute roles={["admin"]}>
+                      <AdSettings />
                     </ProtectedRoute>
                   }
                 />
