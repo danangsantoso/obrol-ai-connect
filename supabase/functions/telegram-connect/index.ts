@@ -1,6 +1,6 @@
 // Connects a Telegram bot (token from @BotFather) as a channel, or disconnects it. Admins only.
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
-import { adminClient, requireMember } from "../_shared/supabase.ts";
+import { adminClient, audit, requireMember } from "../_shared/supabase.ts";
 import { decryptSecret, encryptSecret } from "../_shared/crypto.ts";
 import { deleteWebhook, getMe, setWebhook } from "../_shared/telegram.ts";
 import { quotaError } from "../_shared/plans.ts";
@@ -61,6 +61,7 @@ serveJson(async (req) => {
     });
     if (error) throw error;
     await setWebhook(token, `${publicApi.replace(/\/$/, "")}/functions/v1/telegram-webhook?channel=${channelId}`, secret);
+    await audit(admin, member, "create", "channel", `Telegram @${bot.username}`, null, channelId);
     return json({ channel_id: channelId, username: bot.username });
   }
 
@@ -78,6 +79,7 @@ serveJson(async (req) => {
     }
     await admin.from("channel_secrets").delete().eq("channel_id", ch.id);
     await admin.from("channels").update({ is_active: false, connection_status: "disconnected" }).eq("id", ch.id);
+    await audit(admin, member, "delete", "channel", "Telegram", null, ch.id);
     return json({ disconnected: true });
   }
 

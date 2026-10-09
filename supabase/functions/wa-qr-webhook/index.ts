@@ -6,6 +6,7 @@ import { adminClient } from "../_shared/supabase.ts";
 import { extensionFor } from "../_shared/whatsapp.ts";
 import { downloadMedia, isValidToken, mapState } from "../_shared/evolution.ts";
 import { triggerAutoReply } from "../_shared/ai.ts";
+import { reportError } from "../_shared/http.ts";
 
 // Baileys message payloads vary by message type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
     }
   } catch (err) {
     // A non-2xx makes the gateway retry; ingestion is idempotent so retries are safe.
-    console.error("qr webhook processing failed", err);
+    reportError("qr webhook processing failed", err);
     return new Response("Temporary failure", { status: 500 });
   }
   return new Response("OK", { status: 200 });
@@ -122,7 +123,7 @@ async function handleMessage(admin: SupabaseClient, channel: Channel, data: Raw)
     await storeMedia(admin, channel, row, key.id, described.metadata.filename as string | undefined);
   }
   if (row.inserted && !fromMe) {
-    await triggerAutoReply(admin, row.conversation_id).catch((err) => console.error("ai trigger failed", err));
+    await triggerAutoReply(admin, row.conversation_id).catch((err) => reportError("ai trigger failed", err));
   }
 }
 
@@ -148,7 +149,7 @@ async function storeMedia(
       .eq("id", row.message_id);
   } catch (err) {
     // The message is kept and shows "media belum tersedia".
-    console.error(`could not store media of ${messageId}`, err);
+    reportError("could not store QR media", err);
   }
 }
 

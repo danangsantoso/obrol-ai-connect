@@ -16,6 +16,7 @@ const TABS: { value: InboxTab; label: string }[] = [
   { value: 'unassigned', label: 'Antrean' },
   { value: 'mine', label: 'Saya' },
   { value: 'all', label: 'Semua' },
+  { value: 'snoozed', label: 'Ditunda' },
   { value: 'resolved', label: 'Selesai' },
 ];
 
@@ -80,7 +81,7 @@ export function ConversationList({
             className="pl-9"
           />
         </div>
-        <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
+        <div className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
           {TABS.map((t) => (
             <button
               key={t.value}

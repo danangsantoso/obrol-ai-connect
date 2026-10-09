@@ -2,7 +2,7 @@
 // catalog, the knowledge passages that match the customer's question and the
 // chat so far; asks the chosen model; then replies or hands the chat to a person.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { HttpError } from "./http.ts";
+import { HttpError, reportError } from "./http.ts";
 import { decryptSecret } from "./crypto.ts";
 import { type ChatMessage, complete, type LlmConfig, LlmError, ORDER_REPLY_SCHEMA, type Provider } from "./llm.ts";
 import { createOrder, loadPaymentConfig, type PaymentConfig, rupiah, sendInvoice, shippingRates } from "./payments.ts";
@@ -372,7 +372,7 @@ export function parseAnswer(
         ongkirPostal: typeof parsed.ongkir_postal_code === "string" ? parsed.ongkir_postal_code.replace(/\D/g, "").slice(0, 5) : "",
         missingInfo: typeof parsed.missing_info === "string" ? parsed.missing_info.trim().slice(0, 300) : "",
         attachmentKeys: Array.isArray(parsed.attachments)
-          ? [...new Set(parsed.attachments.filter((k: unknown): k is string => typeof k === "string").map((k: string) => k.trim().toUpperCase()))]
+          ? [...new Set<string>((parsed.attachments as unknown[]).filter((k: unknown): k is string => typeof k === "string").map((k) => k.trim().toUpperCase()))]
           : [],
       };
     } catch {
@@ -845,7 +845,7 @@ async function runTurn(admin: SupabaseClient, conversationId: string) {
       try {
         await sendInvoice(admin, placedOrder, null, meta);
       } catch (err) {
-        console.error(`could not send invoice ${placedOrder.number}`, err);
+        reportError("could not send invoice", err);
       }
     }
     // Photos and PDFs the AI chose, right after its reply (captioned with their title).
@@ -859,7 +859,7 @@ async function runTurn(admin: SupabaseClient, conversationId: string) {
             text: f.title,
           }, null, { ...meta, ai_media: f.id });
         } catch (err) {
-          console.error(`could not send AI file ${f.id}`, err);
+          reportError("could not send AI file", err);
         }
       }
     }
@@ -883,7 +883,7 @@ async function runTurn(admin: SupabaseClient, conversationId: string) {
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`ai turn failed for ${conversationId}`, err);
+    reportError("ai turn failed", err);
     await logRun(admin, { organization_id: orgId, conversation_id: conversationId, kind: "auto", llm: ai?.llm, status: "error", error: message });
     // Leave the chat to people, with the reason for the admin.
     await admin.rpc("finish_ai_turn", { p_conversation_id: conversationId, p_outcome: "handoff", p_reason: `AI gagal: ${message}` });
@@ -925,6 +925,6 @@ export async function triggerAutoReply(admin: SupabaseClient, conversationId: st
     });
   } catch (err) {
     // The minute sweep (ai-sweep cron) picks the chat up.
-    console.error("could not start ai-reply", err);
+    reportError("could not start ai-reply", err);
   }
 }

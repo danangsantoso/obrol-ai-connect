@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Bot, Copy, KeyRound, Loader2, Plus, Send, Trash2, Webhook } from "lucide-react";
+import { Bot, Copy, KeyRound, Loader2, Plus, Send, ShoppingBag, Trash2, Webhook } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -423,6 +423,41 @@ function verify(rawBody, header, secret) {
   );
 }
 
+const MARKETPLACES = [
+  { name: "Shopee", detail: "Chat pembeli & status pesanan Shopee" },
+  { name: "Tokopedia", detail: "Chat pembeli & status pesanan Tokopedia" },
+  { name: "TikTok Shop", detail: "Chat pembeli & pesanan TikTok Shop" },
+];
+
+// Marketplace chats in the same inbox: announced, not built yet.
+function Marketplaces() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShoppingBag className="h-5 w-5" /> Marketplace
+          <Badge variant="secondary">Segera hadir</Badge>
+        </CardTitle>
+        <CardDescription>Chat dan pesanan dari marketplace masuk ke Inbox yang sama, dijawab tim dan AI seperti chat WhatsApp.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3 sm:grid-cols-3">
+        {MARKETPLACES.map((m) => (
+          <div key={m.name} className="flex flex-col gap-2 rounded-lg border border-dashed p-4" aria-disabled="true">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold">{m.name}</p>
+              <Badge variant="outline" className="text-muted-foreground">Segera hadir</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">{m.detail}</p>
+            <Button size="sm" variant="outline" disabled className="mt-auto">
+              Hubungkan
+            </Button>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Integrations() {
   const { profile } = useAuth();
   return (
@@ -431,6 +466,7 @@ export default function Integrations() {
         <h1 className="text-2xl font-bold">Integrasi</h1>
         <p className="text-muted-foreground">Hubungkan Balas.id dengan website, sistem lain, dan asisten AI lewat API, Webhook, atau MCP.</p>
       </div>
+      <Marketplaces />
       <Guide />
       <ApiKeys />
       <Webhooks orgId={profile!.organization_id!} />

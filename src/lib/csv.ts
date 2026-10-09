@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 // Minimal RFC 4180 parser: commas or semicolons (Excel in Indonesian locale), quoted fields.
 export function parseCsv(text: string): string[][] {
   const firstLine = text.split(/\r?\n/, 1)[0] ?? "";
@@ -59,4 +61,6 @@ export function downloadCsv(filename: string, rows: unknown[][]) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+  // Exports of customer data show up in the activity log.
+  supabase.rpc("log_activity", { p_action: "export", p_entity: "file", p_entity_name: `${filename} (${Math.max(0, rows.length - 1)} baris)` }).then(() => {});
 }

@@ -72,7 +72,9 @@ export default function ContactScreen() {
 
   const save = async () => {
     setSaving(true);
-    const { error } = await supabase.from("contacts").update({ name: form.name.trim() || null, notes: form.notes.trim() || null }).eq("id", contactId);
+    const { error } = await supabase.from("contacts").update({ name: form.name.trim() || null, notes: form.notes.trim() || null })
+      // A merged number: the name belongs to the main contact (and follows to its numbers).
+      .eq("id", contact?.merged_into ?? contactId);
     setSaving(false);
     if (error) return toast.error(errorMessage(error));
     toast.success("Kontak disimpan");

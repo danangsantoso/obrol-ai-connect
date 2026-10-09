@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { BellRing, Camera, ChevronRight, KeyRound, Loader2 } from "lucide-react";
+import { BellRing, Camera, ChevronRight, KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -187,6 +187,11 @@ export default function AccountScreen() {
         <Link to="/m/akun/kata-sandi" className="flex min-h-[52px] items-center gap-3 rounded-2xl bg-white px-4">
           <KeyRound className="h-5 w-5 text-slate-700" />
           <span className="flex-1 text-[15px] font-semibold">Ganti kata sandi</span>
+          <ChevronRight className="h-5 w-5 text-slate-400" />
+        </Link>
+        <Link to="/m/akun/keamanan" className="flex min-h-[52px] items-center gap-3 rounded-2xl bg-white px-4">
+          <ShieldCheck className="h-5 w-5 text-slate-700" />
+          <span className="flex-1 text-[15px] font-semibold">Verifikasi 2 langkah</span>
           <ChevronRight className="h-5 w-5 text-slate-400" />
         </Link>
         <button onClick={logout} className="min-h-[50px] w-full rounded-2xl border border-red-200 bg-white text-[15px] font-bold text-red-700">

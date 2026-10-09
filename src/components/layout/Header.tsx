@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { formatDistanceToNowStrict } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { CalendarClock, LogOut, User } from "lucide-react";
+import { useState } from "react";
+import { CalendarClock, LogOut, ShieldCheck, User } from "lucide-react";
+import { SecurityDialog } from "@/components/auth/SecurityDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useFollowupChats } from "@/hooks/useFollowupAlerts";
 import { PushControl } from "./PushControl";
@@ -31,6 +33,7 @@ const AGENT_STATUS: { value: Profile["status"]; label: string; dot: string }[] =
 
 export function Header() {
   const { profile, signOut, refreshProfile } = useAuth();
+  const [security, setSecurity] = useState(false);
   if (!profile) return null;
 
   const name = profile.full_name || profile.email;
@@ -84,12 +87,17 @@ export function Header() {
             ))}
           </DropdownMenuRadioGroup>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setSecurity(true)}>
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            Verifikasi 2 langkah
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => signOut()} className="text-danger">
             <LogOut className="mr-2 h-4 w-4" />
             Keluar
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <SecurityDialog open={security} onOpenChange={setSecurity} />
     </header>
   );
 }

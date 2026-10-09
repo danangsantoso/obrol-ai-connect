@@ -1,3 +1,4 @@
+import { IosInstallHint } from "./IosInstallHint";
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -91,6 +92,7 @@ export default function Login() {
             Anda akan diminta membuat kata sandi sendiri.
           </p>
         )}
+        <IosInstallHint />
       </form>
     </div>
   );

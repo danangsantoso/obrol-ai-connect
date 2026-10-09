@@ -30,3 +30,13 @@ if [[ -n "$(psql_db -tAc "select 1 from pg_database where datname = 'evolution'"
     "with gone as (delete from \"Message\" where \"messageTimestamp\" < extract(epoch from now() - interval '$GATEWAY_KEEP_DAYS days') returning 1)
      select count(*) || ' pesan lama dihapus' from gone"
 fi
+
+# Application errors that stopped happening are kept for 30 days.
+printf '[%s] app errors: ' "$(date -Is)"
+psql_db -tAc "with gone as (delete from public.app_errors where last_seen < now() - interval '30 days' returning 1)
+  select count(*) || ' catatan error lama dihapus' from gone"
+
+# Activity log: one year.
+printf '[%s] activity log: ' "$(date -Is)"
+psql_db -tAc "with gone as (delete from public.audit_log where created_at < now() - interval '365 days' returning 1)
+  select count(*) || ' catatan aktivitas lama dihapus' from gone"

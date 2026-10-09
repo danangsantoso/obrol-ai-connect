@@ -17,6 +17,7 @@ import { LabelPicker } from './LabelPicker';
 import { ChatFollowup } from '@/components/followup/ChatFollowup';
 import { ChatOrders } from '@/components/orders/ChatOrders';
 import { useTimeline } from './useInboxData';
+import { ScheduledList, SnoozeButton } from './Scheduling';
 import { useAiSettings } from '@/components/ai/aiSettings';
 import type { ConversationRow, Label, Member, Team } from './types';
 import { isTakeable, memberName } from './types';
@@ -193,6 +194,7 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
           <UserRoundCog className="mr-1 h-4 w-4" />
           Pindahkan
         </Button>
+        <SnoozeButton conversation={conversation} onChanged={onChanged} />
         <ChatFollowup conversationId={conversation.id} orgId={me.organization_id!} />
         <ChatOrders
           conversationId={conversation.id}
@@ -246,6 +248,7 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
         <Timeline items={items} members={memberMap} loading={loading} />
       </div>
 
+      <ScheduledList conversationId={conversation.id} meId={me.id} canManage={me.role !== 'agent'} />
       {!windowOpen && provider === 'cloud_api' && <TemplateSender conversationId={conversation.id} orgId={me.organization_id!} onSent={addMessage} />}
       <Composer
         key={conversation.id}

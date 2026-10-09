@@ -5,6 +5,8 @@
 // FCM_SERVICE_ACCOUNT holds the service account JSON from the Firebase
 // console (Project settings → Service accounts), as is or base64-encoded.
 
+import { reportError } from "./http.ts";
+
 interface ServiceAccount {
   project_id: string;
   client_email: string;
@@ -23,7 +25,7 @@ export function serviceAccount(): ServiceAccount | null {
     const parsed = JSON.parse(raw.startsWith("{") ? raw : new TextDecoder().decode(Uint8Array.from(atob(raw), (c) => c.charCodeAt(0))));
     return parsed.project_id && parsed.client_email && parsed.private_key ? parsed : null;
   } catch {
-    console.error("FCM_SERVICE_ACCOUNT is not valid JSON");
+    reportError("FCM_SERVICE_ACCOUNT is not valid JSON");
     return null;
   }
 }

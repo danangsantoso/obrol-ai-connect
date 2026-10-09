@@ -7,7 +7,7 @@ set -uo pipefail
 APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$APP_DIR/deploy/scripts/lib.sh"
-cd "$APP_DIR"
+cd "$APP_DIR" || exit 1
 
 log "Versi"
 git log --oneline -1

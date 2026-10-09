@@ -2,7 +2,7 @@
 // (or one the admin chooses), which the member must change at first sign-in;
 // or an email invitation (needs SMTP).
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
-import { adminClient, requireMember, type Role } from "../_shared/supabase.ts";
+import { adminClient, audit, requireMember, type Role } from "../_shared/supabase.ts";
 import { assertUserQuota, quotaError } from "../_shared/plans.ts";
 
 interface InviteRequest {
@@ -105,5 +105,6 @@ serveJson(async (req) => {
     if (error) throw error;
   }
 
+  await audit(admin, caller, "create", "member", `${fullName || input.email} (${input.role})`, null, userId);
   return json({ user_id: userId, invited });
 });

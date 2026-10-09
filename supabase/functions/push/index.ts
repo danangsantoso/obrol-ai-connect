@@ -5,7 +5,7 @@
 //               drains the queue, so it needs no credentials)
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
-import { adminClient, requireMember } from "../_shared/supabase.ts";
+import { adminClient, requireMasterAdmin, requireMember } from "../_shared/supabase.ts";
 import { sendPush, vapidKeys } from "../_shared/webpush.ts";
 import { sendFcm, serviceAccount } from "../_shared/fcm.ts";
 
@@ -46,7 +46,14 @@ serveJson(async (req) => {
   const input = await readJson<{ action?: string }>(req);
   if (input.action === "dispatch") return json(await dispatch(admin));
 
-  const member = await requireMember(req, admin);
+  // Members, and Master Admins (server alerts), may turn on notifications.
+  const member = await requireMember(req, admin).catch(async (err) => {
+    try {
+      return await requireMasterAdmin(req, admin);
+    } catch {
+      throw err;
+    }
+  });
   if (input.action === "public_key") return json({ public_key: (await vapidKeys(admin)).publicKey });
   if (input.action === "test") {
     const { count } = await admin.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", member.id);

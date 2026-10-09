@@ -1,7 +1,7 @@
 // Stores or removes the organization's AI provider API key (encrypted), and
 // checks that the provider answers with the saved settings. Admins only.
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
-import { adminClient, requireMember } from "../_shared/supabase.ts";
+import { adminClient, audit, requireMember } from "../_shared/supabase.ts";
 import { encryptSecret } from "../_shared/crypto.ts";
 import { loadAi } from "../_shared/ai.ts";
 import { complete, LlmError } from "../_shared/llm.ts";
@@ -36,6 +36,7 @@ serveJson(async (req) => {
       .from("ai_settings")
       .upsert({ organization_id: orgId, [hintColumn]: `…${key.slice(-4)}` }, { onConflict: "organization_id" });
     if (hintError) throw hintError;
+    await audit(admin, member, "update", "ai_settings", null, { [hintColumn]: { from: "•••", to: `…${key.slice(-4)}` } });
     return json({ [hintColumn]: `…${key.slice(-4)}`, api_key_hint: stt ? undefined : `…${key.slice(-4)}` });
   }
 
@@ -44,6 +45,7 @@ serveJson(async (req) => {
     await admin.from("ai_settings")
       .update(stt ? { stt_key_hint: null } : { api_key_hint: null, enabled: false })
       .eq("organization_id", orgId);
+    await audit(admin, member, "update", "ai_settings", null, { [hintColumn]: { from: "•••", to: null } });
     return json({ [hintColumn]: null });
   }
 

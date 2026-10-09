@@ -61,3 +61,43 @@ install_balas_overlay() {
   # Encrypts AI provider API keys stored in the database. Changing it means re-entering those keys.
   [[ -n "$(env_get BALAS_SECRET_KEY)" ]] || env_set BALAS_SECRET_KEY "$(openssl rand -hex 32)"
 }
+
+# rclone destination for one part of the off-site backup ("backups" or
+# "storage"). With BACKUP_PASSPHRASE the files are encrypted (names too) by an
+# rclone crypt layer derived from the passphrase alone, so a new server only
+# needs the Google Drive login and the passphrase to read them back.
+backup_remote() {
+  local remote="${BACKUP_REMOTE:-$(env_get BACKUP_REMOTE)}" pass="${BACKUP_PASSPHRASE:-$(env_get BACKUP_PASSPHRASE)}"
+  [[ "$remote" == *: || "$remote" == */ ]] || remote="$remote/"
+  if [[ -n "$pass" ]]; then
+    printf ":crypt,remote='%s%s',password='%s':" "$remote" "$1" "$(rclone obscure "$pass")"
+  else
+    printf '%s%s' "$remote" "$1"
+  fi
+}
+
+# Health record shown in Master Admin -> Kesehatan sistem (backup, watchdog).
+record_status() {
+  local key="$1" ok="$2" detail="$3"
+  psql_db -q -v key="$key" -v ok="$ok" -v detail="$detail" <<'SQL' >/dev/null
+insert into public.system_status (key, ok, detail) values (:'key', :'ok', :'detail'::jsonb)
+on conflict (key) do update set ok = excluded.ok, detail = excluded.detail, checked_at = now(),
+  changed_at = case when public.system_status.ok is distinct from excluded.ok then now() else public.system_status.changed_at end;
+SQL
+}
+
+# Tells the platform owner something is wrong with the server: a push
+# notification to Master Admins (needs the database) and, when configured, a
+# Telegram message (works even when the database is down).
+system_alert() {
+  local title="$1" body="$2" token chat
+  token="$(env_get ALERT_TELEGRAM_BOT_TOKEN)"
+  chat="$(env_get ALERT_TELEGRAM_CHAT_ID)"
+  if [[ -n "$token" && -n "$chat" ]]; then
+    curl -fsS -o /dev/null --max-time 15 "https://api.telegram.org/bot$token/sendMessage" \
+      --data-urlencode "chat_id=$chat" --data-urlencode "text=⚠️ Balas.id ($(hostname)): $title
+$body" || echo "telegram alert failed" >&2
+  fi
+  psql_db -q -v title="$title" -v body="$body" <<<"select public.system_alert(:'title', :'body');" >/dev/null 2>&1 ||
+    echo "push alert failed (database down?)" >&2
+}

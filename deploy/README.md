@@ -386,19 +386,85 @@ cd /opt/balas/app && sudo git pull && sudo ./deploy/scripts/deploy.sh
 
 ## 7. Backup & pemeliharaan
 
-- Backup harian ada di `/var/backups/balas` (database, sesi nomor QR, file media; disimpan 30 hari).
-- Setiap malam (03:30) pesan yang lewat masa simpan organisasi dihapus. Gateway QR hanya menyimpan salinan pesan
-  30 hari terakhir (`GATEWAY_KEEP_DAYS` di baris purge pada `/etc/cron.d/balas`). Log: `/var/log/balas-backup.log`.
-- Salin backup ke luar VPS: pasang [rclone](https://rclone.org), lalu tambahkan `BACKUP_REMOTE=<remote:folder>` di baris
-  backup pada `/etc/cron.d/balas`.
-- Uji restore sebulan sekali:
-  ```bash
-  cd /opt/balas/supabase && sudo docker compose exec -T db pg_restore -U supabase_admin -d postgres --clean --if-exists < /var/backups/balas/db-<tanggal>.dump
+Backup berjalan otomatis setiap hari pukul 02:15 dan disimpan 30 hari di `/var/backups/balas`. Isinya:
+
+- database (chat, kontak, akun, pengaturan);
+- sesi nomor QR;
+- file media;
+- pengaturan server (`.env` berisi kunci aplikasi, Caddy, jadwal cron).
+
+Status backup terakhir tampil di **Master Admin → Kesehatan sistem**.
+
+### Salin backup ke Google Drive (wajib, sekali saja)
+
+1. Buat folder di Google Drive, misalnya `Backup Balas`.
+2. Masuk ke VPS lewat SSH dengan tunnel, supaya login Google bisa dibuka di browser komputer Anda:
+   ```bash
+   ssh -L 53682:127.0.0.1:53682 root@<IP VPS>
+   ```
+3. Jalankan:
+   ```bash
+   cd /opt/balas/app && sudo ./deploy/scripts/setup-backup.sh https://drive.google.com/drive/folders/<ID-folder>
+   ```
+   Pilih **A**, buka link `http://127.0.0.1:53682/auth…` yang muncul di browser komputer, lalu login Google dan izinkan.
+4. Buat **kata sandi backup** (minimal 12 karakter) dan simpan di tempat aman. Semua yang diunggah ke Drive
+   dienkripsi dengan kata sandi ini. **Tanpa kata sandi ini backup tidak bisa dibuka.**
+
+Script langsung menjalankan backup pertama. Di Drive, isinya berupa folder `backups` (database, sesi QR, pengaturan;
+30 hari terakhir) dan `storage` (file media). Nama dan isi file terenkripsi, jadi memang tidak bisa dibuka langsung dari
+Google Drive.
+
+Kalau tidak bisa memakai tunnel SSH: pasang [rclone](https://rclone.org/downloads) di komputer, jalankan
+`rclone authorize "drive"`, login, lalu di langkah 3 pilih **B** dan tempel token yang muncul.
+
+### Memulihkan (restore)
+
+```bash
+sudo ./deploy/scripts/restore.sh list                    # daftar backup di VPS dan di Google Drive
+sudo ./deploy/scripts/restore.sh latest                  # backup terbaru di VPS ini
+```
+
+**Server baru (VPS lama hilang):**
+
+1. Pasang Balas.id dengan `setup-vps.sh`.
+2. Jalankan `setup-backup.sh` dengan folder Drive dan kata sandi backup yang **sama**.
+3. Jalankan:
+   ```bash
+   sudo ./deploy/scripts/restore.sh latest --from-drive --with-settings
+   ```
+   `--with-settings` ikut memulihkan kunci aplikasi lama (enkripsi API key AI, WhatsApp/Meta, gateway QR, Firebase).
+   Tanpa opsi ini, API key AI harus diisi ulang.
+
+Data sekarang di-backup otomatis sebelum dipulihkan, jadi restore yang salah bisa dibatalkan. Uji restore di server
+percobaan sebulan sekali.
+
+### Pemantauan
+
+- Setiap 5 menit `watchdog.sh` memeriksa:
+  - layanan yang wajib jalan (database, API, functions, gateway QR); yang mati dinyalakan ulang otomatis;
+  - kesehatan API;
+  - disk (≥ 90% dianggap masalah);
+  - umur backup.
+- Masalah baru dan pemulihannya dikirim sebagai notifikasi ke Master Admin. Aktifkan lonceng di halaman Master Admin.
+- **Notifikasi Telegram** (tetap terkirim walau database mati): buat bot lewat @BotFather, kirim satu pesan ke bot itu,
+  lalu ambil `chat.id` dari `https://api.telegram.org/bot<TOKEN>/getUpdates`. Tambahkan dua baris ini ke
+  `/opt/balas/supabase/.env`:
   ```
-- Dashboard Supabase Studio (lihat isi database): `ssh -L 8000:127.0.0.1:8000 root@<IP VPS>`, buka `http://localhost:8000`
-  (user/password: `DASHBOARD_USERNAME` / `DASHBOARD_PASSWORD` di `.env`).
-- Pantau dengan [Uptime Kuma](https://github.com/louislam/uptime-kuma): `https://app.domainanda.com` dan
-  `https://api.domainanda.com/functions/v1/whatsapp-webhook` (403 berarti hidup).
+  ALERT_TELEGRAM_BOT_TOKEN=<token bot>
+  ALERT_TELEGRAM_CHAT_ID=<chat id>
+  ```
+- **Pemantau dari luar (disarankan):** [UptimeRobot](https://uptimerobot.com) gratis, cek tiap 5 menit, bisa memberi
+  notifikasi lewat email atau Telegram. Pantau dua alamat ini:
+  - `https://app.domainanda.com`
+  - `https://api.domainanda.com/functions/v1/health` (200 = sehat, 503 = database bermasalah)
+- Error aplikasi (web, aplikasi HP, server) terkumpul di **Master Admin → Kesehatan sistem**.
+
+### Lainnya
+
+- Setiap malam (03:30) pesan yang lewat masa simpan organisasi dihapus. Riwayat aktivitas disimpan 1 tahun, catatan
+  error 30 hari. Log ada di `/var/log/balas-*.log`.
+- Dashboard Supabase Studio (melihat isi database): `ssh -L 8000:127.0.0.1:8000 root@<IP VPS>`, lalu buka
+  `http://localhost:8000` (user/password: `DASHBOARD_USERNAME` / `DASHBOARD_PASSWORD` di `.env`).
 
 ## 8. Uji beban (opsional)
 

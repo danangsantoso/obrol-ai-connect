@@ -481,3 +481,6 @@ verify_jwt = false
 
 [functions.master-admin]
 verify_jwt = true
+
+[functions.health]
+verify_jwt = false

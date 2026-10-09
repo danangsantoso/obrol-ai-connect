@@ -3,11 +3,12 @@
 //  create_tenant      - new organization + its first Superadmin (role admin)
 //  add_superadmin     - another Superadmin for an existing tenant
 //  set_tenant_active  - suspend (all members' logins blocked) or reactivate
-//  reset_password     - Superadmin back to the default password, change at next login
+//  reset_password     - Superadmin back to the default password (change at next
+//                       login) without two-step verification (lost phone)
 //  rename_tenant
 //  set_tenant_plan    - plan and paid-until date (or extend by N days)
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
-import { adminClient, requireMasterAdmin } from "../_shared/supabase.ts";
+import { adminClient, removeMfa, requireMasterAdmin } from "../_shared/supabase.ts";
 import { assertUserQuota, quotaError } from "../_shared/plans.ts";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
@@ -143,6 +144,7 @@ serveJson(async (req) => {
       if (!target?.organization_id || target.role !== "admin") throw new HttpError(404, "Superadmin tidak ditemukan", "not_found");
       const { error } = await admin.auth.admin.updateUserById(target.id, { password: DEFAULT_PASSWORD });
       if (error) throw new HttpError(400, error.message, "auth_error");
+      await removeMfa(admin, target.id);
       await admin.from("profiles").update({ must_change_password: true }).eq("id", target.id);
       return json({ reset: true, password: DEFAULT_PASSWORD });
     }

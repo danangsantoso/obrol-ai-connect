@@ -12,6 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Logo } from "@/components/brand/Logo";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PlansCard, TenantPlan, usePlans } from "@/components/master/Plans";
+import { SystemHealthCard } from "@/components/master/SystemHealth";
+import { PushControl } from "@/components/layout/PushControl";
+import { SecurityDialog } from "@/components/auth/SecurityDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { callFunction, errorMessage } from "@/lib/api";
@@ -207,6 +210,7 @@ export default function MasterAdmin() {
   const { profile, signOut } = useAuth();
   const queryClient = useQueryClient();
   const [dialog, setDialog] = useState<{ open: boolean; tenant: { id: string; name: string } | null }>({ open: false, tenant: null });
+  const [security, setSecurity] = useState(false);
   const { data: tenants = [], isLoading } = useQuery({
     queryKey: ["master-tenants"],
     queryFn: async () => {
@@ -233,7 +237,7 @@ export default function MasterAdmin() {
   };
 
   const resetPassword = async (sa: Superadmin) => {
-    if (!window.confirm(`Reset password ${sa.email} ke ${DEFAULT_PASSWORD}?`)) return;
+    if (!window.confirm(`Reset password ${sa.email} ke ${DEFAULT_PASSWORD}? Verifikasi 2 langkahnya juga dimatikan.`)) return;
     try {
       await callFunction("master-admin", { action: "reset_password", user_id: sa.id });
       toast.success(`Password ${sa.email} direset ke ${DEFAULT_PASSWORD}`);
@@ -256,6 +260,11 @@ export default function MasterAdmin() {
           </Badge>
         </div>
         <div className="flex items-center gap-3">
+          <PushControl />
+          <Button variant="ghost" size="sm" onClick={() => setSecurity(true)}>
+            <ShieldCheck className="mr-1 h-4 w-4" /> 2FA
+          </Button>
+          <SecurityDialog open={security} onOpenChange={setSecurity} />
           <span className="hidden text-sm text-muted-foreground sm:inline">{profile?.email}</span>
           <Button variant="ghost" size="sm" onClick={() => signOut()}>
             <LogOut className="mr-1 h-4 w-4" /> Keluar
@@ -282,6 +291,8 @@ export default function MasterAdmin() {
           <StatsCard title="Tenant aktif" value={`${active} / ${tenants.length}`} icon={Power} accent={3} />
           <StatsCard title="Total anggota" value={members} icon={Users} accent={2} />
         </div>
+
+        <SystemHealthCard />
 
         <RegistrationRequests onApproved={refresh} />
 

@@ -23,6 +23,7 @@ import { ROLE_LABELS, callFunction, errorMessage } from "@/lib/api";
 import { useMembers, useTeams } from "@/components/inbox/useInboxData";
 import { memberName } from "@/components/inbox/types";
 import { RotationSettings } from "@/components/team/RotationSettings";
+import { MobileAppCard } from "@/components/team/MobileAppCard";
 import { toast } from "sonner";
 
 const DEFAULT_PASSWORD = "12345678";
@@ -186,7 +187,7 @@ export default function Team() {
   };
 
   const resetPassword = async (id: string, name: string) => {
-    if (!window.confirm(`Reset password ${name} ke ${DEFAULT_PASSWORD}? Ia wajib menggantinya saat login berikutnya.`)) return;
+    if (!window.confirm(`Reset password ${name} ke ${DEFAULT_PASSWORD}? Ia wajib menggantinya saat login berikutnya, dan verifikasi 2 langkahnya dimatikan (mis. HP hilang).`)) return;
     try {
       await callFunction("member-password", { action: "reset", user_id: id });
       toast.success(`Password ${name} direset ke ${DEFAULT_PASSWORD}`);
@@ -238,6 +239,7 @@ export default function Team() {
       </div>
 
       <RotationSettings orgId={orgId} canEdit={isAdmin} />
+      <MobileAppCard />
 
       <Card>
         <CardHeader>

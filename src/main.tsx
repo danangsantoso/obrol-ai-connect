@@ -1,8 +1,15 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { installErrorReporter } from './lib/errorReporter'
 
-createRoot(document.getElementById("root")!).render(<App />);
+installErrorReporter();
+createRoot(document.getElementById("root")!).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>,
+);
 
 // Installable app and push notifications (production builds only).
 if (import.meta.env.PROD && "serviceWorker" in navigator) {

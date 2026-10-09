@@ -24,7 +24,7 @@ export default function ContactsScreen() {
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ["m-contacts", term, kind],
     queryFn: async () => {
-      let query = supabase.from("contacts").select("id, wa_id, name, profile_name, username").order("name", { nullsFirst: false }).limit(200);
+      let query = supabase.from("contacts").select("id, wa_id, name, profile_name, username").is("merged_into", null).order("name", { nullsFirst: false }).limit(200);
       if (term) {
         const like = `%${term.replace(/[%_,()]/g, "")}%`;
         query = query.or(`name.ilike.${like},profile_name.ilike.${like},wa_id.ilike.${like},username.ilike.${like}`);

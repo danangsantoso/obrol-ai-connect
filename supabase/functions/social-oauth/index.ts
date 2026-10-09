@@ -7,7 +7,7 @@
 //  POST disconnect  -> stops a channel and removes its token
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders, HttpError, json, readJson } from "../_shared/http.ts";
-import { adminClient, requireMember } from "../_shared/supabase.ts";
+import { adminClient, audit, requireMember } from "../_shared/supabase.ts";
 import { decryptSecret, encryptSecret } from "../_shared/crypto.ts";
 import { dialogUrl, exchangeCode, listPages, subscribePage, unsubscribePage } from "../_shared/meta.ts";
 import { quotaError } from "../_shared/plans.ts";
@@ -168,6 +168,7 @@ async function action(req: Request): Promise<Response> {
       }
     }
     await admin.from("oauth_states").delete().eq("state", input.state ?? "");
+    if (connected) await audit(admin, member, "create", "channel", `Facebook/Instagram (${connected} kanal)`);
     return json({ connected });
   }
 
@@ -189,6 +190,7 @@ async function action(req: Request): Promise<Response> {
       .eq("page_id", ch.page_id)
       .eq("is_active", true);
     if (secret && !count) await unsubscribePage(ch.page_id, await decryptSecret(secret.access_token_encrypted));
+    await audit(admin, member, "delete", "channel", ch.provider === "instagram" ? "Instagram" : "Messenger", null, ch.id);
     return json({ disconnected: true });
   }
 
