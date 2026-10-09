@@ -11,6 +11,7 @@ import type { ConversationRow, InboxTab, Label, Member } from './types';
 import { ALL, memberName, isTakeable } from './types';
 import { LabelChip } from './LabelChip';
 import { ChannelIcon } from './ChannelIcon';
+import { adLabel } from '@/components/ads/ChatAds';
 
 const TABS: { value: InboxTab; label: string }[] = [
   { value: 'unassigned', label: 'Antrean' },
@@ -81,19 +82,19 @@ export function ConversationList({
             className="pl-9"
           />
         </div>
-        <div className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
+        <div className="flex gap-0.5 rounded-lg bg-muted p-1">
           {TABS.map((t) => (
             <button
               key={t.value}
               onClick={() => onTabChange(t.value)}
               className={cn(
-                'rounded-md px-1 py-1.5 text-xs font-medium transition-colors',
+                'flex flex-1 items-center justify-center whitespace-nowrap rounded-md px-1 py-1.5 text-[11px] font-medium transition-colors',
                 tab === t.value ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {t.label}
               {t.value !== 'resolved' && counts[t.value] > 0 && (
-                <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">
+                <span className="ml-0.5 rounded-full bg-primary px-1 text-[9px] leading-4 text-primary-foreground">
                   {counts[t.value]}
                 </span>
               )}
@@ -193,6 +194,11 @@ export function ConversationList({
                         : 'Belum di-assign'}
                   {conv.status === 'pending' && ' · Pending'}
                 </p>
+                {conv.ad_lead && (
+                  <span className={cn('mt-1 inline-block max-w-full truncate rounded-full px-2 py-0.5 text-[10px] font-semibold', conv.ad_lead.source === 'link' ? 'bg-orange-100 text-orange-900' : 'bg-primary/10 text-primary')}>
+                    {adLabel(conv.ad_lead)}
+                  </span>
+                )}
                 {conv.conversation_labels.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
                     {conv.conversation_labels.map(({ label_id }) => {

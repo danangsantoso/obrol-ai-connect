@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { AssignmentLog, ConversationRow, Label, Member, Message, Note, QuickReply, Team, TimelineItem } from './types';
 
 const CONVERSATION_SELECT =
-  '*, contact:contacts!inner(id, wa_id, name, profile_name, username), channel:channels(provider, name, ai_enabled), conversation_labels(label_id)';
+  '*, contact:contacts!inner(id, wa_id, name, profile_name, username), channel:channels(provider, name, ai_enabled), conversation_labels(label_id), ad_lead:ad_leads(source, campaign_name, ad_name, headline)';
 
 // Realtime can drop (phone asleep, network change, server restart). While it is
 // down the data is polled every few seconds, and it is reloaded as soon as the

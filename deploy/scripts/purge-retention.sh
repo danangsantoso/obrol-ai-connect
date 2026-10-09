@@ -40,3 +40,7 @@ psql_db -tAc "with gone as (delete from public.app_errors where last_seen < now(
 printf '[%s] activity log: ' "$(date -Is)"
 psql_db -tAc "with gone as (delete from public.audit_log where created_at < now() - interval '365 days' returning 1)
   select count(*) || ' catatan aktivitas lama dihapus' from gone"
+
+# Landing page clicks that never became a chat.
+printf '[%s] ad clicks: ' "$(date -Is)"
+psql_db -tAc "select public.purge_ad_clicks() || ' klik iklan lama dihapus'"

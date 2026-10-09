@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Timeline } from "@/components/inbox/Timeline";
 import { TemplateSender } from "@/components/inbox/TemplateSender";
 import { ScheduleButton, ScheduledList, SnoozeButton } from "@/components/inbox/Scheduling";
+import { AdLeadBanner, ClosingDialog } from "@/components/ads/ChatAds";
 import { TransferDialog } from "@/components/inbox/TransferDialog";
 import { useConversations, useMembers, useQuickReplies, useTeams, useTimeline } from "@/components/inbox/useInboxData";
 import { isTakeable, memberName, type ConversationRow, type Message } from "@/components/inbox/types";
@@ -55,6 +56,7 @@ export default function ChatScreen() {
   const { data: teams = [] } = useTeams(orgId);
   const { data: ai } = useAiSettings(orgId);
   const [menu, setMenu] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [transfer, setTransfer] = useState(false);
   const members = new Map(memberList.map((m) => [m.id, m]));
 
@@ -159,6 +161,7 @@ export default function ChatScreen() {
       )}
       {conv.assignee_id && !mine && !takeable && <Banner tone="slate" text={<>Ditangani {memberName(assignee)}</>} />}
 
+      <AdLeadBanner conversationId={conv.id} compact />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <Timeline items={items} members={members} loading={loadingItems} />
       </div>
@@ -185,6 +188,15 @@ export default function ChatScreen() {
           <SheetButton
             onClick={() => {
               setMenu(false);
+              setClosing(true);
+            }}
+            className="text-green-800"
+          >
+            Tandai closing
+          </SheetButton>
+          <SheetButton
+            onClick={() => {
+              setMenu(false);
               setTransfer(true);
             }}
           >
@@ -202,6 +214,14 @@ export default function ChatScreen() {
           )}
         </Sheet>
       )}
+      <ClosingDialog
+        conversationId={conv.id}
+        contactName={name}
+        meId={meId}
+        canManage={profile!.role !== "agent"}
+        open={closing}
+        onOpenChange={setClosing}
+      />
       <TransferDialog
         open={transfer}
         onOpenChange={setTransfer}

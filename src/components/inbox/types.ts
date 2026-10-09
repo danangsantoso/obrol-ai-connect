@@ -13,6 +13,8 @@ export type ConversationRow = Tables<'conversations'> & {
   contact: Pick<Contact, 'id' | 'wa_id' | 'name' | 'profile_name' | 'username'>;
   channel: Pick<Tables<'channels'>, 'provider' | 'name' | 'ai_enabled'> | null;
   conversation_labels: { label_id: string }[];
+  // The ad the chat came from (Meta ad tracking).
+  ad_lead?: { source: string; campaign_name: string | null; ad_name: string | null; headline: string | null } | null;
 };
 
 export type InboxTab = 'unassigned' | 'mine' | 'all' | 'snoozed' | 'resolved';

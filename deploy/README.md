@@ -376,6 +376,40 @@ Skrip ini hanya membaca dan menampilkan:
 
 Nomor QR yang terputus juga tampil sebagai pita merah di Inbox, dan admin/supervisor mendapat notifikasi.
 
+## 5h. Tracking iklan Meta (CPL & ROAS)
+
+Menu **Iklan** menampilkan chat yang datang dari iklan Facebook/Instagram, closing-nya, biaya iklan, **CPL** (biaya ÷ lead),
+dan **ROAS** (omzet ÷ biaya). Balas.id juga mengirim event **Lead** dan **Purchase** (dengan nilai rupiah) ke Meta lewat
+Conversions API, jadi Ads Manager bisa menghitung ROAS dan mengoptimasi iklan untuk pembeli.
+
+**Bagaimana chat dikenali dari iklan**
+
+- *Iklan klik-ke-WhatsApp / Messenger / Instagram:* data iklan ikut otomatis bersama pesan pertama. Ini paling akurat di
+  nomor API resmi. Di nomor scan QR, data iklan biasanya ikut, tapi tidak selalu.
+- *Iklan → landing page → WhatsApp:* buat link di **Iklan → Link landing page**, lalu pasang link itu di tombol WhatsApp.
+  Ikuti juga 3 langkah di halaman tersebut: script 1 baris di landing page dan Parameter URL di iklan. Klik dicatat,
+  WhatsApp terbuka dengan kode pendek, dan chat yang membawa kode itu ditandai "dari iklan". Kodenya tidak tampil ke agen.
+- Satu pelanggan dihitung ke iklan **pertama** yang membawanya, selama masih dalam 28 hari (bisa diubah).
+
+**Closing:** dihitung otomatis saat pesanan di menu Pesanan **lunas**. Untuk transaksi di luar menu Pesanan (transfer
+langsung, COD, toko), agen menekan **Tandai closing** di chat (web maupun HP) lalu mengisi nilainya.
+
+**Menghubungkan ke Meta** (Iklan → Pengaturan Meta, khusus Admin):
+
+1. **Pixel / Dataset ID dan token Conversions API**: Events Manager → pilih Pixel → Pengaturan → Conversions API →
+   *Buat token akses*.
+2. **ID akun WhatsApp Business (WABA)**: Business Settings → Akun WhatsApp. Ini membuat event dari iklan
+   klik-ke-WhatsApp di nomor API resmi cocok langsung ke iklannya.
+3. **Biaya iklan**:
+   - Isi ID akun iklan (`act_…`) dan token pengguna sistem dengan izin `ads_read` (Business Settings → Pengguna sistem
+     → Buat token). Biaya diambil otomatis setiap jam.
+   - Tanpa token, biaya bisa diisi manual per kampanye per hari.
+4. Uji dulu: isi **Kode uji** dari Events Manager → *Uji event*, lalu klik **Uji**. Setelah event terlihat di Events
+   Manager, kosongkan kode uji.
+
+Nomor HP pelanggan dikirim ke Meta dalam bentuk hash SHA-256. Isi chat tidak pernah dikirim. Event yang gagal (misalnya
+token kedaluwarsa) dicoba ulang otomatis, dan error terakhirnya tampil di halaman Pengaturan Meta.
+
 ## 6. Update aplikasi
 
 ```bash

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bot, Clock, Hand, QrCode, UserRoundCog } from 'lucide-react';
+import { BadgeCheck, Bot, Clock, Hand, QrCode, UserRoundCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,6 +18,7 @@ import { ChatFollowup } from '@/components/followup/ChatFollowup';
 import { ChatOrders } from '@/components/orders/ChatOrders';
 import { useTimeline } from './useInboxData';
 import { ScheduledList, SnoozeButton } from './Scheduling';
+import { AdLeadBanner, ClosingDialog } from '@/components/ads/ChatAds';
 import { useAiSettings } from '@/components/ai/aiSettings';
 import type { ConversationRow, Label, Member, Team } from './types';
 import { isTakeable, memberName } from './types';
@@ -50,6 +51,7 @@ interface Props {
 export function ChatView({ conversation, me, members, memberMap, teams, labels, onChanged }: Props) {
   const { items, loading, reloadLogs, addMessage } = useTimeline(conversation.id);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [closingOpen, setClosingOpen] = useState(false);
   const now = useNow(30_000);
 
   // QR-linked numbers have no 24-hour window and no templates. Messenger and
@@ -195,6 +197,10 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
           Pindahkan
         </Button>
         <SnoozeButton conversation={conversation} onChanged={onChanged} />
+        <Button size="sm" onClick={() => setClosingOpen(true)} className="gap-1 bg-success text-success-foreground hover:bg-success/90">
+          <BadgeCheck className="h-4 w-4" />
+          Tandai closing
+        </Button>
         <ChatFollowup conversationId={conversation.id} orgId={me.organization_id!} />
         <ChatOrders
           conversationId={conversation.id}
@@ -244,6 +250,7 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
         </div>
       </div>
 
+      <AdLeadBanner conversationId={conversation.id} />
       <div className="flex-1 overflow-y-auto bg-muted/40">
         <Timeline items={items} members={memberMap} loading={loading} />
       </div>
@@ -265,6 +272,14 @@ export function ChatView({ conversation, me, members, memberMap, teams, labels, 
         }}
       />
 
+      <ClosingDialog
+        conversationId={conversation.id}
+        contactName={name}
+        meId={me.id}
+        canManage={me.role !== 'agent'}
+        open={closingOpen}
+        onOpenChange={setClosingOpen}
+      />
       <TransferDialog
         open={transferOpen}
         onOpenChange={setTransferOpen}

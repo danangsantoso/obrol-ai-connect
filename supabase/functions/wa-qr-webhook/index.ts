@@ -7,6 +7,7 @@ import { extensionFor } from "../_shared/whatsapp.ts";
 import { downloadMedia, isValidToken, mapState } from "../_shared/evolution.ts";
 import { triggerAutoReply } from "../_shared/ai.ts";
 import { reportError } from "../_shared/http.ts";
+import { qrReferral } from "../_shared/referral.ts";
 
 // Baileys message payloads vary by message type; fields are read defensively below.
 // deno-lint-ignore no-explicit-any
@@ -96,10 +97,13 @@ async function handleMessage(admin: SupabaseClient, channel: Channel, data: Raw)
   const waId = waIdFromJid(customerJid(key));
   if (!waId || !key.id) return;
 
-  const described = describe(...unwrap(data.messageType, data.message ?? {}));
+  const [type, message] = unwrap(data.messageType, data.message ?? {});
+  const described = describe(type, message);
   if (!described) return;
 
   const fromMe = key.fromMe === true;
+  const referral = fromMe ? null : qrReferral(data, message, type);
+  if (referral) described.metadata.referral = referral;
   const { data: row, error } = await admin
     .rpc("ingest_channel_message", {
       p_channel_id: channel.id,
