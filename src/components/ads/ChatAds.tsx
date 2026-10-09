@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { errorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { rpShort } from "./shared";
+import { platformLabel, rpShort } from "./shared";
 
 // The ad a chat came from, and its closings.
 export function useChatAds(conversationId: string) {
@@ -18,7 +18,7 @@ export function useChatAds(conversationId: string) {
     queryKey: ["chat-ads", conversationId],
     queryFn: async () => {
       const [{ data: lead }, { data: closings }, { data: orders }] = await Promise.all([
-        supabase.from("ad_leads").select("id, source, campaign_name, ad_name, headline, created_at").eq("conversation_id", conversationId).maybeSingle(),
+        supabase.from("ad_leads").select("id, source, platform, campaign_name, ad_name, headline, created_at").eq("conversation_id", conversationId).maybeSingle(),
         supabase.from("ad_conversions").select("id, kind, value, note, created_by, occurred_at, order_id").eq("conversation_id", conversationId).is("cancelled_at", null).order("occurred_at"),
         supabase.from("orders").select("id, number, total, status").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(5),
       ]);
@@ -42,7 +42,13 @@ export function AdLeadBanner({ conversationId, compact = false }: { conversation
       {data.lead && (
         <span className="flex min-w-0 items-center gap-1.5">
           <Megaphone className="h-4 w-4 shrink-0" />
-          <b>{data.lead.source === "link" ? "Dari iklan lewat landing page" : "Dari iklan klik-ke-chat"}</b>
+          <b>
+            {data.lead.source === "link"
+              ? data.lead.platform === "other"
+                ? "Dari landing page"
+                : `Dari iklan ${platformLabel(data.lead.platform)} lewat landing page`
+              : "Dari iklan klik-ke-chat"}
+          </b>
           {!compact && (
             <span className="truncate">
               {[data.lead.campaign_name, data.lead.ad_name ?? data.lead.headline].filter(Boolean).join(" · ")}
@@ -96,7 +102,7 @@ export function ClosingDialog({
     const { error } = await supabase.rpc("mark_closing", { p_conversation: conversationId, p_value: amount, p_note: note.trim() || undefined, p_send: send });
     setBusy(false);
     if (error) return toast.error(errorMessage(error));
-    toast.success(`Closing ${rpShort(amount)} dicatat${data?.lead && send ? " dan dikirim ke Meta" : ""}`);
+    toast.success(`Closing ${rpShort(amount)} dicatat${data?.lead && send ? ` dan dikirim ke ${platformLabel(data.lead.platform)}` : ""}`);
     setValue("");
     setNote("");
     refresh();
@@ -117,8 +123,8 @@ export function ClosingDialog({
             <DialogTitle>Tandai closing · {contactName}</DialogTitle>
             <DialogDescription>
               {data?.lead
-                ? `Nilai ini dihitung di ROAS ${data.lead.campaign_name ? `“${data.lead.campaign_name}”` : "iklan asal pelanggan"} dan bisa dikirim ke Meta sebagai Purchase.`
-                : "Pelanggan ini tidak tercatat dari iklan. Closing tetap dicatat, tapi tidak masuk ROAS iklan."}
+                ? `Nilai ini dihitung di ROAS ${data.lead.campaign_name ? `“${data.lead.campaign_name}”` : "iklan asal pelanggan"} dan bisa dikirim ke ${platformLabel(data.lead.platform)} sebagai Purchase.`
+                : "Pelanggan ini tidak tercatat dari iklan. Closing tetap dicatat (masuk Target & Komisi), tapi tidak masuk ROAS iklan."}
             </DialogDescription>
           </DialogHeader>
 
@@ -162,7 +168,7 @@ export function ClosingDialog({
           {data?.lead && (
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={send} onCheckedChange={(v) => setSend(v === true)} />
-              Kirim ke Meta (Purchase) agar iklan belajar mencari pembeli
+              Kirim ke {platformLabel(data.lead.platform)} (Purchase) agar iklan belajar mencari pembeli
             </label>
           )}
           <DialogFooter>

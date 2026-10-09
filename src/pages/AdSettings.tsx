@@ -14,52 +14,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { callFunction, errorMessage } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { rpShort, useAdSettings } from "@/components/ads/shared";
+import { PLATFORMS, platformLabel, rpShort, useAdSettings } from "@/components/ads/shared";
+import { GoogleAdsCard, TiktokCard, TokenField } from "@/components/ads/PlatformSettings";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const when = (iso: string | null | undefined) => (iso ? format(new Date(iso), "d MMM HH.mm", { locale: localeId }) : "–");
 const EVENT_STATUS: Record<string, [string, string]> = {
-  sent: ["Diterima Meta", "bg-success/15 text-success"],
+  sent: ["Terkirim", "bg-success/15 text-success"],
   pending: ["Menunggu / diulang", "bg-warning/15 text-warning"],
   sending: ["Mengirim", "bg-primary/10 text-primary"],
   failed: ["Gagal", "bg-destructive/10 text-destructive"],
   skipped: ["Dilewati", "bg-muted text-muted-foreground"],
 };
-
-function TokenField({ id, label, hint, help, field, onSaved }: { id: string; label: string; hint: string | null | undefined; help: React.ReactNode; field: "capi_token" | "ads_token"; onSaved: () => void }) {
-  const [value, setValue] = useState("");
-  const [busy, setBusy] = useState(false);
-  const save = async (token: string | null) => {
-    setBusy(true);
-    try {
-      await callFunction("meta-ads", { action: "save_tokens", [field]: token });
-      toast.success(token ? "Token disimpan" : "Token dihapus");
-      setValue("");
-      onSaved();
-    } catch (err) {
-      toast.error(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <div className="space-y-1">
-      <Label htmlFor={id}>{label}</Label>
-      <div className="flex gap-2">
-        <Input id={id} type="password" autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} placeholder={hint ? `Tersimpan (${hint}). Tempel token baru untuk mengganti.` : "Tempel token"} />
-        <Button type="button" onClick={() => save(value)} disabled={busy || value.trim().length < 20}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simpan"}
-        </Button>
-        {hint && (
-          <Button type="button" variant="ghost" onClick={() => window.confirm("Hapus token ini?") && save(null)} disabled={busy} aria-label={`Hapus ${label}`}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-      <p className="text-xs text-muted-foreground">{help}</p>
-    </div>
-  );
-}
 
 export default function AdSettings() {
   const { profile } = useAuth();
@@ -68,7 +36,7 @@ export default function AdSettings() {
   const { data: settings, isLoading } = useAdSettings(orgId);
   const [form, setForm] = useState({ pixel_id: "", test_event_code: "", waba_id: "", ad_account_id: "", send_lead: true, send_purchase: true, send_checkout: false, attribution_days: 28 });
   const [busy, setBusy] = useState<string | null>(null);
-  const [manual, setManual] = useState({ date: new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" }), campaign_name: "", spend: "" });
+  const [manual, setManual] = useState({ date: new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" }), platform: "meta", campaign_name: "", spend: "" });
 
   useEffect(() => {
     if (settings) {
@@ -90,11 +58,11 @@ export default function AdSettings() {
     queryKey: ["capi-events", orgId],
     refetchInterval: 30_000,
     queryFn: async () =>
-      (await supabase.from("capi_events").select("id, event_name, status, last_error, attempts, created_at, sent_at, lead:ad_leads(contact:contacts(name, profile_name, wa_id)), conversion:ad_conversions(value)").order("id", { ascending: false }).limit(15)).data ?? [],
+      (await supabase.from("capi_events").select("id, platform, event_name, status, last_error, attempts, created_at, sent_at, lead:ad_leads(contact:contacts(name, profile_name, wa_id)), conversion:ad_conversions(value)").order("id", { ascending: false }).limit(15)).data ?? [],
   });
   const { data: manualSpend = [] } = useQuery({
     queryKey: ["manual-spend", orgId],
-    queryFn: async () => (await supabase.from("ad_spend").select("id, date, campaign_name, spend").eq("manual", true).order("date", { ascending: false }).limit(20)).data ?? [],
+    queryFn: async () => (await supabase.from("ad_spend").select("id, date, platform, campaign_name, spend").eq("manual", true).order("date", { ascending: false }).limit(20)).data ?? [],
   });
 
   const save = async (e: React.FormEvent) => {
@@ -138,8 +106,16 @@ export default function AdSettings() {
   const addSpend = async (e: React.FormEvent) => {
     e.preventDefault();
     const { error } = await supabase.from("ad_spend").upsert(
-      { organization_id: orgId, date: manual.date, campaign_name: manual.campaign_name.trim(), spend: Number(manual.spend.replace(/\D/g, "")), manual: true, updated_at: new Date().toISOString() },
-      { onConflict: "organization_id,date,ad_key" },
+      {
+        organization_id: orgId,
+        date: manual.date,
+        platform: manual.platform,
+        campaign_name: manual.campaign_name.trim(),
+        spend: Number(manual.spend.replace(/\D/g, "")),
+        manual: true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "organization_id,platform,date,ad_key" },
     );
     if (error) return toast.error(errorMessage(error));
     toast.success("Biaya disimpan");
@@ -162,14 +138,16 @@ export default function AdSettings() {
         <Link to="/ads" className="text-sm font-medium text-primary">
           ← Iklan
         </Link>
-        <h1 className="text-2xl font-bold">Pengaturan Meta</h1>
-        <p className="text-muted-foreground">Hubungkan Pixel untuk mengirim event dari Balas.id, dan akun iklan untuk mengambil biaya iklan.</p>
+        <h1 className="text-2xl font-bold">Pengaturan iklan</h1>
+        <p className="text-muted-foreground">
+          Hubungkan Meta, Google Ads dan TikTok: event lead &amp; closing dikirim ke platform asal pelanggan, dan biaya iklan diambil otomatis.
+        </p>
       </div>
 
       <form onSubmit={save} className="space-y-6">
         <Card>
           <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-            <CardTitle className="text-base">1. Pixel / Dataset (Conversions API)</CardTitle>
+            <CardTitle className="text-base">Meta · 1. Pixel / Dataset (Conversions API)</CardTitle>
             {connected ? (
               <Badge className="bg-success/15 text-success hover:bg-success/15">Terhubung · event terakhir {when(settings?.last_event_at)}</Badge>
             ) : (
@@ -211,8 +189,8 @@ export default function AdSettings() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">2. Event yang dikirim</CardTitle>
-            <CardDescription>Nomor HP pelanggan dikirim dalam bentuk sandi (hash SHA-256) sesuai aturan Meta. Isi chat tidak pernah dikirim.</CardDescription>
+            <CardTitle className="text-base">Event yang dikirim (semua platform)</CardTitle>
+            <CardDescription>Nomor HP pelanggan dikirim dalam bentuk sandi (hash SHA-256) sesuai aturan platform. Isi chat tidak pernah dikirim.</CardDescription>
           </CardHeader>
           <CardContent className="divide-y rounded-lg border p-0">
             {(
@@ -246,7 +224,7 @@ export default function AdSettings() {
 
         <Card>
           <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-            <CardTitle className="text-base">3. Biaya iklan (untuk CPL &amp; ROAS)</CardTitle>
+            <CardTitle className="text-base">Meta · 2. Biaya iklan (untuk CPL &amp; ROAS)</CardTitle>
             {accountConnected && (
               <Badge className={settings?.last_spend_error ? "bg-warning/15 text-warning hover:bg-warning/15" : "bg-success/15 text-success hover:bg-success/15"}>
                 {settings?.last_spend_error ? "Gagal mengambil" : `Diperbarui ${when(settings?.last_spend_sync_at)}`}
@@ -279,22 +257,43 @@ export default function AdSettings() {
 
         <div className="flex justify-end">
           <Button type="submit" disabled={busy !== null}>
-            {busy === "save" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Simpan pengaturan
+            {busy === "save" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Simpan pengaturan Meta
           </Button>
         </div>
       </form>
 
-      {!accountConnected && (
+      <GoogleAdsCard orgId={orgId} settings={settings} />
+      <TiktokCard orgId={orgId} settings={settings} />
+
+      {(
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Isi biaya iklan manual</CardTitle>
-            <CardDescription>Tanpa token akun iklan, isi biaya per kampanye per hari. Nama kampanye harus sama dengan nama di link landing page.</CardDescription>
+            <CardDescription>
+              Untuk platform tanpa token akun iklan, isi biaya per kampanye per hari. Nama kampanye harus sama dengan nama di link landing page / parameter
+              utm_campaign.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={addSpend} className="flex flex-wrap items-end gap-2">
               <div className="space-y-1">
                 <Label htmlFor="ms-date">Tanggal</Label>
                 <Input id="ms-date" type="date" required value={manual.date} onChange={(e) => setManual({ ...manual, date: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ms-platform">Platform</Label>
+                <Select value={manual.platform} onValueChange={(v) => setManual({ ...manual, platform: v })}>
+                  <SelectTrigger id="ms-platform" className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLATFORMS.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="min-w-48 flex-1 space-y-1">
                 <Label htmlFor="ms-camp">Kampanye</Label>
@@ -311,6 +310,7 @@ export default function AdSettings() {
                 {manualSpend.map((m) => (
                   <li key={m.id} className="flex items-center gap-3 px-3 py-2">
                     <span className="w-28 text-muted-foreground">{m.date}</span>
+                    <span className="w-16 text-xs font-semibold">{platformLabel(m.platform)}</span>
                     <span className="flex-1">{m.campaign_name}</span>
                     <span className="tabular-nums">{rpShort(m.spend)}</span>
                     <Button size="sm" variant="ghost" onClick={() => removeSpend(m.id)} aria-label={`Hapus biaya ${m.campaign_name} ${m.date}`}>
@@ -337,6 +337,7 @@ export default function AdSettings() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Waktu</TableHead>
+                    <TableHead>Platform</TableHead>
                     <TableHead>Event</TableHead>
                     <TableHead>Pelanggan</TableHead>
                     <TableHead>Nilai</TableHead>
@@ -350,6 +351,12 @@ export default function AdSettings() {
                     return (
                       <TableRow key={e.id}>
                         <TableCell className="whitespace-nowrap">{when(e.created_at)}</TableCell>
+                        <TableCell>
+                          <span className="flex items-center gap-1.5 text-xs font-semibold">
+                            <span className={cn("h-2 w-2 rounded-full", PLATFORMS.find((x) => x.value === e.platform)?.color)} />
+                            {platformLabel(e.platform)}
+                          </span>
+                        </TableCell>
                         <TableCell className="font-semibold">{e.event_name}</TableCell>
                         <TableCell>{c ? c.name || c.profile_name || c.wa_id : "–"}</TableCell>
                         <TableCell>{(e.conversion as { value: number } | null)?.value ? rpShort((e.conversion as { value: number }).value) : "–"}</TableCell>

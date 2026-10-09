@@ -30,6 +30,8 @@ const ActivityLog = lazy(() => import("./pages/ActivityLog"));
 const Ads = lazy(() => import("./pages/Ads"));
 const AdLinks = lazy(() => import("./pages/AdLinks"));
 const AdSettings = lazy(() => import("./pages/AdSettings"));
+const Sales = lazy(() => import("./pages/Sales"));
+const RepeatOrders = lazy(() => import("./pages/RepeatOrders"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const MobileApp = lazy(() => import("./mobile/MobileApp"));
 import { MfaChallenge, MfaRequired } from "./components/auth/Mfa";
@@ -127,6 +129,15 @@ const App = () => (
                 <Route path="quick-replies" element={<QuickReplies />} />
                 <Route path="followup" element={<Followup />} />
                 <Route path="orders" element={<Orders />} />
+                <Route path="sales" element={<Sales />} />
+                <Route
+                  path="repeat"
+                  element={
+                    <ProtectedRoute roles={["admin", "supervisor"]}>
+                      <RepeatOrders />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="reports"
                   element={

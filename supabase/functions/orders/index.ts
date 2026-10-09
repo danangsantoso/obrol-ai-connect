@@ -5,7 +5,9 @@
 //  send_invoice - send the invoice again
 //  mark_paid    - confirm a bank transfer by hand
 //  set_status   - processing / shipped (with tracking number) / completed / cancelled
-//  sweep        - expire unpaid orders past their deadline (service role; cron)
+//  track        - check the parcel of a shipped order now (Biteship)
+//  sweep        - expire unpaid orders past their deadline and track shipped
+//                 parcels with Biteship (service role; cron)
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
 import { adminClient, callerClient, isServiceRole, requireMember } from "../_shared/supabase.ts";
@@ -20,6 +22,10 @@ import {
   sendInvoice,
   setOrderStatus,
   shippingRates,
+  courierCode,
+  refreshTracking,
+  sweepTracking,
+  trackingLabel,
 } from "../_shared/payments.ts";
 
 interface OrdersRequest {
@@ -65,7 +71,8 @@ serveJson(async (req) => {
     if (!isServiceRole(req)) throw new HttpError(401, "Service role required", "unauthorized");
     const { data, error } = await admin.rpc("expire_orders");
     if (error) throw error;
-    return json({ expired: data });
+    const tracking = await sweepTracking(admin);
+    return json({ expired: data, ...tracking });
   }
 
   const member = await requireMember(req, admin);
@@ -150,6 +157,15 @@ serveJson(async (req) => {
           notify: input.notify,
         }, member.id),
       });
+    }
+    case "track": {
+      const order = await visibleOrder(req, admin, input.order_id);
+      const cfg = await loadPaymentConfig(admin, orgId);
+      if (!cfg.keys.biteship) throw new HttpError(400, "API key Biteship belum diisi di Pengaturan Pembayaran", "shipping_not_configured");
+      if (!order.tracking_number) throw new HttpError(400, "Pesanan ini belum punya nomor resi", "invalid_request");
+      if (!courierCode(order.courier)) throw new HttpError(400, `Kurir "${order.courier ?? "-"}" tidak dikenali untuk cek resi`, "invalid_request");
+      const tracking = await refreshTracking(admin, order, cfg.keys.biteship);
+      return json({ tracking, label: trackingLabel(tracking?.status ?? null) });
     }
   }
   throw new HttpError(400, "Unknown action", "invalid_request");

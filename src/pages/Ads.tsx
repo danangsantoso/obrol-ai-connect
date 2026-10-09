@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadCsv } from "@/lib/csv";
 import { cn } from "@/lib/utils";
-import { PERIODS, percent, periodRange, ratio, rpShort, useAdSettings } from "@/components/ads/shared";
+import { PERIODS, PLATFORMS, percent, periodRange, platformLabel, ratio, rpShort, useAdSettings } from "@/components/ads/shared";
 
 type Level = "campaign" | "adset" | "ad";
 const LEVELS: { value: Level; label: string; noun: string }[] = [
@@ -36,6 +36,7 @@ interface Summary {
   events_sent: number;
   events_failed: number;
   daily: { date: string; spend: number; revenue: number; leads: number }[];
+  platforms: { platform: string; spend: number; leads: number; closings: number; revenue: number }[];
 }
 
 interface ReportRow {
@@ -43,6 +44,7 @@ interface ReportRow {
   name: string;
   parent: string | null;
   path: string | null;
+  platform: string;
   spend: number;
   leads: number;
   closings: number;
@@ -70,21 +72,23 @@ export default function Ads() {
   const isAdmin = profile!.role === "admin";
   const [period, setPeriod] = useState("7");
   const [level, setLevel] = useState<Level>("campaign");
+  const [platform, setPlatform] = useState("all");
   const range = useMemo(() => periodRange(period), [period]);
+  const p_platform = platform === "all" ? undefined : platform;
   const { data: settings } = useAdSettings(orgId);
 
   const summary = useQuery({
-    queryKey: ["ads-summary", orgId, range],
+    queryKey: ["ads-summary", orgId, range, platform],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("ads_summary", range);
+      const { data, error } = await supabase.rpc("ads_summary", { ...range, p_platform });
       if (error) throw error;
       return data as unknown as Summary;
     },
   });
   const report = useQuery({
-    queryKey: ["ads-report", orgId, range, level],
+    queryKey: ["ads-report", orgId, range, level, platform],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("ads_report", { ...range, p_level: level });
+      const { data, error } = await supabase.rpc("ads_report", { ...range, p_level: level, p_platform });
       if (error) throw error;
       return (data ?? []) as unknown as ReportRow[];
     },
@@ -95,13 +99,29 @@ export default function Ads() {
   const revenue = Number(s?.revenue ?? 0);
   const leads = s?.leads ?? 0;
   const closings = s?.closings ?? 0;
-  const connected = Boolean(settings?.pixel_id && settings?.capi_token_hint);
+  const linked = [
+    settings?.pixel_id && settings?.capi_token_hint ? "Meta" : null,
+    settings?.google_customer_id && settings?.google_token_hint ? "Google Ads" : null,
+    settings?.tiktok_pixel_code && settings?.tiktok_token_hint ? "TikTok" : null,
+  ].filter(Boolean) as string[];
+  const connected = linked.length > 0;
+  const errors = [
+    settings?.last_event_error && `Meta: ${settings.last_event_error}`,
+    settings?.google_event_error && `Google: ${settings.google_event_error}`,
+    settings?.tiktok_event_error && `TikTok: ${settings.tiktok_event_error}`,
+  ].filter(Boolean) as string[];
+  const spendErrors = [
+    settings?.last_spend_error && `Meta: ${settings.last_spend_error}`,
+    settings?.google_spend_error && `Google: ${settings.google_spend_error}`,
+    settings?.tiktok_spend_error && `TikTok: ${settings.tiktok_spend_error}`,
+  ].filter(Boolean) as string[];
+  const spendAuto = Boolean(settings?.ad_account_id || settings?.google_customer_id || settings?.tiktok_advertiser_id);
   const noun = LEVELS.find((l) => l.value === level)!.noun;
   const rows = report.data ?? [];
 
   const funnel = s
     ? [
-        { label: "Klik iklan (dari Meta)", value: s.ad_clicks + s.link_clicks > 0 ? s.ad_clicks || s.link_clicks : null },
+        { label: "Klik iklan", value: s.ad_clicks + s.link_clicks > 0 ? s.ad_clicks || s.link_clicks : null },
         { label: "Chat masuk dari iklan", value: leads },
         { label: "Dibalas tim / AI", value: s.replied },
         { label: "Pesanan dibuat", value: s.orders },
@@ -114,8 +134,9 @@ export default function Ads() {
 
   const exportCsv = () =>
     downloadCsv(`iklan-${noun.replace(" ", "-")}-${range.p_from}-${range.p_to}.csv`, [
-      ["Nama", "Induk", "Jalur", "Biaya", "Lead", "CPL", "Closing", "Konversi", "Omzet", "ROAS"],
+      ["Platform", "Nama", "Induk", "Jalur", "Biaya", "Lead", "CPL", "Closing", "Konversi", "Omzet", "ROAS"],
       ...rows.map((r) => [
+        platformLabel(r.platform),
         r.name,
         r.parent ?? "",
         r.path === "link" ? "Landing page" : r.path === "ctwa" ? "WhatsApp" : "",
@@ -134,9 +155,22 @@ export default function Ads() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Iklan</h1>
-          <p className="text-muted-foreground">Biaya iklan Meta, chat yang masuk dari iklan, dan closing-nya. CPL dan ROAS dihitung otomatis.</p>
+          <p className="text-muted-foreground">Biaya iklan Meta, Google & TikTok, chat yang masuk dari iklan, dan closing-nya. CPL dan ROAS dihitung otomatis.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Select value={platform} onValueChange={setPlatform}>
+            <SelectTrigger className="w-44" aria-label="Platform iklan">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua platform</SelectItem>
+              {PLATFORMS.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-44" aria-label="Periode">
               <SelectValue />
@@ -151,13 +185,13 @@ export default function Ads() {
           </Select>
           <Button variant="outline" asChild>
             <Link to="/ads/links">
-              <Link2 className="mr-1 h-4 w-4" /> Link landing page
+              <Link2 className="mr-1 h-4 w-4" /> Link & rotator
             </Link>
           </Button>
           {isAdmin && (
             <Button variant="outline" asChild>
               <Link to="/ads/settings">
-                <Settings2 className="mr-1 h-4 w-4" /> Pengaturan Meta
+                <Settings2 className="mr-1 h-4 w-4" /> Pengaturan iklan
               </Link>
             </Button>
           )}
@@ -166,25 +200,25 @@ export default function Ads() {
 
       {settings !== undefined &&
         (connected ? (
-          <div className={cn("flex flex-wrap items-center gap-2 rounded-xl border px-4 py-3 text-sm", settings?.last_event_error ? "border-warning/40 bg-warning/10" : "border-success/30 bg-success/10")}>
-            {settings?.last_event_error ? <AlertTriangle className="h-4 w-4 text-warning" /> : <CheckCircle2 className="h-4 w-4 text-success" />}
+          <div className={cn("flex flex-wrap items-center gap-2 rounded-xl border px-4 py-3 text-sm", errors.length ? "border-warning/40 bg-warning/10" : "border-success/30 bg-success/10")}>
+            {errors.length ? <AlertTriangle className="h-4 w-4 text-warning" /> : <CheckCircle2 className="h-4 w-4 text-success" />}
             <span className="flex-1">
-              <b>Terhubung ke Meta.</b> {s?.events_sent ?? 0} event terkirim periode ini
+              <b>Terhubung ke {linked.join(", ")}.</b> {s?.events_sent ?? 0} event terkirim periode ini
               {s?.events_failed ? `, ${s.events_failed} gagal` : ""}.
-              {settings?.last_event_error && <> Error terakhir: {settings.last_event_error}</>}
-              {settings?.last_spend_error && <> · Biaya iklan: {settings.last_spend_error}</>}
+              {errors.length > 0 && <> Error terakhir: {errors.join(" · ")}</>}
+              {spendErrors.length > 0 && <> · Biaya iklan: {spendErrors.join(" · ")}</>}
             </span>
             {isAdmin && (
               <Link to="/ads/settings" className="font-semibold underline underline-offset-2">
-                Pengaturan Meta
+                Pengaturan iklan
               </Link>
             )}
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
             <span className="flex-1">
-              <b>Belum terhubung ke Meta.</b> Chat dari iklan tetap tercatat di sini. Hubungkan Pixel agar Lead dan Purchase terkirim ke Ads
-              Manager, dan akun iklan agar biaya iklan terisi otomatis.
+              <b>Belum terhubung ke platform iklan.</b> Chat dari iklan tetap tercatat di sini. Hubungkan Meta, Google Ads atau TikTok agar Lead dan
+              Purchase terkirim ke platformnya, dan akun iklan agar biaya iklan terisi otomatis.
             </span>
             {isAdmin && (
               <Button size="sm" asChild>
@@ -198,13 +232,58 @@ export default function Ads() {
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       ) : (
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
-          <Tile label="Biaya iklan" value={rpShort(spend)} hint={settings?.ad_account_id ? "dari Meta Ads" : "diisi manual"} />
+          <Tile label="Biaya iklan" value={rpShort(spend)} hint={spendAuto ? "dari akun iklan" : "diisi manual"} />
           <Tile label="Lead (chat dari iklan)" value={leads.toLocaleString("id-ID")} hint={`${s?.leads_ctwa ?? 0} langsung WA · ${s?.leads_link ?? 0} landing page`} />
           <Tile label="CPL" value={leads && spend ? rpShort(spend / leads) : "–"} hint="biaya ÷ lead" tone="blue" />
           <Tile label="Closing" value={closings.toLocaleString("id-ID")} hint={`${percent(closings, leads)} dari lead${closings && spend ? ` · ${rpShort(spend / closings)} per closing` : ""}`} />
           <Tile label="Omzet dari iklan" value={rpShort(revenue)} hint="pesanan lunas + closing manual" />
           <Tile label="ROAS" value={spend ? `${ratio(revenue, spend)}×` : "–"} hint="omzet ÷ biaya" tone="green" />
         </div>
+      )}
+
+      {s && platform === "all" && s.platforms.some((p) => Number(p.spend) > 0 || p.leads > 0) && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Per platform</CardTitle>
+            <CardDescription>Bandingkan biaya per lead dan ROAS tiap platform iklan.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
+            {s.platforms
+              .filter((p) => Number(p.spend) > 0 || p.leads > 0)
+              .map((p) => {
+                const meta = PLATFORMS.find((x) => x.value === p.platform);
+                const sp = Number(p.spend);
+                const rv = Number(p.revenue);
+                return (
+                  <button
+                    key={p.platform}
+                    type="button"
+                    onClick={() => setPlatform(p.platform)}
+                    className="space-y-1 rounded-xl border p-3 text-left text-sm transition-colors hover:bg-muted/50"
+                    aria-label={`Lihat ${meta?.label ?? p.platform}`}
+                  >
+                    <span className="flex items-center gap-2 font-semibold">
+                      <span className={cn("h-2.5 w-2.5 rounded-full", meta?.color)} /> {meta?.label ?? p.platform}
+                    </span>
+                    <span className="grid grid-cols-2 gap-x-2 text-xs text-muted-foreground">
+                      <span>Biaya</span>
+                      <b className="text-right text-foreground tabular-nums">{rpShort(sp)}</b>
+                      <span>Lead · CPL</span>
+                      <b className="text-right text-foreground tabular-nums">
+                        {p.leads} · {p.leads && sp ? rpShort(sp / p.leads) : "–"}
+                      </b>
+                      <span>Closing</span>
+                      <b className="text-right text-foreground tabular-nums">{p.closings}</b>
+                      <span>Omzet · ROAS</span>
+                      <b className="text-right text-foreground tabular-nums">
+                        {rpShort(rv)} · {sp ? `${ratio(rv, sp)}×` : "–"}
+                      </b>
+                    </span>
+                  </button>
+                );
+              })}
+          </CardContent>
+        </Card>
       )}
 
       {s && (
@@ -328,6 +407,7 @@ export default function Ads() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nama</TableHead>
+                    <TableHead>Platform</TableHead>
                     <TableHead>Jalur</TableHead>
                     <TableHead className="text-right">Biaya</TableHead>
                     <TableHead className="text-right">Lead</TableHead>
@@ -345,10 +425,16 @@ export default function Ads() {
                     const rv = Number(r.revenue);
                     const roas = sp ? rv / sp : null;
                     return (
-                      <TableRow key={r.key}>
+                      <TableRow key={`${r.platform}:${r.key}`}>
                         <TableCell>
                           <p className="font-medium">{r.name}</p>
                           {r.parent && <p className="text-xs text-muted-foreground">{r.parent}</p>}
+                        </TableCell>
+                        <TableCell>
+                          <span className="flex items-center gap-1.5 text-xs font-semibold">
+                            <span className={cn("h-2 w-2 rounded-full", PLATFORMS.find((x) => x.value === r.platform)?.color)} />
+                            {platformLabel(r.platform)}
+                          </span>
                         </TableCell>
                         <TableCell>
                           {r.path && (

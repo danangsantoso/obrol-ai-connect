@@ -64,3 +64,21 @@ export function formatDateTime(iso: string | null) {
   if (!iso) return "-";
   return new Date(iso).toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
+
+const TRACKING: Record<string, string> = {
+  confirmed: "diterima kurir",
+  allocated: "kurir ditugaskan",
+  picking_up: "kurir menuju penjemputan",
+  picked: "sudah diambil kurir",
+  dropping_off: "sedang diantar",
+  on_going: "dalam perjalanan",
+  return_in_transit: "kembali ke pengirim",
+  on_hold: "tertahan di kurir",
+  delivered: "diterima",
+  rejected: "ditolak",
+  courier_not_found: "kurir belum ditemukan",
+  returned: "dikembalikan",
+  cancelled: "dibatalkan",
+  disposed: "dimusnahkan",
+};
+export const trackingLabel = (status: string | null | undefined) => (status ? (TRACKING[status] ?? status.replace(/_/g, " ")) : "–");
