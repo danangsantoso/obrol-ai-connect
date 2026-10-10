@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderDetail, StatusBadge } from "@/components/orders/OrderDetail";
+import { trackingLabel } from "@/components/orders/orders";
 import { ORDER_STATUS, type OrderItem, formatDateTime, rupiah } from "@/components/orders/orders";
 import { downloadCsv } from "@/lib/csv";
 
@@ -150,6 +151,7 @@ export default function Orders() {
                   <TableCell className="text-right">{rupiah(o.total)}</TableCell>
                   <TableCell>
                     <StatusBadge status={o.status} />
+                    {o.status === "shipped" && o.tracking_status && <p className="mt-0.5 text-xs text-muted-foreground">{trackingLabel(o.tracking_status)}</p>}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">{formatDateTime(o.created_at)}</TableCell>
                 </TableRow>

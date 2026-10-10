@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -14,19 +14,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { displayName, formatWaId } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { ImportContactsDialog } from "@/components/contacts/ImportContactsDialog";
+import { SEGMENTS } from "@/components/contacts/segments";
+import { cn } from "@/lib/utils";
 
 export default function Contacts() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [params, setParams] = useSearchParams();
+  const segment = params.get("segment");
+  const setSegment = (v: string | null) => setParams(v ? { segment: v } : {}, { replace: true });
   const [mergeInto, setMergeInto] = useState<(typeof contacts)[number] | null>(null);
   const term = search.trim();
   const canMerge = profile!.role !== "agent";
 
   const { data: contacts = [], isLoading } = useQuery({
-    queryKey: ["contacts", term],
+    queryKey: ["contacts", term, segment],
     queryFn: async () => {
+      const ids = segment ? ((await supabase.rpc("segment_contacts", { p_segment: segment, p_limit: 200 })).data ?? []) : null;
       let query = supabase
         .from("contacts")
         .select("id, wa_id, name, profile_name, username, email, company, created_at, broadcast_opt_out, conversations(id), linked:contacts!merged_into(id, wa_id, username)")
@@ -34,6 +40,7 @@ export default function Contacts() {
         .is("merged_into", null)
         .order("created_at", { ascending: false })
         .limit(200);
+      if (ids) query = query.in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
       if (term) {
         const like = `%${term.replace(/[%_,()]/g, "")}%`;
         query = query.or(
@@ -44,6 +51,11 @@ export default function Contacts() {
       if (error) throw error;
       return data;
     },
+  });
+
+  const { data: segmentCounts = [] } = useQuery({
+    queryKey: ["segment-counts", profile!.organization_id],
+    queryFn: async () => (await supabase.rpc("segment_counts")).data ?? [],
   });
 
   return (
@@ -68,6 +80,27 @@ export default function Contacts() {
             />
           </div>
         </div>
+      </div>
+
+      <div role="tablist" aria-label="Segmen" className="flex flex-wrap gap-2">
+        {[{ value: null, label: "Semua" }, ...SEGMENTS].map((sg) => {
+          const n = sg.value ? Number(segmentCounts.find((c) => c.segment === sg.value)?.contacts ?? 0) : null;
+          return (
+            <button
+              key={sg.value ?? "all"}
+              role="tab"
+              aria-selected={segment === sg.value}
+              onClick={() => setSegment(sg.value)}
+              className={cn(
+                "min-h-9 rounded-full border px-3 text-sm font-medium transition-colors",
+                segment === sg.value ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
+              )}
+            >
+              {sg.label}
+              {n !== null && <span className="ml-1.5 tabular-nums opacity-75">{n}</span>}
+            </button>
+          );
+        })}
       </div>
 
       <Card>

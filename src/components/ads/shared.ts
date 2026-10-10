@@ -46,3 +46,11 @@ export function useAdSettings(orgId: string) {
 }
 
 export const SOURCE_LABEL: Record<string, string> = { ctwa: "Iklan → WhatsApp", link: "Landing page" };
+
+export const PLATFORMS = [
+  { value: "meta", label: "Meta", color: "bg-blue-500" },
+  { value: "google", label: "Google", color: "bg-amber-500" },
+  { value: "tiktok", label: "TikTok", color: "bg-slate-900 dark:bg-slate-200" },
+  { value: "other", label: "Lainnya", color: "bg-muted-foreground" },
+] as const;
+export const platformLabel = (p: string | null | undefined) => PLATFORMS.find((x) => x.value === p)?.label ?? "Meta";

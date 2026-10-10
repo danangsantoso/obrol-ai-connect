@@ -486,3 +486,132 @@ export async function setOrderStatus(
   }
   return order as Order;
 }
+
+// ---------------------------------------------------------------------------
+// Shipment tracking (Biteship)
+// ---------------------------------------------------------------------------
+// Courier codes Biteship knows, from what agents type ("J&T", "SiCepat REG", "POS Indonesia").
+const COURIERS: [RegExp, string][] = [
+  [/^j\s*&?\s*t|^jnt/, "jnt"],
+  [/^jne/, "jne"],
+  [/^si\s*cepat/, "sicepat"],
+  [/^anter\s*aja/, "anteraja"],
+  [/^pos/, "pos"],
+  [/^tiki/, "tiki"],
+  [/^ninja/, "ninja"],
+  [/^lion/, "lion"],
+  [/^id\s*express|^idx/, "idexpress"],
+  [/^sap/, "sap"],
+  [/^wahana/, "wahana"],
+  [/^rpx/, "rpx"],
+  [/^paxel/, "paxel"],
+  [/^sentral\s*cargo/, "sentralcargo"],
+];
+
+export function courierCode(courier: string | null): string | null {
+  const c = (courier ?? "").trim().toLowerCase();
+  return COURIERS.find(([re]) => re.test(c))?.[1] ?? null;
+}
+
+const TRACKING_LABELS: Record<string, string> = {
+  confirmed: "pesanan diterima kurir",
+  allocated: "kurir sudah ditugaskan",
+  picking_up: "kurir menuju lokasi penjemputan",
+  picked: "paket sudah diambil kurir",
+  dropping_off: "paket sedang diantar ke alamat tujuan",
+  on_going: "paket dalam perjalanan",
+  return_in_transit: "paket dalam perjalanan kembali ke pengirim",
+  on_hold: "paket tertahan di kurir",
+  delivered: "paket sudah diterima",
+  rejected: "paket ditolak",
+  courier_not_found: "kurir belum ditemukan",
+  returned: "paket dikembalikan ke pengirim",
+  cancelled: "pengiriman dibatalkan",
+  disposed: "paket dimusnahkan",
+};
+export const trackingLabel = (status: string | null) => (status ? TRACKING_LABELS[status] ?? status.replace(/_/g, " ") : null);
+
+export interface Tracking {
+  status: string;
+  note: string | null;
+  updated_at: string | null;
+}
+
+// The latest status of a parcel.
+export async function trackShipment(key: string, waybill: string, courier: string): Promise<Tracking> {
+  const base = Deno.env.get("BITESHIP_API_BASE") || "https://api.biteship.com";
+  const body = await callProvider<{ status?: string; history?: { note?: string; status?: string; updated_at?: string }[] }>(
+    "Biteship",
+    `${base}/v1/trackings/${encodeURIComponent(waybill)}/couriers/${courier}`,
+    { headers: { Authorization: key } },
+  );
+  const last = body.history?.[body.history.length - 1];
+  return { status: String(body.status ?? last?.status ?? "on_going").toLowerCase(), note: last?.note ?? null, updated_at: last?.updated_at ?? null };
+}
+
+// A delivered parcel completes the order and the customer hears it arrived.
+async function delivered(admin: SupabaseClient, order: Order) {
+  const { data: done } = await admin.from("orders")
+    .update({ status: "completed", delivered_at: new Date().toISOString(), tracking_status: "delivered", tracking_checked_at: new Date().toISOString() })
+    .eq("id", order.id).eq("status", "shipped").select().maybeSingle();
+  if (!done) return;
+  await admin.from("order_events").insert({ organization_id: order.organization_id, order_id: order.id, actor_id: null, event: "completed", note: "Paket diterima (cek resi otomatis)" });
+  await notify(
+    admin,
+    done as Order,
+    `📦 Paket pesanan *${order.number}* sudah sampai di alamat tujuan. Terima kasih sudah berbelanja, semoga suka ya kak 🙏\nKalau ada kendala dengan barangnya, kabari kami di chat ini.`,
+    null,
+  );
+}
+
+// Checks one order now (AI "cek resi" and the sweep). Returns the status, or null when it cannot be tracked.
+export async function refreshTracking(admin: SupabaseClient, order: Order, key: string): Promise<Tracking | null> {
+  const courier = courierCode(order.courier);
+  if (!courier || !order.tracking_number) return null;
+  const t = await trackShipment(key, order.tracking_number, courier);
+  if (t.status === "delivered" && order.status === "shipped") {
+    await delivered(admin, order);
+  } else {
+    await admin.from("orders").update({ tracking_status: t.status, tracking_checked_at: new Date().toISOString() }).eq("id", order.id);
+  }
+  return t;
+}
+
+// Shipped orders of organizations with a Biteship key, every 3 hours each (minute sweep).
+export async function sweepTracking(admin: SupabaseClient, deadlineMs = Date.now() + 40_000) {
+  const { data: keyed } = await admin.from("payment_secrets").select("organization_id, biteship_api_key").not("biteship_api_key", "is", null);
+  if (!keyed?.length) return { tracked: 0, delivered: 0 };
+  const keys = new Map<string, string>();
+  const threeHoursAgo = new Date(Date.now() - 3 * 3600_000).toISOString();
+  const { data: orders } = await admin.from("orders").select("*")
+    .eq("status", "shipped").not("tracking_number", "is", null)
+    .in("organization_id", keyed.map((k) => k.organization_id))
+    .gt("shipped_at", new Date(Date.now() - 45 * 86400_000).toISOString())
+    .or(`tracking_checked_at.is.null,tracking_checked_at.lt.${threeHoursAgo}`)
+    .order("tracking_checked_at", { ascending: true, nullsFirst: true })
+    .limit(25);
+  let tracked = 0;
+  let arrived = 0;
+  for (const order of (orders ?? []) as (Order & { shipped_at: string })[]) {
+    if (Date.now() > deadlineMs) break;
+    try {
+      if (!keys.has(order.organization_id)) {
+        const enc = keyed.find((k) => k.organization_id === order.organization_id)?.biteship_api_key;
+        keys.set(order.organization_id, enc ? await decryptSecret(enc) : "");
+      }
+      const key = keys.get(order.organization_id);
+      if (!key || !courierCode(order.courier)) {
+        await admin.from("orders").update({ tracking_checked_at: new Date().toISOString() }).eq("id", order.id);
+        continue;
+      }
+      const t = await refreshTracking(admin, order, key);
+      tracked++;
+      if (t?.status === "delivered") arrived++;
+    } catch (err) {
+      // Wrong number or courier: try again in three hours.
+      await admin.from("orders").update({ tracking_checked_at: new Date().toISOString() }).eq("id", order.id);
+      if (!(err instanceof HttpError)) console.error(`tracking ${order.number} failed`, err);
+    }
+  }
+  return { tracked, delivered: arrived };
+}

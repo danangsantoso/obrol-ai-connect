@@ -5,7 +5,17 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { HttpError, reportError } from "./http.ts";
 import { decryptSecret } from "./crypto.ts";
 import { type ChatMessage, complete, type LlmConfig, LlmError, ORDER_REPLY_SCHEMA, type Provider } from "./llm.ts";
-import { createOrder, loadPaymentConfig, type PaymentConfig, rupiah, sendInvoice, shippingRates } from "./payments.ts";
+import {
+  createOrder,
+  loadPaymentConfig,
+  type Order,
+  type PaymentConfig,
+  refreshTracking,
+  rupiah,
+  sendInvoice,
+  shippingRates,
+  trackingLabel,
+} from "./payments.ts";
 import { clearTyping, sendToConversation, showTyping, typingMs } from "./send.ts";
 import { DEFAULT_SOUL } from "./soul.ts";
 import { sendAwayMessage } from "./hours.ts";
@@ -624,14 +634,49 @@ export async function suggest(admin: SupabaseClient, orgId: string, conversation
   }
 }
 
+type OrderWithTracking = Order & { tracking_status: string | null; tracking_checked_at: string | null; delivered_at: string | null };
+
+const ORDER_STATUS: Record<string, string> = { paid: "sudah dibayar, menunggu diproses", processing: "sedang dikemas", shipped: "sudah dikirim", completed: "selesai" };
+
+// One line per recent order; a parcel on its way is checked again when the last check is over an hour old.
+async function orderStatusLine(admin: SupabaseClient, cfg: PaymentConfig, o: OrderWithTracking) {
+  let tracking = o.tracking_status;
+  let note: string | null = null;
+  if (o.status === "shipped" && o.tracking_number && cfg.keys.biteship &&
+      (!o.tracking_checked_at || Date.now() - new Date(o.tracking_checked_at).getTime() > 3600_000)) {
+    try {
+      const t = await refreshTracking(admin, o, cfg.keys.biteship);
+      if (t) {
+        tracking = t.status;
+        note = t.note;
+      }
+    } catch (err) {
+      console.error(`tracking ${o.number} failed`, err);
+    }
+  }
+  const items = (o.items ?? []).map((i) => `${i.qty}x ${i.name}`).join(", ");
+  const parts = [`- ${o.number} (${items}), total ${rupiah(o.total)}: ${tracking === "delivered" ? "paket sudah diterima" : ORDER_STATUS[o.status] ?? o.status}`];
+  if (o.tracking_number) parts.push(`kurir ${o.courier ?? "-"}, resi ${o.tracking_number}`);
+  if (tracking && tracking !== "delivered" && o.status === "shipped") parts.push(`posisi: ${trackingLabel(tracking)}${note ? ` (${note})` : ""}`);
+  return parts.join("; ");
+}
+
 // What the AI needs to sell in this chat, or null when nothing applies.
 async function commerceFor(admin: SupabaseClient, orgId: string, conversationId: string) {
-  const [cfg, { data: unpaid }] = await Promise.all([
+  const [cfg, { data: unpaid }, { data: recent }] = await Promise.all([
     loadPaymentConfig(admin, orgId),
     admin.from("orders").select("number, total, payment_url, items").eq("conversation_id", conversationId)
       .eq("status", "awaiting_payment").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    admin.from("orders").select("*").eq("conversation_id", conversationId).in("status", ["paid", "processing", "shipped", "completed"])
+      .gt("created_at", new Date(Date.now() - 60 * 86400_000).toISOString()).order("created_at", { ascending: false }).limit(3),
   ]);
   const lines: string[] = [];
+  const orderLines = await Promise.all(((recent ?? []) as OrderWithTracking[]).map((o) => orderStatusLine(admin, cfg, o)));
+  if (orderLines.length) {
+    lines.push(
+      `PESANAN PELANGGAN INI (jawab pertanyaan status pesanan / cek resi dari data ini, jangan mengarang):\n${orderLines.join("\n")}`,
+    );
+  }
   if (unpaid) {
     const items = (unpaid.items as { name: string; qty: number }[]).map((i) => `${i.qty}x ${i.name}`).join(", ");
     const pay = unpaid.payment_url

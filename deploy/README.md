@@ -376,7 +376,7 @@ Skrip ini hanya membaca dan menampilkan:
 
 Nomor QR yang terputus juga tampil sebagai pita merah di Inbox, dan admin/supervisor mendapat notifikasi.
 
-## 5h. Tracking iklan Meta (CPL & ROAS)
+## 5h. Tracking iklan Meta, Google & TikTok (CPL & ROAS)
 
 Menu **Iklan** menampilkan chat yang datang dari iklan Facebook/Instagram, closing-nya, biaya iklan, **CPL** (biaya ÷ lead),
 dan **ROAS** (omzet ÷ biaya). Balas.id juga mengirim event **Lead** dan **Purchase** (dengan nilai rupiah) ke Meta lewat
@@ -386,7 +386,7 @@ Conversions API, jadi Ads Manager bisa menghitung ROAS dan mengoptimasi iklan un
 
 - *Iklan klik-ke-WhatsApp / Messenger / Instagram:* data iklan ikut otomatis bersama pesan pertama. Ini paling akurat di
   nomor API resmi. Di nomor scan QR, data iklan biasanya ikut, tapi tidak selalu.
-- *Iklan → landing page → WhatsApp:* buat link di **Iklan → Link landing page**, lalu pasang link itu di tombol WhatsApp.
+- *Iklan → landing page → WhatsApp:* buat link di **Iklan → Link & rotator**, lalu pasang link itu di tombol WhatsApp.
   Ikuti juga 3 langkah di halaman tersebut: script 1 baris di landing page dan Parameter URL di iklan. Klik dicatat,
   WhatsApp terbuka dengan kode pendek, dan chat yang membawa kode itu ditandai "dari iklan". Kodenya tidak tampil ke agen.
 - Satu pelanggan dihitung ke iklan **pertama** yang membawanya, selama masih dalam 28 hari (bisa diubah).
@@ -394,7 +394,7 @@ Conversions API, jadi Ads Manager bisa menghitung ROAS dan mengoptimasi iklan un
 **Closing:** dihitung otomatis saat pesanan di menu Pesanan **lunas**. Untuk transaksi di luar menu Pesanan (transfer
 langsung, COD, toko), agen menekan **Tandai closing** di chat (web maupun HP) lalu mengisi nilainya.
 
-**Menghubungkan ke Meta** (Iklan → Pengaturan Meta, khusus Admin):
+**Menghubungkan ke Meta** (Iklan → Pengaturan iklan, khusus Admin):
 
 1. **Pixel / Dataset ID dan token Conversions API**: Events Manager → pilih Pixel → Pengaturan → Conversions API →
    *Buat token akses*.
@@ -408,7 +408,74 @@ langsung, COD, toko), agen menekan **Tandai closing** di chat (web maupun HP) la
    Manager, kosongkan kode uji.
 
 Nomor HP pelanggan dikirim ke Meta dalam bentuk hash SHA-256. Isi chat tidak pernah dikirim. Event yang gagal (misalnya
-token kedaluwarsa) dicoba ulang otomatis, dan error terakhirnya tampil di halaman Pengaturan Meta.
+token kedaluwarsa) dicoba ulang otomatis, dan error terakhirnya tampil di halaman Pengaturan iklan.
+
+**Google Ads & TikTok Ads.** Klik dari Google (`gclid`, juga `gbraid`/`wbraid` di iPhone) dan TikTok (`ttclid`) dikenali
+lewat link landing page; salin parameter URL per platform dari halaman **Link & rotator**. Lead dan closing dikirim ke
+platform asal pelanggan, dan halaman Iklan bisa disaring per platform (Meta / Google / TikTok / Lainnya).
+
+- *Google Ads* (Pengaturan iklan → Google Ads): Customer ID, dua **aksi konversi impor klik** (Lead dan Pembelian, ID-nya
+  ada di URL `ctId=…`), OAuth Client ID & secret (Google Cloud Console → Kredensial), **developer token** (Google Ads → Alat →
+  Pusat API) dan **refresh token** (dibuat sekali di OAuth Playground dengan scope `https://www.googleapis.com/auth/adwords`).
+  Aktifkan *tag otomatis* di akun Google Ads agar `gclid` ikut di URL. Biaya per iklan diambil tiap jam.
+- *TikTok* (Pengaturan iklan → TikTok Ads): Pixel Code dan access token Events API; Advertiser ID + token dengan izin
+  Reporting untuk biaya iklan. Gunakan **Kode uji** untuk mengecek event di Events Manager TikTok.
+
+## 5i. Rotator CS (link bergiliran ke beberapa nomor / CS)
+
+Di **Iklan → Link & rotator → Link baru** (atau ✏️ pada link yang ada), centang beberapa **nomor WhatsApp** dan/atau
+beberapa **CS**:
+
+- Klik dibagi bergiliran ke nomor yang dicentang. Nomor QR yang terputus otomatis dilewati.
+- Chat baru dari link itu langsung diberikan ke CS gilirannya (yang online didahulukan), tidak perlu menunggu rotasi.
+- Klik label **Rotator** di tabel untuk melihat klik, chat, closing, dan omzet per nomor dan per CS.
+
+Link yang sama tetap mencatat iklan, jadi rotator bisa dipakai untuk iklan maupun link bio / brosur biasa.
+
+## 5j. Target & komisi CS
+
+Menu **Target & Komisi** berisi papan peringkat bulanan: chat yang dibalas, closing, konversi, omzet, progres target, dan
+komisi. Closing dihitung ke CS yang menangani chat; pesanan lunas dihitung ke pembuat pesanannya. Pesanan yang dibuat AI di
+chat tanpa CS masuk baris **AI / tanpa agen**.
+
+- **Atur target** (admin & supervisor): target omzet dan target closing untuk tim dan per orang, per bulan.
+- **Komisi** (khusus admin): % dari omzet closing + nominal per closing. Baris *Tim / Semua (umum)* berlaku untuk semua
+  yang tidak punya aturan sendiri.
+- CS hanya melihat komisinya sendiri; admin dan supervisor melihat semua.
+
+## 5k. Repeat order & segmen pelanggan
+
+Menu **Repeat Order** (admin & supervisor):
+
+1. Isi **masa habis** tiap produk (mis. kopi 250 g = 30 hari).
+2. Nyalakan **Pengingat beli lagi** dan atur pesannya (`{nama}`, `{produk}`).
+3. Saat pesanan berisi produk itu lunas, pengingat dijadwalkan beberapa hari sebelum produk habis lalu dikirim
+   otomatis. Kalau pelanggan sudah pesan lagi lebih dulu, pengingat dibatalkan.
+
+Pesanan dalam 14 hari setelah pengingat dihitung sebagai **Pesan lagi**, sehingga omzet dari pengingat terlihat.
+
+Pelanggan yang membalas STOP tidak diingatkan. Nomor API resmi butuh template (`{{1}}` = nama, `{{2}}` = produk) bila
+sudah lewat 24 jam sejak chat terakhir.
+
+**Segmen** dihitung otomatis:
+- **Baru**: 1 pesanan.
+- **Langganan**: 2+ pesanan.
+- **Tidur**: lama tidak pesan (batasnya diatur di halaman ini).
+- **Prospek**: chat 30 hari terakhir tapi belum pernah pesan.
+
+Filter segmen ada di **Kontak**, dan di **Broadcast** bisa dipilih segmen penerima. Contohnya: promo khusus pelanggan
+tidur.
+
+## 5l. Cek resi otomatis
+
+Bila API key Biteship sudah diisi (Pengaturan → Pembayaran), pesanan berstatus **Dikirim** dicek otomatis tiap 3 jam.
+Kurir dikenali dari nama yang diketik saat input resi: JNE, J&T, SiCepat, AnterAja, POS, TIKI, Ninja, Lion, IDExpress,
+SAP, Wahana, RPX, Paxel.
+
+- Saat paket **diterima**, pesanan otomatis jadi **Selesai** dan pelanggan mendapat pesan "paket sudah sampai".
+- Posisi paket tampil di daftar Pesanan. Di detail pesanan ada tombol **Cek resi** untuk mengecek saat itu juga.
+- AI tahu status pesanan dan resi pelanggan. Jika pelanggan bertanya "paket saya sudah sampai mana?", AI menjawab dari
+  data pengiriman terbaru dan tidak mengarang.
 
 ## 6. Update aplikasi
 

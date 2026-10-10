@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, Megaphone, Plus, Send, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { callFunction, displayName, errorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { SEGMENTS } from "@/components/contacts/segments";
 import { toast } from "sonner";
 
 const SUPPORTED: Record<string, string> = { cloud_api: "WhatsApp API resmi", qr: "WhatsApp (scan QR)", telegram: "Telegram" };
@@ -50,6 +52,7 @@ const EMPTY = {
   label_ids: [] as string[],
   active_within_days: "",
   only_opt_in: false,
+  segment: "",
   per_minute: 20,
   when: "now" as "now" | "later",
   scheduled_at: "",
@@ -57,8 +60,8 @@ const EMPTY = {
 
 const pct = (n: number, of: number) => (of ? Math.round((n / of) * 100) : 0);
 
-function NewBroadcast({ orgId, orgName, onDone }: { orgId: string; orgName: string; onDone: (id: string) => void }) {
-  const [form, setForm] = useState(EMPTY);
+function NewBroadcast({ orgId, orgName, segment, onDone }: { orgId: string; orgName: string; segment: string; onDone: (id: string) => void }) {
+  const [form, setForm] = useState({ ...EMPTY, segment });
   const [busy, setBusy] = useState(false);
   const { data: channels = [] } = useQuery({
     queryKey: ["broadcast-channels", orgId],
@@ -96,7 +99,7 @@ function NewBroadcast({ orgId, orgName, onDone }: { orgId: string; orgName: stri
   }, [paramCount]);
 
   const { data: audience } = useQuery({
-    queryKey: ["broadcast-audience", form.channel_id, form.label_ids, form.active_within_days, form.only_opt_in],
+    queryKey: ["broadcast-audience", form.channel_id, form.label_ids, form.active_within_days, form.only_opt_in, form.segment],
     enabled: !!form.channel_id,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("broadcast_audience_count", {
@@ -104,6 +107,7 @@ function NewBroadcast({ orgId, orgName, onDone }: { orgId: string; orgName: stri
         p_label_ids: form.label_ids,
         p_active_days: form.active_within_days ? Number(form.active_within_days) : null,
         p_only_opt_in: form.only_opt_in,
+        p_segment: form.segment || undefined,
       });
       if (error) throw error;
       return data as number;
@@ -142,6 +146,7 @@ function NewBroadcast({ orgId, orgName, onDone }: { orgId: string; orgName: stri
           label_ids: form.label_ids,
           active_within_days: form.active_within_days ? Number(form.active_within_days) : null,
           only_opt_in: form.only_opt_in,
+          segment: form.segment || null,
           per_minute: form.per_minute,
         })
         .select()
@@ -266,6 +271,20 @@ function NewBroadcast({ orgId, orgName, onDone }: { orgId: string; orgName: stri
 
         <div className="space-y-2">
           <Label>Penerima</Label>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Segmen pelanggan">
+            <span className="text-xs text-muted-foreground">Segmen:</span>
+            {[{ value: "", label: "Semua" }, ...SEGMENTS].map((sg) => (
+              <button
+                key={sg.value || "all"}
+                type="button"
+                onClick={() => setForm({ ...form, segment: sg.value })}
+                className={cn("rounded-full border px-3 py-1 text-xs", form.segment === sg.value ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground")}
+                aria-pressed={form.segment === sg.value}
+              >
+                {sg.label}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-2">
             {labels.map((l) => {
               const on = form.label_ids.includes(l.id);
@@ -442,7 +461,9 @@ function BroadcastDetail({ id, onClose }: { id: string; onClose: () => void }) {
 export default function Broadcast() {
   const { profile } = useAuth();
   const orgId = profile!.organization_id!;
-  const [creating, setCreating] = useState(false);
+  const [params] = useSearchParams();
+  const segment = SEGMENTS.some((s) => s.value === params.get("segment")) ? params.get("segment")! : "";
+  const [creating, setCreating] = useState(Boolean(segment));
   const [openId, setOpenId] = useState<string | null>(null);
   const { data: org } = useQuery({
     queryKey: ["org-name", orgId],
@@ -474,7 +495,7 @@ export default function Broadcast() {
         )}
       </div>
 
-      {creating && <NewBroadcast orgId={orgId} orgName={org?.name ?? "Toko"} onDone={(id) => { setCreating(false); setOpenId(id); }} />}
+      {creating && <NewBroadcast orgId={orgId} orgName={org?.name ?? "Toko"} segment={segment} onDone={(id) => { setCreating(false); setOpenId(id); }} />}
       {openId && <BroadcastDetail id={openId} onClose={() => setOpenId(null)} />}
 
       <Card>

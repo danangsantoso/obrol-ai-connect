@@ -1,6 +1,8 @@
 // Landing page → WhatsApp links (public, GET):
-//   /functions/v1/wa/<slug>   records the click (Facebook click id, cookies,
-//                             UTM / ad parameters) and redirects to wa.me with
+//   /functions/v1/wa/<slug>   records the click (Meta / Google / TikTok click
+//                             ids, cookies, UTM / ad parameters), picks the
+//                             number and agent in turn (CS rotator) and
+//                             redirects to wa.me with
 //                             the greeting plus a short code, e.g. "(#K7P2)";
 //                             the chat that arrives with that code becomes an
 //                             ad lead (ad_attribute_message).
@@ -14,7 +16,7 @@ const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const BOT = /bot|crawl|spider|facebookexternalhit|preview|slurp|whatsapp\//i;
 // Parameters copied from the landing page URL (Meta ads: add them as URL
 // parameters, e.g. campaign_id={{campaign.id}}&ad_id={{ad.id}}).
-const PARAMS = ["fbclid", "fbc", "fbp", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term",
+const PARAMS = ["fbclid", "fbc", "fbp", "gclid", "gbraid", "wbraid", "ttclid", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term",
   "campaign_id", "campaign_name", "adset_id", "adset_name", "ad_id", "ad_name", "lp"];
 
 const TRACKER = `(function(){
@@ -45,6 +47,18 @@ function code() {
   return Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join("");
 }
 
+// Which ad platform the visitor came from: its click id first, else utm_source.
+function platformOf(p: (k: string) => string | null): "meta" | "google" | "tiktok" | "other" {
+  if (p("gclid") || p("gbraid") || p("wbraid")) return "google";
+  if (p("ttclid")) return "tiktok";
+  if (p("fbclid") || p("fbc") || p("fbp")) return "meta";
+  const source = (p("utm_source") ?? "").toLowerCase();
+  if (/^(google|adwords|youtube)/.test(source)) return "google";
+  if (/^tiktok/.test(source)) return "tiktok";
+  if (/^(facebook|fb|instagram|ig|meta)\b/.test(source)) return "meta";
+  return "other";
+}
+
 function page(status: number, text: string) {
   return new Response(
     `<!doctype html><html lang="id"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Balas.id</title><body style="font-family:system-ui;padding:32px;text-align:center"><p>${text}</p></body></html>`,
@@ -68,18 +82,16 @@ Deno.serve(async (req) => {
     const admin = adminClient();
     const { data: link } = await admin
       .from("wa_links")
-      .select("id, organization_id, channel_id, message, is_active")
+      .select("id, organization_id, message, is_active")
       .eq("slug", last)
       .maybeSingle();
     if (!link?.is_active) return page(404, "Link ini sudah tidak aktif.");
 
-    // The number to open: the link's own, else the organization's first WhatsApp number.
-    let query = admin.from("channels").select("display_phone")
-      .eq("organization_id", link.organization_id).eq("is_active", true).in("provider", ["cloud_api", "qr"])
-      .not("display_phone", "is", null);
-    if (link.channel_id) query = query.eq("id", link.channel_id);
-    const { data: channels } = await query.order("created_at").limit(1);
-    const phone = (channels?.[0]?.display_phone ?? "").replace(/\D/g, "");
+    // The number to open and the agent for the chat, in turn (wa_link_pick).
+    const { data: picked, error: pickError } = await admin.rpc("wa_link_pick", { p_link: link.id });
+    if (pickError) throw pickError;
+    const pick = (picked as { channel_id: string | null; phone: string | null; agent_id: string | null }[] | null)?.[0];
+    const phone = pick?.phone ?? "";
     if (phone.length < 8) return page(503, "Nomor WhatsApp belum tersambung. Silakan coba lagi nanti.");
 
     const p = (k: string) => (url.searchParams.get(k) ?? "").trim().slice(0, 300) || null;
@@ -91,9 +103,16 @@ Deno.serve(async (req) => {
         const v = p(k);
         if (v) utm[k] = v;
       }
+      const platform = platformOf(p);
       const row = {
         organization_id: link.organization_id,
         link_id: link.id,
+        platform,
+        channel_id: pick?.channel_id ?? null,
+        agent_id: pick?.agent_id ?? null,
+        // iOS clicks carry gbraid / wbraid instead of gclid (see adplatforms.ts).
+        gclid: p("gclid") ?? (p("gbraid") ? `gbraid:${p("gbraid")}` : p("wbraid") ? `wbraid:${p("wbraid")}` : null),
+        ttclid: p("ttclid"),
         fbclid,
         fbc: p("fbc") ?? (fbclid ? `fb.1.${Date.now()}.${fbclid}` : null),
         fbp: p("fbp"),

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Loader2, MessageSquare } from "lucide-react";
+import { ExternalLink, Loader2, MessageSquare, Truck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { callFunction, errorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { NEXT_STATUS, ORDER_STATUS, type OrderItem, type OrderRow, PROVIDER_LABEL, formatDateTime, rupiah } from "./orders";
+import { NEXT_STATUS, ORDER_STATUS, type OrderItem, type OrderRow, PROVIDER_LABEL, formatDateTime, rupiah, trackingLabel } from "./orders";
 
 const EVENT_LABEL: Record<string, string> = {
   created: "Pesanan dibuat",
@@ -108,7 +108,42 @@ export function OrderDetail({ orderId, onOpenChange }: { orderId: string | null;
             <div className="rounded-lg bg-muted/60 p-3 text-sm">
               <p className="font-medium">{order.customer_name ?? "-"} {order.phone && <span className="font-normal text-muted-foreground">· {order.phone}</span>}</p>
               <p className="text-muted-foreground">{[order.address, order.city, order.postal_code].filter(Boolean).join(", ") || "Alamat belum diisi"}</p>
-              {order.tracking_number && <p className="mt-1">Resi: <span className="font-mono">{order.tracking_number}</span></p>}
+              {order.tracking_number && (
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span>
+                    Resi: <span className="font-mono">{order.tracking_number}</span>
+                  </span>
+                  {order.status === "shipped" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7"
+                      disabled={busy !== null}
+                      onClick={async () => {
+                        setBusy("track");
+                        try {
+                          const r = await callFunction<{ label: string | null }>("orders", { action: "track", order_id: order.id });
+                          toast.success(r.label ? `Posisi paket: ${r.label}` : "Status paket diperbarui");
+                          queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+                          queryClient.invalidateQueries({ queryKey: ["orders"] });
+                        } catch (err) {
+                          toast.error(errorMessage(err));
+                        } finally {
+                          setBusy(null);
+                        }
+                      }}
+                    >
+                      {busy === "track" ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Truck className="mr-1 h-3.5 w-3.5" />} Cek resi
+                    </Button>
+                  )}
+                </div>
+              )}
+              {(order.tracking_status || order.delivered_at) && (
+                <p className="text-xs text-muted-foreground">
+                  {order.delivered_at ? `Paket diterima ${formatDateTime(order.delivered_at)}` : `Posisi: ${trackingLabel(order.tracking_status)}`}
+                  {order.tracking_checked_at && !order.delivered_at && ` · dicek ${formatDateTime(order.tracking_checked_at)}`}
+                </p>
+              )}
               {order.notes && <p className="mt-1">Catatan: {order.notes}</p>}
             </div>
 

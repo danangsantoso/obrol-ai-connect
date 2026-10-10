@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, MessageSquare, Contact, Users, Settings, PanelLeftClose, PanelLeftOpen, Zap, SquareKanban, Bot, Plug, CalendarClock, ShoppingBag, Megaphone, BarChart3, History, Target } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Contact, Users, Settings, PanelLeftClose, PanelLeftOpen, Zap, SquareKanban, Bot, Plug, CalendarClock, ShoppingBag, Megaphone, BarChart3, History, Target, Trophy, Repeat } from "lucide-react";
 import { useAuth, type AppRole } from "@/contexts/AuthContext";
 import { Logo, LogoMark } from "@/components/brand/Logo";
 import { useUnreadTotal } from "@/hooks/useInboxNotifications";
@@ -14,6 +14,8 @@ const navigation: { name: string; href: string; icon: typeof LayoutDashboard; ro
   { name: "Iklan", href: "/ads", icon: Target, roles: ["admin", "supervisor"] },
   { name: "Pipeline", href: "/pipeline", icon: SquareKanban },
   { name: "Pesanan", href: "/orders", icon: ShoppingBag },
+  { name: "Target & Komisi", href: "/sales", icon: Trophy },
+  { name: "Repeat Order", href: "/repeat", icon: Repeat, roles: ["admin", "supervisor"] },
   { name: "Kontak", href: "/contacts", icon: Contact },
   { name: "Balasan Cepat", href: "/quick-replies", icon: Zap },
   { name: "Follow-up", href: "/followup", icon: CalendarClock },
@@ -48,7 +50,7 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {items.map((item) => (
           <NavLink
             key={item.href}

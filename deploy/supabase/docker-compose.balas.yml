@@ -65,6 +65,11 @@ services:
       XENDIT_API_BASE: ${XENDIT_API_BASE:-https://api.xendit.co}
       MIDTRANS_API_BASE: ${MIDTRANS_API_BASE:-}
       BITESHIP_API_BASE: ${BITESHIP_API_BASE:-https://api.biteship.com}
+      # Google Ads and TikTok Ads (accounts and tokens are set per tenant in the app)
+      GOOGLE_ADS_API_BASE: ${GOOGLE_ADS_API_BASE:-https://googleads.googleapis.com}
+      GOOGLE_ADS_API_VERSION: ${GOOGLE_ADS_API_VERSION:-v22}
+      GOOGLE_OAUTH_BASE: ${GOOGLE_OAUTH_BASE:-https://oauth2.googleapis.com}
+      TIKTOK_API_BASE: ${TIKTOK_API_BASE:-https://business-api.tiktok.com}
       # Contact address sent to browsers' push services with notifications
       PUSH_CONTACT_EMAIL: ${PUSH_CONTACT_EMAIL:-}
       PUSH_EXTRA_ORIGINS: ${PUSH_EXTRA_ORIGINS:-}
