@@ -1,5 +1,6 @@
 // Stores or removes the organization's AI provider API key (encrypted), and
 // checks that the provider answers with the saved settings. Admins only.
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { HttpError, json, readJson, serveJson } from "../_shared/http.ts";
 import { adminClient, audit, requireMember } from "../_shared/supabase.ts";
 import { encryptSecret } from "../_shared/crypto.ts";
@@ -11,12 +12,56 @@ interface AdminRequest {
   api_key?: string;
   // "stt" = the speech-to-text key (voice notes); default the chat model's key.
   kind?: "chat" | "stt";
+  // Panggilan server (service role): tenant yang diuji.
+  organization_id?: string;
+  // Hanya untuk panggilan server: paksa model utama supaya lapis cadangan terbukti.
+  force_model?: string;
+}
+
+// Uji koneksi AI. Mengembalikan model yang benar-benar menjawab sehingga lapis
+// cadangan bisa dibuktikan bekerja, bukan hanya diklaim.
+async function checkAi(admin: SupabaseClient, orgId: string, forceModel?: string) {
+  if (!orgId) throw new HttpError(400, "organization_id wajib untuk panggilan server", "invalid_request");
+  const ai = await loadAi(admin, orgId);
+  const target = forceModel ? { ...ai.llm, model: forceModel } : ai.llm;
+  const started = Date.now();
+  try {
+    const result = await complete(
+      target,
+      'Ini uji koneksi. Balas dengan JSON {"reply": "OK", "handoff": false, "reason": ""}.',
+      [{ role: "user", content: "Tes koneksi Balas.id" }],
+    );
+    return json({
+      ok: true,
+      provider: result.provider ?? target.provider,
+      model: result.model ?? target.model,
+      layer_used: result.layer ?? 1,
+      layers: 1 + (target.fallbacks?.length ?? 0),
+      latency_ms: Date.now() - started,
+      sample: result.text.slice(0, 200),
+    });
+  } catch (err) {
+    if (err instanceof LlmError) throw new HttpError(502, err.message, "ai_error");
+    throw err;
+  }
 }
 
 serveJson(async (req) => {
   const admin = adminClient();
-  const member = await requireMember(req, admin, ["admin"]);
   const input = await readJson<AdminRequest>(req);
+
+  // Skrip pemeliharaan di server (uji lapis model) memakai service role key,
+  // karena saat tidak ada admin yang login pun model harus bisa diuji.
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (bearer && serviceKey && bearer === serviceKey) {
+    if (input.action !== "check") {
+      throw new HttpError(403, "Panggilan server hanya boleh memakai action check", "forbidden");
+    }
+    return await checkAi(admin, String(input.organization_id ?? ""), input.force_model);
+  }
+
+  const member = await requireMember(req, admin, ["admin"]);
   const orgId = member.organization_id;
 
   const stt = input.kind === "stt";
@@ -50,19 +95,7 @@ serveJson(async (req) => {
   }
 
   if (input.action === "check") {
-    const ai = await loadAi(admin, orgId);
-    const started = Date.now();
-    try {
-      const result = await complete(
-        ai.llm,
-        'Ini uji koneksi. Balas dengan JSON {"reply": "OK", "handoff": false, "reason": ""}.',
-        [{ role: "user", content: "Tes koneksi Balas.id" }],
-      );
-      return json({ ok: true, provider: ai.llm.provider, model: ai.llm.model, latency_ms: Date.now() - started, sample: result.text.slice(0, 200) });
-    } catch (err) {
-      if (err instanceof LlmError) throw new HttpError(502, err.message, "ai_error");
-      throw err;
-    }
+    return await checkAi(admin, orgId);
   }
 
   throw new HttpError(400, "Unknown action", "invalid_request");

@@ -44,6 +44,13 @@ services:
   functions:
     environment:
       # WhatsApp Cloud API (Meta Business Manager -> WhatsApp -> API Setup / App settings)
+      # Kunci penyedia AI untuk model cadangan (berlapis). Kosongkan bila tidak
+      # dipakai: lapis tanpa kunci otomatis dilewati. Isi di supabase/.env.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      CUSTOM_AI_API_KEY: ${CUSTOM_AI_API_KEY:-}
       WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
       WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}

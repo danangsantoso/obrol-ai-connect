@@ -49,6 +49,8 @@ export interface LlmConfig {
   model: string;
   apiKey: string;
   baseUrl?: string | null;
+  // Model cadangan: dicoba berurutan ketika model utama gagal menjawab.
+  fallbacks?: LlmConfig[];
 }
 
 export interface LlmResult {
@@ -57,6 +59,11 @@ export interface LlmResult {
   outputTokens: number | null;
   // The model declined to answer (safety); the caller hands the chat to a person.
   refused: boolean;
+  // Which model actually answered (the chain may have moved past the first one).
+  provider?: Provider;
+  model?: string;
+  // 1 = model utama, 2+ = model cadangan yang dipakai.
+  layer?: number;
 }
 
 // Shape every provider is asked to answer in.
@@ -135,11 +142,42 @@ function friendlyStatus(status: number | null, detail: string): string {
   return detail || "Permintaan ke penyedia AI gagal.";
 }
 
-export function complete(
+// Model berlapis: model utama dicoba lebih dulu, lalu tiap model cadangan
+// berurutan. Satu model yang bermasalah (nama salah, kuota habis, penyedia
+// sedang down) tidak boleh membuat chat pelanggan berhenti dilayani.
+export async function complete(
   cfg: LlmConfig,
   system: string,
   messages: ChatMessage[],
   schema: Record<string, unknown> = REPLY_SCHEMA,
+): Promise<LlmResult> {
+  const chain = [cfg, ...(cfg.fallbacks ?? [])];
+  let lastError: unknown = null;
+  for (let i = 0; i < chain.length; i++) {
+    const layer = chain[i];
+    try {
+      const result = await completeOnce(layer, system, messages, schema);
+      // Jawaban kosong juga dianggap gagal: coba lapis berikutnya dulu.
+      if (!result.text && !result.refused && i < chain.length - 1) {
+        console.error(`model ${layer.provider}/${layer.model} tidak menghasilkan jawaban, lanjut ke lapis ${i + 2}`);
+        continue;
+      }
+      if (i > 0) console.log(`model cadangan dipakai: ${layer.provider}/${layer.model} (lapis ${i + 1}/${chain.length})`);
+      return { ...result, provider: layer.provider, model: layer.model, layer: i + 1 };
+    } catch (err) {
+      lastError = err;
+      const detail = err instanceof Error ? err.message : String(err);
+      console.error(`model lapis ${i + 1}/${chain.length} gagal (${layer.provider}/${layer.model}): ${detail}`);
+    }
+  }
+  throw lastError ?? new LlmError(null, "Tidak ada model AI yang bisa dipakai.");
+}
+
+function completeOnce(
+  cfg: LlmConfig,
+  system: string,
+  messages: ChatMessage[],
+  schema: Record<string, unknown>,
 ): Promise<LlmResult> {
   return cfg.provider === "anthropic"
     ? completeAnthropic(cfg, system, messages, schema)

@@ -43,7 +43,26 @@ export interface AiSettings {
   ai_followup_max: number;
   use_emoji: boolean;
   salutation: "auto" | "kak" | "bapak_ibu" | "name_only";
+  // Model cadangan tenant (jsonb), mis. [{provider, model, api_key_env}].
+  fallback_models: FallbackModel[] | null;
 }
+
+// Satu lapis model cadangan. Kuncinya TIDAK disimpan di database: lapis dari
+// penyedia lain memakai kunci dari env server (api_key_env).
+export interface FallbackModel {
+  provider?: Provider;
+  model?: string;
+  base_url?: string | null;
+  api_key_env?: string | null;
+}
+
+const PROVIDER_KEY_ENV: Record<Provider, string> = {
+  openai: "OPENAI_API_KEY",
+  anthropic: "ANTHROPIC_API_KEY",
+  deepseek: "DEEPSEEK_API_KEY",
+  gemini: "GEMINI_API_KEY",
+  custom: "CUSTOM_AI_API_KEY",
+};
 
 export interface AiOrder {
   ready: boolean;
@@ -112,6 +131,25 @@ const CATALOG_LIMIT = 80;
 const PASSAGE_LIMIT = 6;
 const GENERAL_BUDGET = 4000;
 
+// Rantai model cadangan untuk satu tenant. Lapis yang tidak punya kunci
+// dilewati, bukan menggagalkan chat.
+function buildFallbacks(settings: AiSettings, primaryKey: string): LlmConfig[] {
+  const list = Array.isArray(settings.fallback_models) ? settings.fallback_models : [];
+  const out: LlmConfig[] = [];
+  for (const raw of list) {
+    const provider = (raw?.provider ?? settings.provider) as Provider;
+    const model = String(raw?.model ?? "").trim();
+    if (!model) continue;
+    if (model === settings.model && provider === settings.provider) continue;
+    const envName = String(raw?.api_key_env ?? "").trim() || PROVIDER_KEY_ENV[provider];
+    // Penyedia yang sama memakai kunci tenant; penyedia lain kunci dari env.
+    const apiKey = provider === settings.provider ? primaryKey : (Deno.env.get(envName) ?? "");
+    if (!apiKey) continue;
+    out.push({ provider, model, apiKey, baseUrl: raw?.base_url ?? null });
+  }
+  return out;
+}
+
 export async function loadAi(admin: SupabaseClient, orgId: string): Promise<{ settings: AiSettings; llm: LlmConfig }> {
   const [{ data: settings }, { data: secret }] = await Promise.all([
     admin.from("ai_settings").select("*").eq("organization_id", orgId).maybeSingle<AiSettings>(),
@@ -119,13 +157,16 @@ export async function loadAi(admin: SupabaseClient, orgId: string): Promise<{ se
   ]);
   if (!settings) throw new HttpError(400, "AI belum diatur. Buka menu AI Agent.", "ai_not_configured");
   if (!secret?.api_key_encrypted) throw new HttpError(400, "API key AI belum diisi. Buka menu AI Agent.", "ai_not_configured");
+  // Kunci model utama dipakai ulang oleh model cadangan dari penyedia yang sama.
+  const primaryKey = await decryptSecret(secret.api_key_encrypted);
   return {
     settings,
     llm: {
       provider: settings.provider,
       model: settings.model,
       baseUrl: settings.base_url,
-      apiKey: await decryptSecret(secret.api_key_encrypted),
+      apiKey: primaryKey,
+      fallbacks: buildFallbacks(settings, primaryKey),
     },
   };
 }
