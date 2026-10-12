@@ -35,8 +35,10 @@ serveJson(async (req) => {
     if (!isServiceRole(req)) throw new HttpError(401, "Service role required", "unauthorized");
     if (input.action === "process") {
       if (!input.conversation_id) throw new HttpError(400, "conversation_id is required", "invalid_request");
-      inBackground(autoReply(admin, input.conversation_id));
-      return json({ accepted: true }, 202);
+      // Self-hosted Edge Runtime can terminate background work after the 202 response.
+      // Run inline so webhook fallbacks and cron sweeps actually finish the AI turn.
+      await autoReply(admin, input.conversation_id, Date.now() + 50_000);
+      return json({ accepted: true }, 200);
     }
     // Chats still marked as waiting a while after their last message, whose
     // turn is due (the AI may be giving agents a few minutes first).
@@ -51,13 +53,13 @@ serveJson(async (req) => {
       .limit(20);
     if (error) throw error;
     const deadline = Date.now() + 50_000;
-    inBackground((async () => {
-      for (const row of data ?? []) {
-        if (Date.now() > deadline - 15_000) break;
-        await autoReply(admin, row.id, deadline);
-      }
-    })());
-    return json({ accepted: true, conversations: (data ?? []).length }, 202);
+    // Do the sweep inline. The cron caller waits up to 58s, and this avoids
+    // losing claimed chats when background isolates are killed after response.
+    for (const row of data ?? []) {
+      if (Date.now() > deadline - 15_000) break;
+      await autoReply(admin, row.id, deadline);
+    }
+    return json({ accepted: true, conversations: (data ?? []).length }, 200);
   }
 
   if (input.action === "suggest") {

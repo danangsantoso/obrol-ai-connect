@@ -23,6 +23,7 @@ export function SocialConnect({ onConnected }: { onConnected: () => void }) {
   const [starting, setStarting] = useState(false);
   const [state, setState] = useState<string | null>(null);
   const [pages, setPages] = useState<FoundPage[] | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
   const [picks, setPicks] = useState<Picks>({});
   const [connecting, setConnecting] = useState(false);
 
@@ -40,8 +41,15 @@ export function SocialConnect({ onConnected }: { onConnected: () => void }) {
 
   useEffect(() => {
     if (!state) return;
+    setPages(null);
+    setPageError(null);
+    const timer = window.setTimeout(() => {
+      setPageError("Instagram/Messenger belum merespons. Tutup lalu login ulang Facebook.");
+    }, 20000);
     callFunction<{ pages: FoundPage[] }>("social-oauth", { action: "pages", state })
       .then(({ pages }) => {
+        window.clearTimeout(timer);
+        setPageError(null);
         setPages(pages);
         setPicks(
           Object.fromEntries(
@@ -50,9 +58,12 @@ export function SocialConnect({ onConnected }: { onConnected: () => void }) {
         );
       })
       .catch((err) => {
-        toast.error(errorMessage(err));
-        setState(null);
+        window.clearTimeout(timer);
+        const message = errorMessage(err);
+        setPageError(message);
+        toast.error(message);
       });
+    return () => window.clearTimeout(timer);
   }, [state]);
 
   const start = async () => {
@@ -74,6 +85,7 @@ export function SocialConnect({ onConnected }: { onConnected: () => void }) {
       toast.success(`${connected} akun terhubung`);
       setState(null);
       setPages(null);
+      setPageError(null);
       onConnected();
     } catch (err) {
       toast.error(errorMessage(err));
@@ -98,14 +110,20 @@ export function SocialConnect({ onConnected }: { onConnected: () => void }) {
         Hubungkan dengan Facebook
       </Button>
 
-      <Dialog open={state !== null} onOpenChange={(o) => { if (!o) { setState(null); setPages(null); } }}>
+      <Dialog open={state !== null} onOpenChange={(o) => { if (!o) { setState(null); setPages(null); setPageError(null); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Pilih akun yang dihubungkan</DialogTitle>
             <DialogDescription>Halaman Facebook (Messenger) dan akun Instagram Bisnis yang tertaut ke Halaman itu.</DialogDescription>
           </DialogHeader>
+          {pageError && (
+            <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{pageError}</p>
+          )}
           {!pages ? (
-            <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="space-y-3 text-center">
+              <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">Sedang mengambil daftar Halaman dari Facebook...</p>
+            </div>
           ) : pages.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Tidak ada Halaman. Pastikan akun Facebook ini admin sebuah Halaman dan izin Halaman dicentang saat login.
@@ -146,6 +164,9 @@ export function SocialConnect({ onConnected }: { onConnected: () => void }) {
             </div>
           )}
           <DialogFooter>
+            <Button variant="ghost" type="button" onClick={() => { setState(null); setPages(null); setPageError(null); }}>
+              Batal
+            </Button>
             <Button onClick={connect} disabled={!anyPicked || connecting}>
               {connecting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
               Hubungkan

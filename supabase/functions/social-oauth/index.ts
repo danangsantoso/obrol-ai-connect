@@ -62,16 +62,24 @@ async function callback(req: Request): Promise<Response> {
     const userToken = await exchangeCode(code);
     const pages = await listPages(userToken);
     const stored: StoredPage[] = [];
+    const seenPages = new Set<string>();
+    const seenInstagram = new Set<string>();
     for (const p of pages) {
+      if (seenPages.has(p.id)) continue;
+      seenPages.add(p.id);
+      const instagram = p.instagram_business_account && !seenInstagram.has(p.instagram_business_account.id)
+        ? p.instagram_business_account
+        : null;
+      if (instagram) seenInstagram.add(instagram.id);
       stored.push({
         id: p.id,
         name: p.name,
         token: await encryptSecret(p.access_token),
-        instagram: p.instagram_business_account
+        instagram: instagram
           ? {
-            id: p.instagram_business_account.id,
-            username: p.instagram_business_account.username ?? null,
-            avatar: p.instagram_business_account.profile_picture_url ?? null,
+            id: instagram.id,
+            username: instagram.username ?? null,
+            avatar: instagram.profile_picture_url ?? null,
           }
           : null,
       });
@@ -128,8 +136,13 @@ async function action(req: Request): Promise<Response> {
       const ch = (existing ?? []).find((c) => c.provider === provider && c.external_id === id);
       return ch ? (ch.organization_id === member.organization_id ? "here" : "elsewhere") : null;
     };
+    const seen = new Set<string>();
     return json({
-      pages: pages.map((p) => ({
+      pages: pages.filter((p) => {
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      }).map((p) => ({
         id: p.id,
         name: p.name,
         messenger: taken("messenger", p.id),
@@ -141,7 +154,10 @@ async function action(req: Request): Promise<Response> {
   if (input.action === "connect") {
     const pages = await loadState(admin, input.state ?? "", member.organization_id);
     let connected = 0;
+    const seenItems = new Set<string>();
     for (const item of input.items ?? []) {
+      if (!item.page_id || seenItems.has(item.page_id)) continue;
+      seenItems.add(item.page_id);
       const page = pages.find((p) => p.id === item.page_id);
       if (!page || (!item.messenger && !item.instagram)) continue;
       const token = await decryptSecret(page.token);
